@@ -176,8 +176,6 @@ namespace NeuroSonic.GamePlay
                 return false;
 
             //m_slamSample = m_resources.QueueAudioLoad("audio/slam");
-            var slamStream = m_locator.OpenAudioStream("audio/slam", out string slamExt);
-            m_slamSample = AudioTrack.FromStream(slamExt, slamStream);
 
             if (!m_resources.LoadAll())
                 return false;
@@ -199,7 +197,10 @@ namespace NeuroSonic.GamePlay
             if (!m_resources.FinalizeLoad())
                 return false;
 
+            var slamStream = m_locator.OpenAudioStream("audio/slam", out string slamExt);
+            m_slamSample = AudioTrack.FromStream(slamExt, slamStream);
             m_slamSample.Channel = Mixer.MasterChannel;
+            m_slamSample.RemoveFromChannelOnFinish = false;
 
             return true;
         }

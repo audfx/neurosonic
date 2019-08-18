@@ -15,7 +15,7 @@ namespace NeuroSonic.GamePlay
         public float SpinTimer { get; set; }
         public float SwingTimer { get; set; }
 
-        private LuaScript m_script;
+        private LuaScript m_script = new LuaScript();
 
         public ScriptableBackground(ClientResourceLocator locator)
         {
@@ -24,14 +24,11 @@ namespace NeuroSonic.GamePlay
 
         protected override void DisposeManaged()
         {
-            m_script?.Dispose();
-            m_script = null;
+            m_script.Dispose();
         }
 
         public bool AsyncLoad()
         {
-            m_script = new LuaScript();
-
             m_script.LoadFile(Plugin.DefaultResourceLocator.OpenFileStream("scripts/game/bg-stars.lua"));
             m_script.InitResourceLoading(m_locator);
 
