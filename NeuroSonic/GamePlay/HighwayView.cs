@@ -119,24 +119,24 @@ namespace NeuroSonic.GamePlay
 
         public bool AsyncLoad()
         {
-            btChipTexture = m_resources.QueueTextureLoad("textures/bt_chip");
-            btChipSampleTexture = m_resources.QueueTextureLoad("textures/bt_chip_sample");
-            btHoldTexture = m_resources.QueueTextureLoad("textures/bt_hold");
-            btHoldEntryTexture = m_resources.QueueTextureLoad("textures/bt_hold_entry");
-            btHoldExitTexture = m_resources.QueueTextureLoad("textures/bt_hold_exit");
+            btChipTexture = m_resources.QueueTextureLoad("textures/game/bt_chip");
+            btChipSampleTexture = m_resources.QueueTextureLoad("textures/game/bt_chip_sample");
+            btHoldTexture = m_resources.QueueTextureLoad("textures/game/bt_hold");
+            btHoldEntryTexture = m_resources.QueueTextureLoad("textures/game/bt_hold_entry");
+            btHoldExitTexture = m_resources.QueueTextureLoad("textures/game/bt_hold_exit");
 
-            fxChipTexture = m_resources.QueueTextureLoad("textures/fx_chip");
-            fxChipSampleTexture = m_resources.QueueTextureLoad("textures/fx_chip_sample");
-            fxHoldTexture = m_resources.QueueTextureLoad("textures/fx_hold");
-            fxHoldEntryTexture = m_resources.QueueTextureLoad("textures/fx_hold_entry");
-            fxHoldExitTexture = m_resources.QueueTextureLoad("textures/fx_hold_exit");
+            fxChipTexture = m_resources.QueueTextureLoad("textures/game/fx_chip");
+            fxChipSampleTexture = m_resources.QueueTextureLoad("textures/game/fx_chip_sample");
+            fxHoldTexture = m_resources.QueueTextureLoad("textures/game/fx_hold");
+            fxHoldEntryTexture = m_resources.QueueTextureLoad("textures/game/fx_hold_entry");
+            fxHoldExitTexture = m_resources.QueueTextureLoad("textures/game/fx_hold_exit");
 
-            laserTexture = m_resources.QueueTextureLoad("textures/laser");
+            laserTexture = m_resources.QueueTextureLoad("textures/game/laser");
 
-            highwayTexture = m_resources.QueueTextureLoad("textures/highway");
-            keyBeamTexture = m_resources.QueueTextureLoad("textures/key_beam");
-            entryTexture = m_resources.QueueTextureLoad("textures/laser_entry");
-            exitTexture = m_resources.QueueTextureLoad("textures/laser_exit");
+            highwayTexture = m_resources.QueueTextureLoad("textures/game/highway");
+            keyBeamTexture = m_resources.QueueTextureLoad("textures/game/key_beam");
+            entryTexture = m_resources.QueueTextureLoad("textures/game/laser_entry");
+            exitTexture = m_resources.QueueTextureLoad("textures/game/laser_exit");
 
             basicMaterial = m_resources.QueueMaterialLoad("materials/basic");
             chipMaterial = m_resources.QueueMaterialLoad("materials/chip");

@@ -84,15 +84,15 @@ namespace NeuroSonic.GamePlay
             if ((int)obj.Lane < 4)
             {
                 if (obj.HasSample)
-                    textureName = "textures/bt_chip_sample";
-                else textureName = "textures/bt_chip";
+                    textureName = "textures/game/bt_chip_sample";
+                else textureName = "textures/game/bt_chip";
             }
             else
             {
                 m_width = 2;
                 if (obj.HasSample)
-                    textureName = "textures/fx_chip_sample";
-                else textureName = "textures/fx_chip";
+                    textureName = "textures/game/fx_chip_sample";
+                else textureName = "textures/game/fx_chip";
             }
 
             m_drawable = new Drawable3D()
@@ -133,10 +133,10 @@ namespace NeuroSonic.GamePlay
 
             string holdTextureName;
             if ((int)obj.Lane < 4)
-                holdTextureName = "textures/bt_hold";
+                holdTextureName = "textures/game/bt_hold";
             else
             {
-                holdTextureName = "textures/fx_hold";
+                holdTextureName = "textures/game/fx_hold";
                 m_width = 2;
             }
 
@@ -309,7 +309,7 @@ namespace NeuroSonic.GamePlay
 
             m_drawable = new Drawable3D()
             {
-                Texture = skin.GetTexture("textures/laser"),
+                Texture = skin.GetTexture("textures/game/laser"),
                 Material = skin.GetMaterial("materials/laser"),
                 Mesh = mesh,
             };
@@ -428,7 +428,7 @@ namespace NeuroSonic.GamePlay
 
             m_drawable = new Drawable3D()
             {
-                Texture = skin.GetTexture("textures/laser"),
+                Texture = skin.GetTexture("textures/game/laser"),
                 Material = skin.GetMaterial("materials/laser"),
                 Mesh = mesh,
             };
