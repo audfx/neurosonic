@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29123.89
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSonic", "NeuroSonic\NeuroSonic.csproj", "{D4C3184E-1B68-4F7E-B70A-2BA1D617E481}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Clients", "Clients", "{2AC24CC7-8DF7-4DDD-B06A-5F4E35702D09}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nsc-core3.0", "Clients\nsc-core3.0\nsc-core3.0.csproj", "{995252DA-40D3-47D4-85AE-BC7B77DFA47A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Deploy|x64 = Deploy|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D4C3184E-1B68-4F7E-B70A-2BA1D617E481}.Debug|x64.ActiveCfg = Debug|x64
+		{D4C3184E-1B68-4F7E-B70A-2BA1D617E481}.Debug|x64.Build.0 = Debug|x64
+		{D4C3184E-1B68-4F7E-B70A-2BA1D617E481}.Deploy|x64.ActiveCfg = Deploy|x64
+		{D4C3184E-1B68-4F7E-B70A-2BA1D617E481}.Deploy|x64.Build.0 = Deploy|x64
+		{D4C3184E-1B68-4F7E-B70A-2BA1D617E481}.Release|x64.ActiveCfg = Release|x64
+		{995252DA-40D3-47D4-85AE-BC7B77DFA47A}.Debug|x64.ActiveCfg = Debug|x64
+		{995252DA-40D3-47D4-85AE-BC7B77DFA47A}.Debug|x64.Build.0 = Debug|x64
+		{995252DA-40D3-47D4-85AE-BC7B77DFA47A}.Deploy|x64.ActiveCfg = Deploy|x64
+		{995252DA-40D3-47D4-85AE-BC7B77DFA47A}.Deploy|x64.Build.0 = Deploy|x64
+		{995252DA-40D3-47D4-85AE-BC7B77DFA47A}.Release|x64.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{995252DA-40D3-47D4-85AE-BC7B77DFA47A} = {2AC24CC7-8DF7-4DDD-B06A-5F4E35702D09}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FE80EE17-6287-46EC-AE63-FDE98F26DA11}
+	EndGlobalSection
+EndGlobal

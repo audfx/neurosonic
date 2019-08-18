@@ -1,0 +1,208 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SecretMenu.BindingChangePrimary" xml:space="preserve">
+    <value>[Enter] Change Primary Binding</value>
+    <comment>Displays in the bottom left of the binding config secret menu instructing the user how to begin changing the primary binding</comment>
+  </data>
+  <data name="SecretMenu.BindingChangeSecondary" xml:space="preserve">
+    <value>Change Secondary Binding [Control + Enter]</value>
+    <comment>Displays in the bottom right of the binding config secret menu instructing the user how to begin changing the secondary binding</comment>
+  </data>
+  <data name="SecretMenu.ChartManagementTitle" xml:space="preserve">
+    <value>Chart Management</value>
+    <comment>Title for the Chart Management secret menu screen</comment>
+  </data>
+  <data name="SecretMenu.ConfigureControllerBindings" xml:space="preserve">
+    <value>Configure Controller Bindings</value>
+    <comment>Menu option for entering the binding configuration submenu</comment>
+  </data>
+  <data name="SecretMenu.InputBindingConfigTitle" xml:space="preserve">
+    <value>Input Configuration</value>
+    <comment>Title for the Input Binding Configuration secret menu screen</comment>
+  </data>
+  <data name="SecretMenu.InputKeyboardMouse" xml:space="preserve">
+    <value>Keyboard and Mouse</value>
+    <comment>Menu option for using both keyboard and mouse for gameplay</comment>
+  </data>
+  <data name="SecretMenu.InputKeyboardOnly" xml:space="preserve">
+    <value>Keyboard Only</value>
+    <comment>Menu option for using keyboard in put only for gameplay</comment>
+  </data>
+  <data name="SecretMenu.InputMethodTitle" xml:space="preserve">
+    <value>Input Method</value>
+    <comment>Title for the Input Method secret menu screen</comment>
+  </data>
+  <data name="SecretMenu.MainTitle" xml:space="preserve">
+    <value>NeuroSonic - Main Menu</value>
+    <comment>Title for the Main menu screen</comment>
+  </data>
+  <data name="SecretMenu.SelectHint" xml:space="preserve">
+    <value>Select Option [Enter] or [START]</value>
+    <comment>Displays in the bottom right corner instructing the user how to select secret menu items</comment>
+  </data>
+  <data name="SecretMenu.UpDownNavHint" xml:space="preserve">
+    <value>[Up / Down] or [BT-A / BT-B] Navigate Menu</value>
+    <comment>Displays in the bottom left corner instructing the user how to navigate the secret menus</comment>
+  </data>
+  <data name="SecretMenu.UserConfigTitle" xml:space="preserve">
+    <value>Config</value>
+    <comment>Title for the Config secret menu screen.</comment>
+  </data>
+  <data name="Term.Gameplay.LeftLaserHue" xml:space="preserve">
+    <value>Left Laser Hue</value>
+    <comment>Used to label the hue of the left laser gameplay element.</comment>
+  </data>
+  <data name="Term.Gameplay.RightLaserHue" xml:space="preserve">
+    <value>Right Laser Hue</value>
+    <comment>Used to label the hue of the right laser gameplay element.</comment>
+  </data>
+  <data name="Term.HiSpeed" xml:space="preserve">
+    <value>HiSpeed</value>
+    <comment>The term used when referring to the speed of notes down the highway; related to the amount of time seen in advance.</comment>
+  </data>
+  <data name="Term.HiSpeedKind" xml:space="preserve">
+    <value>HiSpeed Kind</value>
+    <comment>Used to identify the different kinds of HiSpeed</comment>
+  </data>
+  <data name="Term.HiSpeedKind.ConstantMod" xml:space="preserve">
+    <value>Constant Mod</value>
+    <comment>HiSpeed kind similar to Mode Mod, calculates the hispeed the same way but disallows changes to that speed by the chart.</comment>
+  </data>
+  <data name="Term.HiSpeedKind.ModeMod" xml:space="preserve">
+    <value>Mode Mod</value>
+    <comment>HiSpeed kind which calculates the multiplier based on a given desired BPM divided by the mode BPM. Otherwise functions the same as Multiplier.</comment>
+  </data>
+  <data name="Term.HiSpeedKind.Multiplier" xml:space="preserve">
+    <value>Multiplier</value>
+    <comment>HiSpeed kind which is a multiplier of the BPM. x1.0 by default.</comment>
+  </data>
+  <data name="Term.HiSpeedValue" xml:space="preserve">
+    <value>HiSpeed Value</value>
+    <comment>Used when referring to the value of the HiSpeed, either the multiplier or desired BPM.</comment>
+  </data>
+  <data name="Term.InputOffset" xml:space="preserve">
+    <value>Input Offset</value>
+    <comment>Describes the offset applied to the judgement and scoring from the reported audio clock.</comment>
+  </data>
+  <data name="Term.VideoOffset" xml:space="preserve">
+    <value>Video Offset</value>
+    <comment>Describes the offset applied to the gameplay graphics from the reported audio clock.</comment>
+  </data>
+</root>
