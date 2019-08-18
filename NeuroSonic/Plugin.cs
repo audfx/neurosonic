@@ -9,6 +9,7 @@ using theori.Resources;
 using NeuroSonic.IO;
 using NeuroSonic.Startup;
 using NeuroSonic.Properties;
+using System;
 
 namespace NeuroSonic
 {
