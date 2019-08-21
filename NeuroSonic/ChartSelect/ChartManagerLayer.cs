@@ -35,7 +35,25 @@ namespace NeuroSonic.ChartSelect
             AddMenuItem(new MenuItem(NextOffset, "Go To Chart Select", () => Host.PushLayer(new ChartSelectLayer(Plugin.DefaultResourceLocator))));
             AddSpacing();
             AddMenuItem(new MenuItem(NextOffset, "Open KSH Chart Directly", () => CreateThread(OpenKSH)));
-            AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts and Open Selected", () => CreateThread(ConvertKSHAndOpen)));
+            //AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts and Open Selected", () => CreateThread(ConvertKSHAndOpen)));
+            AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts and Open Selected", () =>
+            {
+                AutoPlay autoPlay = Keyboard.IsDown(KeyCode.LCTRL) || Keyboard.IsDown(KeyCode.RCTRL) ? AutoPlay.ButtonsAndLasers : AutoPlay.None;
+
+                var browser = new FileSystemBrowser(paths =>
+                {
+                    if (paths == null) return; // selection cancelled?? idk I guess just backing out is a cancel.
+
+                    //string primaryKshFile = @"B:\kshootmania\songs\Sound Voltex\ikasama_kemu\infinite.ksh";
+                    string primaryKshFile = paths[0];
+                    var chartSetInfo = ConvertKSHAndSave(primaryKshFile, out ChartInfo selected);
+
+                    var loader = new GameLoadingLayer(Plugin.DefaultResourceLocator, selected, autoPlay);
+                    m_nextLayer = loader;
+                });
+
+                Host.AddLayerAbove(this, browser);
+            }));
             AddSpacing();
             AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts to Theori Set (and Index)", () => CreateThread(ConvertKSHAndIndex)));
             AddMenuItem(new MenuItem(NextOffset, "Convert KSH Chart Library to Theori Set Library (and Index)", () => CreateThread(ConvertKSHLibraryAndIndex)));

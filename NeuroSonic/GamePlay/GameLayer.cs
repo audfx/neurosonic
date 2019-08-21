@@ -175,7 +175,7 @@ namespace NeuroSonic.GamePlay
             if (!m_background.AsyncLoad())
                 return false;
 
-            //m_slamSample = m_resources.QueueAudioLoad("audio/slam");
+            m_slamSample = m_resources.QueueAudioLoad("audio/slam");
 
             if (!m_resources.LoadAll())
                 return false;
@@ -197,8 +197,6 @@ namespace NeuroSonic.GamePlay
             if (!m_resources.FinalizeLoad())
                 return false;
 
-            var slamStream = m_locator.OpenAudioStream("audio/slam", out string slamExt);
-            m_slamSample = AudioTrack.FromStream(slamExt, slamStream);
             m_slamSample.Channel = Mixer.MasterChannel;
             m_slamSample.RemoveFromChannelOnFinish = false;
 
@@ -484,7 +482,7 @@ namespace NeuroSonic.GamePlay
             }
         }
 
-        protected internal override bool ControllerButtonPressed(ControllerInput input)
+        public override bool ControllerButtonPressed(ControllerInput input)
         {
             switch (input)
             {
@@ -506,7 +504,7 @@ namespace NeuroSonic.GamePlay
             return true;
         }
 
-        protected internal override bool ControllerButtonReleased(ControllerInput input)
+        public override bool ControllerButtonReleased(ControllerInput input)
         {
             switch (input)
             {
@@ -527,7 +525,7 @@ namespace NeuroSonic.GamePlay
             return true;
         }
 
-        protected internal override bool ControllerAxisChanged(ControllerInput input, float delta)
+        public override bool ControllerAxisChanged(ControllerInput input, float delta)
         {
             switch (input)
             {

@@ -93,6 +93,8 @@ namespace NeuroSonic.GamePlay.Scoring
         private double m_lockTimerSpeed = 1.0;
         private bool IsLocked => m_lockTimer > 0;
 
+        private bool m_canControlCursorMovement = false;
+
         private bool HasStateTicks => m_stateIndex < m_stateTicks.Count;
         private StateTick NextStateTick => m_stateTicks[m_stateIndex];
 
@@ -259,27 +261,6 @@ namespace NeuroSonic.GamePlay.Scoring
 
                     if (AutoPlay)
                         CursorPosition = m_desiredCursorPosition;
-                    else if (IsLocked)
-                        CursorPosition = m_desiredCursorPosition;
-
-                    IsBeingPlayed = MathL.Abs(m_desiredCursorPosition - CursorPosition) <= m_cursorActiveRange;
-                    if (IsBeingPlayed && m_direction == 0)
-                    {
-                        m_lockTimer = m_lockDuration; // NOTE(local): don't SetLocked, keep the timer decay speed
-                        CursorPosition = m_desiredCursorPosition;
-                    }
-
-                    if (HasScoreTicks)
-                    {
-                        var nextScoreTick = NextScoreTick;
-                        if (position - (nextScoreTick.Position + JudgementOffset) >= 0)
-                        {
-                            var resultKind = IsBeingPlayed ? JudgeKind.Passive : JudgeKind.Miss;
-                            OnTickProcessed?.Invoke(nextScoreTick.Entity, nextScoreTick.Position, new JudgeResult(0, resultKind));
-
-                            AdvanceScoreTick();
-                        }
-                    }
 
                     var nextStateTick = NextStateTick;
                     while (position - (nextStateTick.Position + JudgementOffset) >= 0)
@@ -296,16 +277,29 @@ namespace NeuroSonic.GamePlay.Scoring
                             m_state = JudgeState.Idle;
                             m_currentStateTick = null;
                         }
-                        else if (nextStateTick.State == JudgeState.SwitchDirection && position - (nextStateTick.Position + JudgementOffset) >= m_directionChangeRadius)
+                        else if (nextStateTick.State == JudgeState.SwitchDirection)
                         {
-                            AdvanceStateTick();
+                            if (position > (nextStateTick.Position + JudgementOffset))
+                            {
+                                if (position - (nextStateTick.Position + JudgementOffset) >= m_directionChangeRadius)
+                                {
+                                    AdvanceStateTick();
 
-                            m_direction = nextStateTick.SegmentEntity.DirectionSign;
-                            m_currentStateTick = nextStateTick;
+                                    m_direction = nextStateTick.SegmentEntity.DirectionSign;
+                                    m_currentStateTick = nextStateTick;
 
-                            Logger.Log($"Direction Switch ({ (m_direction == 1 ? "->" : (m_direction == -1 ? "<-" : "|")) }) Missed (by { position - (nextStateTick.Position + JudgementOffset) }): { nextStateTick.SegmentEntity.Position } ({ nextStateTick.SegmentEntity.AbsolutePosition })");
+                                    Logger.Log($"Direction Switch ({ (m_direction == 1 ? "->" : (m_direction == -1 ? "<-" : "|")) }) Missed (by { position - (nextStateTick.Position + JudgementOffset) }): { nextStateTick.SegmentEntity.Position } ({ nextStateTick.SegmentEntity.AbsolutePosition })");
 
-                            m_lockTimer = 0.0;
+                                    m_lockTimer = 0.0;
+                                }
+                                else
+                                {
+                                    m_canControlCursorMovement = false;
+                                    //Logger.Log($"Prevented automatic cursor moving while locked: direction switch origin passed without being played ({ nextStateTick.SegmentEntity.Position })");
+
+                                    break;
+                                }
+                            }
                         }
                         else if (nextStateTick.State == JudgeState.SameDirectionSlam && position - (nextStateTick.Position + JudgementOffset) >= m_directionChangeRadius)
                         {
@@ -316,6 +310,29 @@ namespace NeuroSonic.GamePlay.Scoring
                         if (HasStateTicks)
                             nextStateTick = NextStateTick;
                         else break;
+                    }
+
+                    if (IsLocked && m_canControlCursorMovement)
+                        CursorPosition = m_desiredCursorPosition;
+
+                    IsBeingPlayed = IsLocked || MathL.Abs(m_desiredCursorPosition - CursorPosition) <= m_cursorActiveRange;
+                    if (IsBeingPlayed && m_direction == 0)
+                    {
+                        m_lockTimer = m_lockDuration; // NOTE(local): don't SetLocked, keep the timer decay speed
+                        if (m_canControlCursorMovement)
+                            CursorPosition = m_desiredCursorPosition;
+                    }
+
+                    if (HasScoreTicks)
+                    {
+                        var nextScoreTick = NextScoreTick;
+                        if (position - (nextScoreTick.Position + JudgementOffset) >= 0)
+                        {
+                            var resultKind = IsBeingPlayed ? JudgeKind.Passive : JudgeKind.Miss;
+                            OnTickProcessed?.Invoke(nextScoreTick.Entity, nextScoreTick.Position, new JudgeResult(0, resultKind));
+
+                            AdvanceScoreTick();
+                        }
                     }
                 }
                 break;
@@ -332,6 +349,8 @@ namespace NeuroSonic.GamePlay.Scoring
 
         private void SetLocked()
         {
+            m_canControlCursorMovement = true;
+
             m_lockTimer = m_lockDuration;
             m_lockTimerSpeed = 1.0;
         }
@@ -349,7 +368,7 @@ namespace NeuroSonic.GamePlay.Scoring
                 if (nextStateTick.State == JudgeState.SwitchDirection)
                 {
                     time_t radius = MathL.Abs((double)(position - (NextStateTick.Position + JudgementOffset)));
-                    if (radius < m_directionChangeRadius && (inputDir != m_direction || nextStateTick.SegmentEntity.DirectionSign == 0))
+                    if (radius < m_directionChangeRadius && (inputDir == nextStateTick.SegmentEntity.DirectionSign || nextStateTick.SegmentEntity.DirectionSign == 0))
                     {
                         AdvanceStateTick();
 
@@ -358,26 +377,20 @@ namespace NeuroSonic.GamePlay.Scoring
 
                         Logger.Log($"Direction Switch ({ (m_direction == 1 ? "->" : (m_direction == -1 ? "<-" : "|")) }) Hit: { nextStateTick.SegmentEntity.Position } ({ nextStateTick.SegmentEntity.AbsolutePosition })");
 
-                        // We have to check if we're already locked OR a slam
-                        // If already locked, we keep locked.
-                        // If a SLAM
-
                         if (nextStateTick.IsSlam)
-                            OnSlamHit?.Invoke(position, nextStateTick.SegmentEntity);
-
-                        if (IsLocked)
-                            SetLocked();
-                        else if (nextStateTick.IsSlam)
                         {
-                            Logger.Log($"Direction Switch on Slam: { CursorPosition }, { nextStateTick.SegmentEntity.InitialValue } ({ MathL.Abs(CursorPosition - nextStateTick.SegmentEntity.InitialValue) } <? { m_cursorActiveRange })");
+                            OnSlamHit?.Invoke(position, nextStateTick.SegmentEntity);
+                            Logger.Log($"  Direction Switch on Slam: { CursorPosition }, { nextStateTick.SegmentEntity.InitialValue } ({ MathL.Abs(CursorPosition - nextStateTick.SegmentEntity.InitialValue) } <? { m_cursorActiveRange })");
 
                             // If the cursor was near the head of the laser, we lock it regardless of previous locked status.
                             if (MathL.Abs(CursorPosition - nextStateTick.SegmentEntity.InitialValue) < m_cursorActiveRange)
                             {
-                                Logger.Log($"Direction Switch on Slam triggered Lock");
+                                Logger.Log($"  Direction Switch on Slam triggered Lock");
                                 SetLocked();
                             }
                         }
+                        else if (IsLocked)
+                            SetLocked();
                     }
                 }
                 else if (nextStateTick.State == JudgeState.SameDirectionSlam)

@@ -116,7 +116,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="music-theori" Version="0.1.0" />
+    <PackageReference Include="music-theori" Version="0.1.6" />
   </ItemGroup>
 
   <ItemGroup>

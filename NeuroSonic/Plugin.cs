@@ -13,22 +13,6 @@ using System;
 
 namespace NeuroSonic
 {
-    internal class DebugLanguageSwitchOverlay : Overlay
-    {
-        public override bool KeyPressed(KeyInfo info)
-        {
-            if (info.KeyCode == KeyCode.F1)
-            {
-                if (Plugin.UICulture == null || Plugin.UICulture.IetfLanguageTag == "en-US")
-                    Plugin.UICulture = CultureInfo.CreateSpecificCulture("ja-JP");
-                else Plugin.UICulture = CultureInfo.CreateSpecificCulture("en-US");
-
-                return true;
-            }
-            return base.KeyPressed(info);
-        }
-    }
-
     internal static class Plugin
     {
         public const string NSC_CONFIG_FILE = "nsc-config.ini";
@@ -54,6 +38,8 @@ namespace NeuroSonic
         {
             ProgramArgs = args;
 
+            Input.Initialize();
+
             Host.OnUserQuit += NSC_Quit;
 
             Config = new NscConfig();
@@ -70,7 +56,6 @@ namespace NeuroSonic
             Gamepad = Gamepad.Open(Host.GameConfig.GetInt(GameConfigKey.Controller_DeviceID));
             Input.CreateController();
 
-            Host.AddOverlay(new DebugLanguageSwitchOverlay());
             Host.PushLayer(new NeuroSonicStandaloneStartup());
         }
 
@@ -79,6 +64,8 @@ namespace NeuroSonic
             SaveNscConfig();
 
             Input.DestroyController();
+            Input.Destroy();
+
             Gamepad?.Dispose();
         }
 

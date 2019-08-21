@@ -378,7 +378,7 @@ namespace NeuroSonic.Startup
             return base.KeyPressed(key);
         }
 
-        protected internal override bool ControllerButtonPressed(ControllerInput input)
+        public override bool ControllerButtonPressed(ControllerInput input)
         {
             if (m_activeIndex >= 0)
             {

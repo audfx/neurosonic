@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using theori;
 
 namespace NeuroSonic.IO
 {
@@ -6,7 +7,17 @@ namespace NeuroSonic.IO
     {
         private static Controller Controller { get; set; }
 
-        private static readonly List<NscLayer> layers = new List<NscLayer>();
+        private static readonly List<IControllerInputLayer> layers = new List<IControllerInputLayer>();
+
+        public static void Initialize()
+        {
+            Host.OnInputEnd += Update;
+        }
+
+        public static void Destroy()
+        {
+            Host.OnInputEnd -= Update;
+        }
 
         public static void CreateController()
         {
@@ -72,13 +83,13 @@ namespace NeuroSonic.IO
             }
         }
 
-        public static void Register(NscLayer layer)
+        public static void Register(IControllerInputLayer layer)
         {
             if (layers.Contains(layer)) return;
             layers.Add(layer);
         }
 
-        public static void UnRegister(NscLayer layer) => layers.Remove(layer);
+        public static void UnRegister(IControllerInputLayer layer) => layers.Remove(layer);
         public static void Update() => Controller?.Update();
 
         public static bool IsButtonDown(ControllerInput input) => Controller?.IsButtonDown(input) ?? false;

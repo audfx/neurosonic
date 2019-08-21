@@ -91,8 +91,8 @@ namespace NeuroSonic.GamePlay
         public override bool ButtonPressed(ButtonInfo info) => true;
         public override bool ButtonReleased(ButtonInfo info) => true;
 
-        protected internal override bool ControllerButtonPressed(ControllerInput input) => true;
-        protected internal override bool ControllerButtonReleased(ControllerInput input) => true;
+        public override bool ControllerButtonPressed(ControllerInput input) => true;
+        public override bool ControllerButtonReleased(ControllerInput input) => true;
 
         #endregion
 

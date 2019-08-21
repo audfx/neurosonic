@@ -19,6 +19,7 @@ namespace NeuroSonic
     public enum NscConfigKey
     {
         StandaloneChartsDirectory,
+        FileBrowserLastDirectory,
 
         HiSpeed,
         HiSpeedModKind,
@@ -98,6 +99,7 @@ namespace NeuroSonic
             Set(NscConfigKey.HiSpeedModKind, HiSpeedMod.Default);
             Set(NscConfigKey.ModSpeed, 300.0f);
             Set(NscConfigKey.StandaloneChartsDirectory, "charts");
+            Set(NscConfigKey.FileBrowserLastDirectory, "");
             Set(NscConfigKey.Skin, "Default");
             Set(NscConfigKey.Laser0Color, 200);
             Set(NscConfigKey.Laser1Color, 300);

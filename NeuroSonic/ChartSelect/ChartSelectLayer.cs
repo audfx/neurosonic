@@ -90,7 +90,7 @@ namespace NeuroSonic.ChartSelect
             return true;
         }
 
-        protected internal override bool ControllerButtonPressed(ControllerInput input)
+        public override bool ControllerButtonPressed(ControllerInput input)
         {
             switch (input)
             {
