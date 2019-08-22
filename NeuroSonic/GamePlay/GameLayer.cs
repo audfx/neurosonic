@@ -18,6 +18,7 @@ using System.IO;
 using MoonSharp.Interpreter;
 using theori.Scripting;
 using System.Collections.Generic;
+using theori.Configuration;
 
 namespace NeuroSonic.GamePlay
 {
@@ -59,7 +60,7 @@ namespace NeuroSonic.GamePlay
 
         private ChartInfo m_chartInfo;
         private Chart m_chart;
-        private SlidingChartPlayback m_playback;
+        private SlidingChartPlayback m_audioPlayback, m_visualPlayback;
         private MasterJudge m_judge;
 
         private AudioEffectController m_audioController;
@@ -76,9 +77,11 @@ namespace NeuroSonic.GamePlay
         private readonly EffectDef[] m_currentEffects = new EffectDef[8];
 
         private readonly List<EventEntity> m_queuedSlamTiedEvents = new List<EventEntity>();
-        private readonly List<time_t> m_queuedSlams = new List<time_t>();
+        private readonly List<time_t> m_queuedSlamSamples = new List<time_t>();
 
         private time_t CurrentQuarterNodeDuration => m_chart.ControlPoints.MostRecent(m_audioController.Position).QuarterNoteDuration;
+
+        private time_t m_visualOffset = 0;
 
         #region Debug Overlay
 
@@ -238,6 +241,8 @@ namespace NeuroSonic.GamePlay
                 sample.RemoveFromChannelOnFinish = false;
             }
 
+            m_visualOffset = Plugin.Config.GetInt(NscConfigKey.VideoOffset) / 1000.0;
+
             return true;
         }
 
@@ -253,31 +258,32 @@ namespace NeuroSonic.GamePlay
             m_highwayControl = new HighwayControl(HighwayControlConfig.CreateDefaultKsh168());
             m_background.Init();
 
-            m_playback = new SlidingChartPlayback(m_chart);
+            m_audioPlayback = new SlidingChartPlayback(m_chart);
+            m_visualPlayback = new SlidingChartPlayback(m_chart);
+
             var hispeedKind = Plugin.Config.GetEnum<HiSpeedMod>(NscConfigKey.HiSpeedModKind);
             switch (hispeedKind)
             {
                 case HiSpeedMod.Default:
                 {
                     double hiSpeed = Plugin.Config.GetFloat(NscConfigKey.HiSpeed);
-                    m_playback.LookAhead = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
+                    m_visualPlayback.LookAhead = m_audioPlayback.LookAhead = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
                 } break;
                 case HiSpeedMod.MMod:
                 {
                     var modSpeed = Plugin.Config.GetFloat(NscConfigKey.ModSpeed);
                     double hiSpeed = modSpeed / m_chart.ControlPoints.ModeBeatsPerMinute;
-                    m_playback.LookAhead = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
+                    m_visualPlayback.LookAhead = m_audioPlayback.LookAhead = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
                 } break;
                 case HiSpeedMod.CMod:
                 {
                 } goto case HiSpeedMod.Default; //break;
             }
 
-            m_playback.ObjectHeadCrossPrimary += (dir, entity) =>
+            m_audioPlayback.ObjectHeadCrossPrimary += (dir, entity) =>
             {
                 if (dir == PlayDirection.Forward)
                 {
-                    m_highwayView.RenderableObjectAppear(entity);
                     if (entity is EventEntity evt)
                     {
                         switch (evt)
@@ -290,9 +296,14 @@ namespace NeuroSonic.GamePlay
                         }
                     }
                 }
+            };
+            m_visualPlayback.ObjectHeadCrossPrimary += (dir, entity) =>
+            {
+                if (dir == PlayDirection.Forward)
+                    m_highwayView.RenderableObjectAppear(entity);
                 else m_highwayView.RenderableObjectDisappear(entity);
             };
-            m_playback.ObjectTailCrossSecondary += (dir, obj) =>
+            m_visualPlayback.ObjectTailCrossSecondary += (dir, obj) =>
             {
                 if (dir == PlayDirection.Forward)
                     m_highwayView.RenderableObjectDisappear(obj);
@@ -301,7 +312,7 @@ namespace NeuroSonic.GamePlay
 
             // TODO(local): Effects wont work with backwards motion, but eventually the
             //  editor (with the only backwards motion support) will pre-render audio instead.
-            m_playback.ObjectHeadCrossCritical += (dir, obj) =>
+            m_audioPlayback.ObjectHeadCrossCritical += (dir, obj) =>
             {
                 if (dir != PlayDirection.Forward) return;
 
@@ -309,14 +320,26 @@ namespace NeuroSonic.GamePlay
                     PlaybackEventTrigger(evt, dir);
                 else PlaybackObjectBegin(obj);
             };
-            m_playback.ObjectTailCrossCritical += (dir, obj) =>
+            m_audioPlayback.ObjectTailCrossCritical += (dir, obj) =>
             {
                 if (dir == PlayDirection.Backward && obj is EventEntity evt)
                     PlaybackEventTrigger(evt, dir);
                 else PlaybackObjectEnd(obj);
             };
+            m_visualPlayback.ObjectHeadCrossCritical += (dir, obj) =>
+            {
+                if (dir != PlayDirection.Forward) return;
 
-            m_highwayView.ViewDuration = m_playback.LookAhead;
+                if (obj is EventEntity evt)
+                    PlaybackVisualEventTrigger(evt, dir);
+            };
+            m_visualPlayback.ObjectTailCrossCritical += (dir, obj) =>
+            {
+                if (dir == PlayDirection.Backward && obj is EventEntity evt)
+                    PlaybackVisualEventTrigger(evt, dir);
+            };
+
+            m_highwayView.ViewDuration = m_visualPlayback.LookAhead;
 
             ForegroundGui = new Panel()
             {
@@ -355,7 +378,7 @@ namespace NeuroSonic.GamePlay
                 judge.OnSlamHit += (position, entity) =>
                 {
                     if (position < entity.AbsolutePosition)
-                        m_queuedSlams.Add(entity.AbsolutePosition);
+                        m_queuedSlamSamples.Add(entity.AbsolutePosition);
                     else m_slamSample.Replay();
                 };
             }
@@ -364,7 +387,7 @@ namespace NeuroSonic.GamePlay
             m_highwayView.Reset();
 
             m_audio.Volume = 0.8f;
-            m_audio.Position = m_chart.Offset;
+            m_audio.Position = 0.0;
             m_audioController = new AudioEffectController(8, m_audio, true)
             {
                 RemoveFromChannelOnFinish = true,
@@ -469,7 +492,11 @@ namespace NeuroSonic.GamePlay
                 {
                     CreateKeyBeam((int)entity.Lane, result.Kind, result.Difference < 0.0);
                     if (entity is ButtonEntity button && button.HasSample && m_hitSounds.ContainsKey(button.Sample))
-                        m_hitSounds[button.Sample].Replay();
+                    {
+                        var sample = m_hitSounds[button.Sample];
+                        sample.Volume = button.SampleVolume;
+                        sample.Replay();
+                    }
                 }
             }
         }
@@ -502,8 +529,6 @@ namespace NeuroSonic.GamePlay
                     }
                     break;
 
-                    case LaserApplicationEvent app: m_highwayControl.LaserApplication = app.Application; break;
-
                     // TODO(local): left/right lasers separate + allow both independent if needed
                     case LaserFilterGainEvent filterGain: laserGain = filterGain.Gain; break;
                     case LaserFilterKindEvent filterKind:
@@ -512,14 +537,25 @@ namespace NeuroSonic.GamePlay
                     }
                     break;
 
+                    case SlamVolumeEvent pars: m_slamSample.Volume = pars.Volume; break;
+                }
+            }
+        }
+
+        private void PlaybackVisualEventTrigger(EventEntity evt, PlayDirection direction)
+        {
+            if (direction == PlayDirection.Forward)
+            {
+                switch (evt)
+                {
+                    case LaserApplicationEvent app: m_highwayControl.LaserApplication = app.Application; break;
+
                     case LaserParamsEvent pars:
                     {
                         if (pars.LaserIndex.HasFlag(LaserIndex.Left)) m_highwayControl.LeftLaserParams = pars.Params;
                         if (pars.LaserIndex.HasFlag(LaserIndex.Right)) m_highwayControl.RightLaserParams = pars.Params;
                     }
                     break;
-
-                    case SlamVolumeEvent pars: m_slamSample.Volume = pars.Volume; break;
                 }
             }
         }
@@ -673,71 +709,75 @@ namespace NeuroSonic.GamePlay
         {
             base.Update(delta, total);
 
-            time_t position = m_audio?.Position ?? 0;
-            m_judge.Position = position;
-            m_highwayControl.Position = position;
-            m_playback.Position = position;
+            time_t audioPosition = m_audio?.Position ?? 0;
+            time_t visualPosition = audioPosition - m_visualOffset;
 
-            float GetPathValueLerped(LaneLabel stream)
+            m_audioPlayback.Position = audioPosition;
+            m_judge.Position = audioPosition;
+
+            m_visualPlayback.Position = visualPosition;
+            m_highwayControl.Position = visualPosition;
+
+            float GetPathValueLerped(time_t pos, LaneLabel stream)
             {
-                var s = m_playback.Chart[stream];
+                var s = m_audioPlayback.Chart[stream];
 
-                var mrPoint = s.MostRecent<GraphPointEvent>(position);
+                var mrPoint = s.MostRecent<GraphPointEvent>(pos);
                 if (mrPoint == null)
                     return ((GraphPointEvent)s.First)?.Value ?? 0;
 
                 if (mrPoint.HasNext)
                 {
-                    float alpha = (float)((position - mrPoint.AbsolutePosition).Seconds / (mrPoint.Next.AbsolutePosition - mrPoint.AbsolutePosition).Seconds);
+                    float alpha = (float)((pos - mrPoint.AbsolutePosition).Seconds / (mrPoint.Next.AbsolutePosition - mrPoint.AbsolutePosition).Seconds);
                     return MathL.Lerp(mrPoint.Value, ((GraphPointEvent)mrPoint.Next).Value, alpha);
                 }
                 else return mrPoint.Value;
             }
 
-            for (int i = 0; i < m_queuedSlams.Count;)
+            for (int i = 0; i < m_queuedSlamSamples.Count;)
             {
-                time_t slam = m_queuedSlams[i];
-                if (slam < position)
+                time_t slam = m_queuedSlamSamples[i];
+                if (slam < audioPosition)
                 {
-                    m_queuedSlams.RemoveAt(i);
+                    m_queuedSlamSamples.RemoveAt(i);
                     m_slamSample.Replay();
-
-                    for (int e = 0; e < m_queuedSlamTiedEvents.Count;)
-                    {
-                        var evt = m_queuedSlamTiedEvents[e];
-                        if (evt.AbsolutePosition < position)
-                        {
-                            switch (evt)
-                            {
-                                case SpinImpulseEvent spin: m_highwayControl.ApplySpin(spin.Params, spin.AbsolutePosition); break;
-                                case SwingImpulseEvent swing: m_highwayControl.ApplySwing(swing.Params, swing.AbsolutePosition); break;
-                                case WobbleImpulseEvent wobble: m_highwayControl.ApplyWobble(wobble.Params, wobble.AbsolutePosition); break;
-
-                                default: e++; continue;
-                            }
-
-                            m_queuedSlamTiedEvents.RemoveAt(e);
-                        }
-                        else e++;
-                    }
                 }
                 else i++;
             }
 
-            m_highwayControl.MeasureDuration = m_chart.ControlPoints.MostRecent(position).MeasureDuration;
+            for (int e = 0; e < m_queuedSlamTiedEvents.Count;)
+            {
+                var evt = m_queuedSlamTiedEvents[e];
+                if (evt.AbsolutePosition < visualPosition)
+                {
+                    switch (evt)
+                    {
+                        case SpinImpulseEvent spin: m_highwayControl.ApplySpin(spin.Params, visualPosition); break;
+                        case SwingImpulseEvent swing: m_highwayControl.ApplySwing(swing.Params, visualPosition); break;
+                        case WobbleImpulseEvent wobble: m_highwayControl.ApplyWobble(wobble.Params, visualPosition); break;
 
-            float leftLaserValue = GetTempRollValue(position, 6, out float _);
-            float rightLaserValue = GetTempRollValue(position, 7, out float _, true);
+                        default: e++; continue;
+                    }
+
+                    m_queuedSlamTiedEvents.RemoveAt(e);
+                }
+                else e++;
+            }
+
+            m_highwayControl.MeasureDuration = m_chart.ControlPoints.MostRecent(visualPosition).MeasureDuration;
+
+            float leftLaserValue = GetTempRollValue(visualPosition, 6, out float _);
+            float rightLaserValue = GetTempRollValue(visualPosition, 7, out float _, true);
 
             m_highwayControl.LeftLaserInput = leftLaserValue;
             m_highwayControl.RightLaserInput = rightLaserValue;
 
-            m_highwayControl.Zoom = GetPathValueLerped(NscLane.CameraZoom);
-            m_highwayControl.Pitch = GetPathValueLerped(NscLane.CameraPitch);
-            m_highwayControl.Offset = GetPathValueLerped(NscLane.CameraOffset);
-            m_highwayControl.Roll = GetPathValueLerped(NscLane.CameraTilt);
+            m_highwayControl.Zoom = GetPathValueLerped(visualPosition, NscLane.CameraZoom);
+            m_highwayControl.Pitch = GetPathValueLerped(visualPosition, NscLane.CameraPitch);
+            m_highwayControl.Offset = GetPathValueLerped(visualPosition, NscLane.CameraOffset);
+            m_highwayControl.Roll = GetPathValueLerped(visualPosition, NscLane.CameraTilt);
 
-            m_highwayView.PlaybackPosition = position;
+            m_highwayView.PlaybackPosition = visualPosition;
 
             for (int i = 0; i < 8; i++)
             {
@@ -773,8 +813,8 @@ namespace NeuroSonic.GamePlay
 
                 if (m_streamHasActiveEffects[i])
                 {
-                    glow = MathL.Cos(10 * MathL.TwoPi * (float)position) * 0.35f;
-                    glowState = 2 + MathL.FloorToInt(position.Seconds * 20) % 2;
+                    glow = MathL.Cos(10 * MathL.TwoPi * (float)visualPosition) * 0.35f;
+                    glowState = 2 + MathL.FloorToInt(visualPosition.Seconds * 20) % 2;
                 }
 
                 m_highwayView.SetObjectGlow(obj, glow, glowState);
@@ -824,9 +864,8 @@ namespace NeuroSonic.GamePlay
                 GetCursorPosition(1, out float rightLaserPos, out float rightLaserRange);
 
                 m_critRoot.LeftCursorPosition = GetCursorPositionWorld((leftLaserPos - 0.5f) * 5.0f / 6 * leftLaserRange);
-                m_critRoot.LeftCursorAlpha = m_cursorAlphas[0];
-
-                m_critRoot.RightCursorPosition = GetCursorPositionWorld((rightLaserPos - 0.5f) * 5.0f / 6 * rightLaserRange);
+           m_critRoot.LeftCursorAlpha = m_cursorAlphas[0];
+                              m_critRoot.RightCursorPosition = GetCursorPositionWorld((rightLaserPos - 0.5f) * 5.0f / 6 * rightLaserRange);
                 m_critRoot.RightCursorAlpha = m_cursorAlphas[1];
 
                 Vector2 critRotationVector = critRootPositionEast - critRootPositionWest;
@@ -866,7 +905,7 @@ namespace NeuroSonic.GamePlay
 
         private float GetTempRollValue(time_t position, LaneLabel label, out float valueMult, bool oneMinus = false)
         {
-            var s = m_playback.Chart[label];
+            var s = m_audioPlayback.Chart[label];
             valueMult = 1.0f;
 
             var mrAnalog = s.MostRecent<AnalogEntity>(position);
