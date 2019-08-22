@@ -16,6 +16,7 @@ using NeuroSonic.Startup;
 using NeuroSonic.GamePlay;
 using NeuroSonic.Charting.KShootMania;
 using NeuroSonic.Charting.Conversions;
+using NeuroSonic.Charting;
 
 namespace NeuroSonic.ChartSelect
 {
@@ -204,10 +205,43 @@ namespace NeuroSonic.ChartSelect
                 string audioFile = Path.Combine(setDir, chart.Info.SongFileName);
                 if (File.Exists(audioFile))
                 {
-                    string audioFileDest = Path.Combine(m_chartsDir, setName, Path.GetFileName(audioFile));
+                    string audioFileDest = Path.Combine(m_chartsDir, setName, chart.Info.SongFileName);
                     if (File.Exists(audioFileDest))
                         File.Delete(audioFileDest);
                     File.Copy(audioFile, audioFileDest);
+                }
+
+                foreach (var lane in chart.Lanes)
+                {
+                    foreach (var entity in lane)
+                    {
+                        switch (entity)
+                        {
+                            case ButtonEntity button:
+                            {
+                                if (!button.HasSample) break;
+
+                                string sampleFile = Path.Combine(setDir, button.Sample);
+                                if (File.Exists(sampleFile))
+                                {
+                                    string sampleFileDest = Path.Combine(m_chartsDir, setName, button.Sample);
+                                    if (File.Exists(sampleFileDest))
+                                        File.Delete(sampleFileDest);
+                                    File.Copy(sampleFile, sampleFileDest);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                string jacketFile = Path.Combine(setDir, chart.Info.JacketFileName);
+                if (File.Exists(jacketFile))
+                {
+                    string jacketFileDest = Path.Combine(m_chartsDir, setName, chart.Info.JacketFileName);
+                    if (File.Exists(jacketFileDest))
+                        File.Delete(jacketFileDest);
+                    File.Copy(jacketFile, jacketFileDest);
                 }
 
                 chart.Info.Set = chartSetInfo;

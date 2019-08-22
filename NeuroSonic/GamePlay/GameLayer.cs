@@ -65,6 +65,7 @@ namespace NeuroSonic.GamePlay
         private AudioEffectController m_audioController;
         private AudioTrack m_audio;
         private AudioTrack m_slamSample;
+        private readonly Dictionary<string, AudioTrack> m_hitSounds = new Dictionary<string, AudioTrack>();
 
         private readonly Entity[] m_activeObjects = new Entity[8];
         private readonly bool[] m_streamHasActiveEffects = new bool[8].Fill(true);
@@ -132,11 +133,11 @@ namespace NeuroSonic.GamePlay
 
         public override bool AsyncLoad()
         {
+            string chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
+            var setInfo = m_chartInfo.Set;
+
             if (m_chart == null)
             {
-                string chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
-                var setInfo = m_chartInfo.Set;
-
                 var serializer = new ChartSerializer(chartsDir, NeuroSonicGameMode.Instance);
                 m_chart = serializer.LoadFromFile(m_chartInfo);
 
@@ -177,6 +178,33 @@ namespace NeuroSonic.GamePlay
 
             m_slamSample = m_resources.QueueAudioLoad("audio/slam");
 
+            m_hitSounds["clap"] = m_resources.QueueAudioLoad("audio/sample_clap");
+            m_hitSounds["clap_punchy"] = m_resources.QueueAudioLoad("audio/sample_clap");
+            m_hitSounds["clap_impact"] = m_resources.QueueAudioLoad("audio/sample_kick");
+            m_hitSounds["snare"] = m_resources.QueueAudioLoad("audio/sample_snare");
+            m_hitSounds["snare_lo"] = m_resources.QueueAudioLoad("audio/sample_snare_lo");
+
+            foreach (var lane in m_chart.Lanes)
+            {
+                foreach (var entity in lane)
+                {
+                    switch (entity)
+                    {
+                        case ButtonEntity button:
+                        {
+                            if (!button.HasSample) break;
+                            if (!m_hitSounds.ContainsKey(button.Sample))
+                            {
+                                var sample = AudioTrack.FromFile(Path.Combine(chartsDir, setInfo.FilePath, button.Sample));
+                                m_resources.Manage(sample);
+
+                                m_hitSounds[button.Sample] = sample;
+                            }
+                        } break;
+                    }
+                }
+            }
+
             if (!m_resources.LoadAll())
                 return false;
 
@@ -199,6 +227,12 @@ namespace NeuroSonic.GamePlay
 
             m_slamSample.Channel = Mixer.MasterChannel;
             m_slamSample.RemoveFromChannelOnFinish = false;
+
+            foreach (var (name, sample) in m_hitSounds)
+            {
+                sample.Channel = Mixer.MasterChannel;
+                sample.RemoveFromChannelOnFinish = false;
+            }
 
             return true;
         }
@@ -428,7 +462,11 @@ namespace NeuroSonic.GamePlay
             if (entity.IsInstant)
             {
                 if (result.Kind != JudgeKind.Miss)
+                {
                     CreateKeyBeam((int)entity.Lane, result.Kind, result.Difference < 0.0);
+                    if (entity is ButtonEntity button && button.HasSample)
+                        m_hitSounds[button.Sample].Replay();
+                }
             }
         }
 
