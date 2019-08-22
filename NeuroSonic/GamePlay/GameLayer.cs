@@ -193,9 +193,13 @@ namespace NeuroSonic.GamePlay
                         case ButtonEntity button:
                         {
                             if (!button.HasSample) break;
-                            if (!m_hitSounds.ContainsKey(button.Sample))
+
+                            if (!m_hitSounds.ContainsKey(button.Sample) )
                             {
-                                var sample = AudioTrack.FromFile(Path.Combine(chartsDir, setInfo.FilePath, button.Sample));
+                                string samplePath = Path.Combine(chartsDir, setInfo.FilePath, button.Sample);
+                                if (!File.Exists(samplePath)) continue;
+
+                                var sample = AudioTrack.FromFile(samplePath);
                                 m_resources.Manage(sample);
 
                                 m_hitSounds[button.Sample] = sample;
