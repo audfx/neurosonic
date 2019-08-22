@@ -168,6 +168,8 @@ namespace NeuroSonic.Charting.Conversions
                             if (chipFx.Split(';', out string fxName, out string volStr))
                             {
                                 chipFx = fxName;
+                                if (volStr.Contains(';'))
+                                    volStr = volStr.Substring(0, volStr.IndexOf(';'));
                                 volume = int.Parse(volStr) / 100.0f;
                             }
 

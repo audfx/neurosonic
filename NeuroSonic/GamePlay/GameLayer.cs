@@ -194,10 +194,10 @@ namespace NeuroSonic.GamePlay
                         {
                             if (!button.HasSample) break;
 
-                            if (!m_hitSounds.ContainsKey(button.Sample) )
+                            if (!m_hitSounds.ContainsKey(button.Sample))
                             {
                                 string samplePath = Path.Combine(chartsDir, setInfo.FilePath, button.Sample);
-                                if (!File.Exists(samplePath)) continue;
+                                if (!File.Exists(samplePath)) break;
 
                                 var sample = AudioTrack.FromFile(samplePath);
                                 m_resources.Manage(sample);
@@ -468,7 +468,7 @@ namespace NeuroSonic.GamePlay
                 if (result.Kind != JudgeKind.Miss)
                 {
                     CreateKeyBeam((int)entity.Lane, result.Kind, result.Difference < 0.0);
-                    if (entity is ButtonEntity button && button.HasSample)
+                    if (entity is ButtonEntity button && button.HasSample && m_hitSounds.ContainsKey(button.Sample))
                         m_hitSounds[button.Sample].Replay();
                 }
             }
