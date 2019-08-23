@@ -235,6 +235,8 @@ namespace NeuroSonic.Charting.KShootMania
 
         public string Tags = "";
 
+        public double? HiSpeedBpm;
+
         public void Set(string name, string value)
         {
             switch (name)
@@ -295,6 +297,8 @@ namespace NeuroSonic.Charting.KShootMania
                 case "chokkakuvol": SlamVolume = int.Parse(value); return;
 
                 case "tags": Tags = value; return;
+
+                case "to": HiSpeedBpm = double.Parse(value); return;
             }
         }
     }

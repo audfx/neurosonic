@@ -507,6 +507,17 @@ namespace NeuroSonic.Charting.Conversions
                 }
             }
 
+            double modeBpm;
+            if (ksh.Metadata.HiSpeedBpm != null)
+                modeBpm = ksh.Metadata.HiSpeedBpm.Value;
+            else modeBpm = chart.ControlPoints.ModeBeatsPerMinute;
+
+            foreach (var cp in chart.ControlPoints)
+            {
+                if (cp.BeatsPerMinute != modeBpm)
+                    cp.SpeedMultiplier = cp.BeatsPerMinute / modeBpm;
+            }
+
             Logger.Log("ksh.convert end");
             return chart;
         }
