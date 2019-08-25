@@ -130,8 +130,8 @@ namespace NeuroSonic.GamePlay
                 m_debugOverlay = null;
             }
 
-            m_audioController?.Stop();
-            m_audioController?.Dispose();
+            m_audioController.Stop();
+            m_audioController.Dispose();
         }
 
         public override bool AsyncLoad()
@@ -248,7 +248,7 @@ namespace NeuroSonic.GamePlay
 
         public override void ClientSizeChanged(int width, int height)
         {
-            m_highwayView.Camera.AspectRatio = Window.Aspect;
+            //m_highwayView.Camera.AspectRatio = Window.Aspect;
         }
 
         public override void Init()
@@ -258,8 +258,8 @@ namespace NeuroSonic.GamePlay
             m_highwayControl = new HighwayControl(HighwayControlConfig.CreateDefaultKsh168());
             m_background.Init();
 
-            m_audioPlayback = new SlidingChartPlayback(m_chart);
-            m_visualPlayback = new SlidingChartPlayback(m_chart);
+            m_audioPlayback = new SlidingChartPlayback(m_chart, false);
+            m_visualPlayback = new SlidingChartPlayback(m_chart, false);
 
             var hispeedKind = Plugin.Config.GetEnum<HiSpeedMod>(NscConfigKey.HiSpeedModKind);
             switch (hispeedKind)
@@ -819,25 +819,29 @@ namespace NeuroSonic.GamePlay
 
                 m_highwayView.SetObjectGlow(obj, glow, glowState);
             }
+
+            if (Window.Width > Window.Height)
+                m_highwayView.Viewport = ((int)(Window.Width - Window.Height * 0.95f) / 2, 0, (int)(Window.Height * 0.95f));
+            else m_highwayView.Viewport = (0, (Window.Height - Window.Width) / 2 - Window.Width / 5, Window.Width);
             m_highwayView.Update();
 
             {
-                var camera = m_highwayView.Camera;
+                //var camera = m_highwayView.Camera;
 
                 var defaultTransform = m_highwayView.DefaultTransform;
                 var defaultZoomTransform = m_highwayView.DefaultZoomedTransform;
                 var totalWorldTransform = m_highwayView.WorldTransform;
                 var critLineTransform = m_highwayView.CritLineTransform;
 
-                Vector2 comboLeft = camera.Project(defaultTransform, new Vector3(-0.8f / 6, 0, 0));
-                Vector2 comboRight = camera.Project(defaultTransform, new Vector3(0.8f / 6, 0, 0));
+                Vector2 comboLeft = m_highwayView.Project(defaultTransform, new Vector3(-0.8f / 6, 0, 0));
+                Vector2 comboRight = m_highwayView.Project(defaultTransform, new Vector3(0.8f / 6, 0, 0));
 
                 m_comboDisplay.DigitSize = (comboRight.X - comboLeft.X) / 4;
 
-                Vector2 critRootPosition = camera.Project(critLineTransform, Vector3.Zero);
-                Vector2 critRootPositionWest = camera.Project(critLineTransform, new Vector3(-1, 0, 0));
-                Vector2 critRootPositionEast = camera.Project(critLineTransform, new Vector3(1, 0, 0));
-                Vector2 critRootPositionForward = camera.Project(critLineTransform, new Vector3(0, 0, -1));
+                Vector2 critRootPosition = m_highwayView.Project(critLineTransform, Vector3.Zero);
+                Vector2 critRootPositionWest = m_highwayView.Project(critLineTransform, new Vector3(-1, 0, 0));
+                Vector2 critRootPositionEast = m_highwayView.Project(critLineTransform, new Vector3(1, 0, 0));
+                Vector2 critRootPositionForward = m_highwayView.Project(critLineTransform, new Vector3(0, 0, -1));
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -855,8 +859,8 @@ namespace NeuroSonic.GamePlay
 
                 float GetCursorPositionWorld(float xWorld)
                 {
-                    var critRootCenter = camera.Project(defaultZoomTransform, Vector3.Zero);
-                    var critRootCursor = camera.Project(defaultZoomTransform, new Vector3(xWorld, 0, 0));
+                    var critRootCenter = m_highwayView.Project(defaultZoomTransform, Vector3.Zero);
+                    var critRootCursor = m_highwayView.Project(defaultZoomTransform, new Vector3(xWorld, 0, 0));
                     return critRootCursor.X - critRootCenter.X;
                 }
 
@@ -864,7 +868,7 @@ namespace NeuroSonic.GamePlay
                 GetCursorPosition(1, out float rightLaserPos, out float rightLaserRange);
 
                 m_critRoot.LeftCursorPosition = GetCursorPositionWorld((leftLaserPos - 0.5f) * 5.0f / 6 * leftLaserRange);
-           m_critRoot.LeftCursorAlpha = m_cursorAlphas[0];
+                m_critRoot.LeftCursorAlpha = m_cursorAlphas[0];
                               m_critRoot.RightCursorPosition = GetCursorPositionWorld((rightLaserPos - 0.5f) * 5.0f / 6 * rightLaserRange);
                 m_critRoot.RightCursorAlpha = m_cursorAlphas[1];
 

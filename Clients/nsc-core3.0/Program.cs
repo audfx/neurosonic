@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading.Tasks;
 
 using theori;
+using theori.Graphics;
 using theori.Platform.Windows;
 
 namespace NeuroSonic.NetCore30

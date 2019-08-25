@@ -32,6 +32,7 @@ namespace NeuroSonic.GamePlay
         //private const float PITCH_AMT = 15;
         private const float LENGTH_BASE = 11;
         private const float LENGTH_ADD = 1.1f;
+        //private const float LENGTH_ADD = 0;
 
         private float roll;
         private float m_pitch, m_zoom; // "top", "bottom"
@@ -79,6 +80,10 @@ namespace NeuroSonic.GamePlay
 
         public float HorizonHeight { get; private set; }
 
+        //public (int X, int Y, int Size) Viewport { get; set; } = ((Window.Width - Window.Height * 2) / 2, -Window.Height / 2, Window.Height * 2);
+        public (int X, int Y, int Size) Viewport { get; set; } = ((int)(Window.Width - Window.Height * 0.95f) / 2, 0, (int)(Window.Height * 0.95f));
+        //public (int X, int Y, int Size) Viewport { get; set; } = Window.Height > Window.Width ? (0, (Window.Height - Window.Width) / 2, Window.Width) : ((int)(Window.Width - Window.Height * 0.95f) / 2, 0, (int)(Window.Height * 0.95f));
+
         public float TargetLaserRoll { get; set; }
         public float TargetBaseRoll { get; set; }
         public float TargetEffectRoll { get; set; }
@@ -101,8 +106,9 @@ namespace NeuroSonic.GamePlay
             m_rVolColor = Color.HSVtoRGB(new Vector3(Plugin.Config.GetInt(NscConfigKey.Laser1Color) / 360.0f, 1, 1));
 
             Camera = new BasicCamera();
-            Camera.SetPerspectiveFoV(60, Window.Aspect, 0.01f, 1000);
-            
+            Camera.SetPerspectiveFoV(2 * 60, 1.0f, 0.01f, 1000);
+            //Camera.SetPerspectiveFoV(60, (float)Window.Width / Window.Height, 0.01f, 1000);
+
             for (int i = 0; i < 8; i++)
             {
                 m_renderables[i] = new EntityMap();
@@ -311,6 +317,12 @@ namespace NeuroSonic.GamePlay
             m_glowInfos[targetObject.Lane].GlowState = glowState;
         }
 
+        public Vector2 Project(Transform worldTransform, Vector3 worldPosition)
+        {
+            var p = Camera.ProjectNormalized(worldTransform, worldPosition) * new Vector2(Viewport.Size * 2);
+            return new Vector2(Viewport.X - Viewport.Size / 2 + p.X, Viewport.Y - Viewport.Size / 2 + p.Y);
+        }
+
         public void Update()
         {
             for (int i = 0; i < 6; i++)
@@ -335,7 +347,8 @@ namespace NeuroSonic.GamePlay
                 
                 const float ANCHOR_ROT = 2.5f;
                 const float ANCHOR_Y = -0.7925f;
-                const float CONTNR_Z = -0.975f;
+                //const float CONTNR_Z = -0.975f;
+                const float CONTNR_Z = -0.51f;
 
                 var origin = Transform.RotationZ(roll);
                 var anchor = Transform.RotationX(ANCHOR_ROT)
@@ -368,14 +381,17 @@ namespace NeuroSonic.GamePlay
 
             var critDir = Vector3.Normalize(((Matrix4x4)worldNoRoll).Translation);
             float rotToCrit = MathL.Atan(critDir.Y, -critDir.Z);
-            
-            float cameraRot = Camera.FieldOfView / 2 - Camera.FieldOfView * CritScreenY;
+
+            //float cameraRot = Camera.FieldOfView / 2 - Camera.FieldOfView * CritScreenY;
+            float cameraRot = Camera.FieldOfView * 0.3405f;
+            //float cameraRot = 0;
             float cameraPitch = rotToCrit + MathL.ToRadians(cameraRot);
 
             Camera.Position = CameraOffset;
             Camera.Rotation = Quaternion.CreateFromYawPitchRoll(0, cameraPitch, 0);
 
-            HorizonHeight = Camera.ProjectNormalized(Transform.Identity, Camera.Position + new Vector3(0, 0, -1)).Y;
+            //HorizonHeight = Camera.ProjectNormalized(Transform.Identity, Camera.Position + new Vector3(0, 0, -1)).Y;
+            HorizonHeight = Project(Transform.Identity, Camera.Position + new Vector3(0, 0, -1)).Y / Window.Height;
 
             Vector3 V3Project(Vector3 a, Vector3 b) => b * (Vector3.Dot(a, b) / Vector3.Dot(b, b));
 
@@ -414,153 +430,153 @@ namespace NeuroSonic.GamePlay
         {
             var renderState = new RenderState
             {
+                //Viewport = (Viewport.X, -Window.Height + Viewport.Y + Viewport.Size, Viewport.Size, Viewport.Size),
+                Viewport = (Viewport.X - Viewport.Size / 2, -Window.Height + (Viewport.Y - Viewport.Size / 2) + Viewport.Size * 2, Viewport.Size * 2, Viewport.Size * 2),
                 ProjectionMatrix = Camera.ProjectionMatrix,
                 CameraMatrix = Camera.ViewMatrix,
             };
 
-            using (var queue = new RenderQueue(renderState))
+            using var queue = new RenderQueue(renderState);
+            m_highwayDrawable.DrawToQueue(queue, Transform.Translation(0, 0, LENGTH_ADD) * WorldTransform);
+
+            for (int i = 0; i < 6; i++)
             {
-                m_highwayDrawable.DrawToQueue(queue, Transform.Translation(0, 0, LENGTH_ADD) * WorldTransform);
+                var keyBeamInfo = m_keyBeamInfos[i];
+                var keyBeamDrawable = m_keyBeamDrawables[i];
 
-                for (int i = 0; i < 6; i++)
+                Transform t = Transform.Scale(i < 4 ? 1.0f / 6 : 2.0f / 6, 1, 1)
+                            * Transform.Translation(i < 4 ? -3.0f / 12 + (float)i / 6 : -1.0f / 6 + (2.0f * (i - 4)) / 6, 0, LENGTH_ADD)
+                            * WorldTransform;
+
+                keyBeamDrawable.Params["Color"] = new Vector4(keyBeamInfo.Color, keyBeamInfo.Alpha);
+                keyBeamDrawable.DrawToQueue(queue, t);
+            }
+
+            void RenderButtonStream(int i, bool chip)
+            {
+                foreach (var objr in m_renderables[i].Values)
                 {
-                    var keyBeamInfo = m_keyBeamInfos[i];
-                    var keyBeamDrawable = m_keyBeamDrawables[i];
+                    if (chip != objr.Object.IsInstant) continue;
 
-                    Transform t = Transform.Scale(i < 4 ? 1.0f / 6 : 2.0f / 6, 1, 1)
-                                * Transform.Translation(i < 4 ? -3.0f / 12 + (float)i / 6 : -1.0f / 6 + (2.0f * (i - 4)) / 6, 0, LENGTH_ADD)
-                                * WorldTransform;
+                    float zAbs = (float)((objr.Object.AbsolutePosition - PlaybackPosition) / ViewDuration);
+                    float z = LENGTH_BASE * zAbs;
 
-                    keyBeamDrawable.Params["Color"] = new Vector4(keyBeamInfo.Color, keyBeamInfo.Alpha);
-                    keyBeamDrawable.DrawToQueue(queue, t);
-                }
+                    float xOffs = 0;
+                    if (i < 4)
+                        xOffs = -3 / 12.0f + i / 6.0f;
+                    else xOffs = -1 / 6.0f + (i - 4) / 3.0f;
 
-                void RenderButtonStream(int i, bool chip)
-                {
-                    foreach (var objr in m_renderables[i].Values)
+                    // TODO(local): [CONFIG] Allow user to change the scaling of chips, or use a different texture
+                    Transform tDiff = Transform.Identity;
+                    if (objr.Object.IsInstant)
                     {
-                        if (chip != objr.Object.IsInstant) continue;
+                        float distScaling = zAbs * 1.0f;
+                        float widthMult = 1.0f;
 
-                        float zAbs = (float)((objr.Object.AbsolutePosition - PlaybackPosition) / ViewDuration);
-                        float z = LENGTH_BASE * zAbs;
-
-                        float xOffs = 0;
-                        if (i < 4)
-                            xOffs = -3 / 12.0f + i / 6.0f;
-                        else xOffs = -1 / 6.0f + (i - 4) / 3.0f;
-
-                        // TODO(local): [CONFIG] Allow user to change the scaling of chips, or use a different texture
-                        Transform tDiff = Transform.Identity;
-                        if (objr.Object.IsInstant)
+                        if ((int)objr.Object.Lane < 4)
                         {
-                            float distScaling = zAbs * 1.0f;
-                            float widthMult = 1.0f;
-
-                            if ((int)objr.Object.Lane < 4)
-                            {
-                                int fxLaneCheck = 4 + (int)objr.Object.Lane / 2;
-                                if (objr.Object.Chart[fxLaneCheck].TryGetAt(objr.Object.Position, out var overlap) && overlap.IsInstant)
-                                    widthMult = 0.8f;
-                            }
-
-                            tDiff = Transform.Scale(widthMult, 1, 1 + distScaling);
+                            int fxLaneCheck = 4 + (int)objr.Object.Lane / 2;
+                            if (objr.Object.Chart[fxLaneCheck].TryGetAt(objr.Object.Position, out var overlap) && overlap.IsInstant)
+                                widthMult = 0.8f;
                         }
 
-                        if (objr is GlowingRenderState3D glowObj)
-                        {
-                            if (m_glowInfos[objr.Object.Lane].Object == objr.Object)
-                            {
-                                glowObj.Glow = m_glowInfos[objr.Object.Lane].Glow;
-                                glowObj.GlowState = m_glowInfos[objr.Object.Lane].GlowState;
-                            }
-                            else
-                            {
-                                //glowObj.Glow = m_streamsActive[objr.Object.Lane] ? 0.0f : -0.5f;
-                                //glowObj.GlowState = m_streamsActive[objr.Object.Lane] ? 1 : 0;
-                                glowObj.Glow = 0.0f;
-                                glowObj.GlowState = 1;
-                            }
-                        }
-
-                        Transform t = tDiff * Transform.Translation(xOffs, 0, -z) * WorldTransform;
-                        objr.Render(queue, t);
+                        tDiff = Transform.Scale(widthMult, 1, 1 + distScaling);
                     }
-                }
 
-                void RenderAnalogStream(int i)
-                {
-                    const float HISCALE = 0.1f;
-
-                    foreach (var objr in m_renderables[i + 6].Values)
+                    if (objr is GlowingRenderState3D glowObj)
                     {
-                        var analog = objr.Object as AnalogEntity;
-                        var glowObj = objr as GlowingRenderState3D;
-
-                        if (m_glowInfos[analog.Lane].Object == analog.Head)
+                        if (m_glowInfos[objr.Object.Lane].Object == objr.Object)
                         {
-                            glowObj.Glow = m_glowInfos[analog.Lane].Glow;
-                            glowObj.GlowState = m_glowInfos[analog.Lane].GlowState;
+                            glowObj.Glow = m_glowInfos[objr.Object.Lane].Glow;
+                            glowObj.GlowState = m_glowInfos[objr.Object.Lane].GlowState;
                         }
                         else
                         {
-                            glowObj.Glow = m_streamsActive[analog.Lane] ? 0.0f : -0.5f;
-                            glowObj.GlowState = m_streamsActive[analog.Lane] ? 1 : 0;
-                        }
-
-                        time_t position = objr.Object.AbsolutePosition;
-                        if (objr.Object.PreviousConnected != null && objr.Object.Previous.IsInstant)
-                            position += SlamDurationTime(objr.Object.PreviousConnected);
-
-                        float z = LENGTH_BASE * (float)((position - PlaybackPosition) / ViewDuration);
-
-                        Transform s = Transform.Scale(1, 1, 1 + HISCALE);
-                        Transform t = Transform.Translation(0, 0, -z) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
-                        objr.Render(queue, t);
-
-                        if (objr.Object.PreviousConnected == null)
-                        {
-                            float laneSpace = 5 / 6.0f;
-                            if (analog.RangeExtended) laneSpace *= 2;
-
-                            time_t entryPosition = objr.Object.AbsolutePosition;
-                            float zEntry = LENGTH_BASE * (float)((entryPosition - PlaybackPosition) / ViewDuration);
-
-                            Transform tEntry = Transform.Translation(((objr.Object as AnalogEntity).InitialValue - 0.5f) * laneSpace, 0, -zEntry) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
-                            //queue.Draw(tEntry, laserEntryMesh, laserEntryMaterial, i == 0 ? lLaserEntryParams : rLaserEntryParams);
-                            (i == 0 ? m_lVolEntryDrawable : m_rVolEntryDrawable).DrawToQueue(queue, tEntry);
-                        }
-
-                        if (objr.Object.NextConnected == null && objr.Object.IsInstant)
-                        {
-                            float laneSpace = 5 / 6.0f;
-                            if (analog.RangeExtended) laneSpace *= 2;
-
-                            time_t exitPosition = objr.Object.AbsoluteEndPosition;
-                            if (objr.Object.IsInstant)
-                                exitPosition += SlamDurationTime(objr.Object);
-
-                            float zExit = LENGTH_BASE * (float)((exitPosition - PlaybackPosition) / ViewDuration);
-
-                            Transform tExit = Transform.Translation(((objr.Object as AnalogEntity).FinalValue - 0.5f) * laneSpace, 0, -zExit) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
-                            //queue.Draw(tExit, laserExitMesh, laserExitMaterial, i == 0 ? lLaserExitParams : rLaserExitParams);
-                            (i == 0 ? m_lVolExitDrawable : m_rVolExitDrawable).DrawToQueue(queue, tExit);
+                            //glowObj.Glow = m_streamsActive[objr.Object.Lane] ? 0.0f : -0.5f;
+                            //glowObj.GlowState = m_streamsActive[objr.Object.Lane] ? 1 : 0;
+                            glowObj.Glow = 0.0f;
+                            glowObj.GlowState = 1;
                         }
                     }
+
+                    Transform t = tDiff * Transform.Translation(xOffs, 0, -z) * WorldTransform;
+                    objr.Render(queue, t);
                 }
-
-                for (int i = 0; i < 2; i++)
-                    RenderButtonStream(i + 4, false);
-                for (int i = 0; i < 4; i++)
-                    RenderButtonStream(i, false);
-
-                for (int i = 0; i < 2; i++)
-                    RenderAnalogStream(i);
-
-                for (int i = 0; i < 2; i++)
-                    RenderButtonStream(i + 4, true);
-                for (int i = 0; i < 4; i++)
-                    RenderButtonStream(i, true);
             }
+
+            void RenderAnalogStream(int i)
+            {
+                const float HISCALE = 0.1f;
+
+                foreach (var objr in m_renderables[i + 6].Values)
+                {
+                    var analog = objr.Object as AnalogEntity;
+                    var glowObj = objr as GlowingRenderState3D;
+
+                    if (m_glowInfos[analog.Lane].Object == analog.Head)
+                    {
+                        glowObj.Glow = m_glowInfos[analog.Lane].Glow;
+                        glowObj.GlowState = m_glowInfos[analog.Lane].GlowState;
+                    }
+                    else
+                    {
+                        glowObj.Glow = m_streamsActive[analog.Lane] ? 0.0f : -0.5f;
+                        glowObj.GlowState = m_streamsActive[analog.Lane] ? 1 : 0;
+                    }
+
+                    time_t position = objr.Object.AbsolutePosition;
+                    if (objr.Object.PreviousConnected != null && objr.Object.Previous.IsInstant)
+                        position += SlamDurationTime(objr.Object.PreviousConnected);
+
+                    float z = LENGTH_BASE * (float)((position - PlaybackPosition) / ViewDuration);
+
+                    Transform s = Transform.Scale(1, 1, 1 + HISCALE);
+                    Transform t = Transform.Translation(0, 0, -z) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
+                    objr.Render(queue, t);
+
+                    if (objr.Object.PreviousConnected == null)
+                    {
+                        float laneSpace = 5 / 6.0f;
+                        if (analog.RangeExtended) laneSpace *= 2;
+
+                        time_t entryPosition = objr.Object.AbsolutePosition;
+                        float zEntry = LENGTH_BASE * (float)((entryPosition - PlaybackPosition) / ViewDuration);
+
+                        Transform tEntry = Transform.Translation(((objr.Object as AnalogEntity).InitialValue - 0.5f) * laneSpace, 0, -zEntry) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
+                        //queue.Draw(tEntry, laserEntryMesh, laserEntryMaterial, i == 0 ? lLaserEntryParams : rLaserEntryParams);
+                        (i == 0 ? m_lVolEntryDrawable : m_rVolEntryDrawable).DrawToQueue(queue, tEntry);
+                    }
+
+                    if (objr.Object.NextConnected == null && objr.Object.IsInstant)
+                    {
+                        float laneSpace = 5 / 6.0f;
+                        if (analog.RangeExtended) laneSpace *= 2;
+
+                        time_t exitPosition = objr.Object.AbsoluteEndPosition;
+                        if (objr.Object.IsInstant)
+                            exitPosition += SlamDurationTime(objr.Object);
+
+                        float zExit = LENGTH_BASE * (float)((exitPosition - PlaybackPosition) / ViewDuration);
+
+                        Transform tExit = Transform.Translation(((objr.Object as AnalogEntity).FinalValue - 0.5f) * laneSpace, 0, -zExit) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
+                        //queue.Draw(tExit, laserExitMesh, laserExitMaterial, i == 0 ? lLaserExitParams : rLaserExitParams);
+                        (i == 0 ? m_lVolExitDrawable : m_rVolExitDrawable).DrawToQueue(queue, tExit);
+                    }
+                }
+            }
+
+            for (int i = 0; i < 2; i++)
+                RenderButtonStream(i + 4, false);
+            for (int i = 0; i < 4; i++)
+                RenderButtonStream(i, false);
+
+            for (int i = 0; i < 2; i++)
+                RenderAnalogStream(i);
+
+            for (int i = 0; i < 2; i++)
+                RenderButtonStream(i + 4, true);
+            for (int i = 0; i < 4; i++)
+                RenderButtonStream(i, true);
         }
     }
 }
