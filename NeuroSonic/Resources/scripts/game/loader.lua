@@ -1,7 +1,7 @@
 ﻿
 local State;
 
-local TransitionTime = 0.25;
+local TransitionTime = 0.2;
 
 local IntroTimer;
 local OutroTimer;
@@ -17,7 +17,7 @@ function AsyncFinalize()
 end
 
 function Init()
-	State = "Intro";
+	State = "Idle";
 
 	IntroTimer = TransitionTime;
 	OutroTimer = TransitionTime;
@@ -31,6 +31,10 @@ end
 -- Return true while outro running, false otherwise.
 function CheckOutro()
 	return State == "Outro";
+end
+
+function TriggerIntro()
+	State = "Intro";
 end
 
 function TriggerOutro()

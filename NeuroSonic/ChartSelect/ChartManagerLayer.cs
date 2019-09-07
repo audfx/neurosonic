@@ -24,12 +24,14 @@ namespace NeuroSonic.ChartSelect
     {
         protected override string Title => "Chart Manager";
 
-        private string m_chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
+        private readonly string m_chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
 
         private Thread m_loadThread = null;
 
         private Layer m_nextLayer = null;
         private string m_convertDirectory = null;
+
+        private bool m_inGame = false;
 
         protected override void GenerateMenuItems()
         {
@@ -45,12 +47,17 @@ namespace NeuroSonic.ChartSelect
                 {
                     if (paths == null) return; // selection cancelled?? idk I guess just backing out is a cancel.
 
-                    //string primaryKshFile = @"B:\kshootmania\songs\Sound Voltex\ikasama_kemu\infinite.ksh";
-                    string primaryKshFile = paths[0];
-                    var chartSetInfo = ConvertKSHAndSave(primaryKshFile, out ChartInfo selected);
+                    DefaultTransitionOverlay.Instance.TransitionClose(() =>
+                    {
+                        string primaryKshFile = paths[0];
+                        var chartSetInfo = ConvertKSHAndSave(primaryKshFile, out ChartInfo selected);
 
-                    var loader = new GameLoadingLayer(Plugin.DefaultResourceLocator, selected, autoPlay);
-                    m_nextLayer = loader;
+                        var gameLoader = new GameLoadingLayer(Plugin.DefaultResourceLocator);
+                        gameLoader!.Begin(selected, autoPlay);
+
+                        m_nextLayer = gameLoader;
+                        m_inGame = true;
+                    });
                 });
 
                 Host.AddLayerAbove(this, browser);
@@ -74,6 +81,17 @@ namespace NeuroSonic.ChartSelect
                 m_loadThread = new Thread(function);
                 m_loadThread.SetApartmentState(ApartmentState.STA);
                 m_loadThread.Start();
+            }
+        }
+
+        public override void Resumed()
+        {
+            base.Resumed();
+
+            if (m_inGame)
+            {
+                DefaultTransitionOverlay.Instance.TransitionOpen();
+                m_inGame = false;
             }
         }
 
@@ -103,9 +121,6 @@ namespace NeuroSonic.ChartSelect
                 audio.Volume = ksh.Metadata.MusicVolume / 100.0f;
 
                 var chart = ksh.ToVoltex();
-
-                var loader = new GameLoadingLayer(Plugin.DefaultResourceLocator, chart, audio, autoPlay);
-                m_nextLayer = loader;
             }
         }
 
@@ -154,9 +169,6 @@ namespace NeuroSonic.ChartSelect
 
                 Debug.Assert(chartInfos.Length == 1, "Chart set deserialization returned multiple sets with the same file name!");
                 var selected = chartInfos.Single();
-
-                var loader = new GameLoadingLayer(Plugin.DefaultResourceLocator, selected, autoPlay);
-                m_nextLayer = loader;
             }
         }
 
@@ -386,9 +398,6 @@ namespace NeuroSonic.ChartSelect
             {
                 string primaryKshFile = dialogResult.FilePath;
                 var chartSetInfo = ConvertKSHAndSave(primaryKshFile, out ChartInfo selected);
-
-                var loader = new GameLoadingLayer(Plugin.DefaultResourceLocator, selected, autoPlay);
-                m_nextLayer = loader;
             }
         }
 

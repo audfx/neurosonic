@@ -56,6 +56,7 @@ namespace NeuroSonic
             Gamepad = Gamepad.Open(Host.GameConfig.GetInt(GameConfigKey.Controller_DeviceID));
             Input.CreateController();
 
+            Host.AddOverlay(DefaultTransitionOverlay.Instance);
             Host.PushLayer(new NeuroSonicStandaloneStartup());
         }
 

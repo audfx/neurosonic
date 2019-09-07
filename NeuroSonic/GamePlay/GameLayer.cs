@@ -19,6 +19,7 @@ using MoonSharp.Interpreter;
 using theori.Scripting;
 using System.Collections.Generic;
 using theori.Configuration;
+using NeuroSonic.Startup;
 
 namespace NeuroSonic.GamePlay
 {
@@ -35,7 +36,10 @@ namespace NeuroSonic.GamePlay
 
     public sealed class GameLayer : NscLayer
     {
-        public override int TargetFrameRate => 288;
+        private const float SLAM_VOLUME_MOD = 0.7f;
+        private const float SAMPLE_VOLUME_MOD = 0.5f;
+
+        public override int TargetFrameRate => 0;
 
         public override bool BlocksParentLayer => true;
 
@@ -55,7 +59,8 @@ namespace NeuroSonic.GamePlay
 
         private ScriptableBackground m_background;
 
-        private CriticalLine m_critRoot;
+        private CriticalLineUi m_critRootUi;
+        private CriticalLineWorld m_critRootWorld;
         private ComboDisplay m_comboDisplay;
 
         private ChartInfo m_chartInfo;
@@ -70,6 +75,8 @@ namespace NeuroSonic.GamePlay
 
         private readonly Entity[] m_activeObjects = new Entity[8];
         private readonly bool[] m_streamHasActiveEffects = new bool[8].Fill(true);
+
+        private readonly float[] m_laserInputs = new float[2];
 
         private readonly bool[] m_cursorsActive = new bool[2];
         private readonly float[] m_cursorAlphas = new float[2];
@@ -212,6 +219,28 @@ namespace NeuroSonic.GamePlay
                 }
             }
 
+            ForegroundGui = new Panel()
+            {
+                Children = new GuiElement[]
+                {
+                    m_critRootUi = new CriticalLineUi(m_resources),
+                    m_critRootWorld = new CriticalLineWorld(m_resources),
+
+                    m_comboDisplay = new ComboDisplay(m_resources)
+                    {
+                        RelativePositionAxes = Axes.Both,
+                        Position = new Vector2(0.5f, 0.7f)
+                    },
+                }
+            };
+
+            if (!m_critRootUi.AsyncLoad())
+                return false;
+            if (!m_critRootWorld.AsyncLoad())
+                return false;
+            if (!m_comboDisplay.AsyncLoad())
+                return false;
+
             if (!m_resources.LoadAll())
                 return false;
 
@@ -242,6 +271,13 @@ namespace NeuroSonic.GamePlay
             }
 
             m_visualOffset = Plugin.Config.GetInt(NscConfigKey.VideoOffset) / 1000.0;
+
+            if (!m_critRootUi.AsyncFinalize())
+                return false;
+            if (!m_critRootWorld.AsyncFinalize())
+                return false;
+            if (!m_comboDisplay.AsyncFinalize())
+                return false;
 
             return true;
         }
@@ -341,19 +377,6 @@ namespace NeuroSonic.GamePlay
 
             m_highwayView.ViewDuration = m_visualPlayback.LookAhead;
 
-            ForegroundGui = new Panel()
-            {
-                Children = new GuiElement[]
-                {
-                    m_critRoot = new CriticalLine(m_resources),
-                    m_comboDisplay = new ComboDisplay(m_resources)
-                    {
-                        RelativePositionAxes = Axes.Both,
-                        Position = new Vector2(0.5f, 0.7f)
-                    },
-                }
-            };
-
             m_judge = new MasterJudge(m_chart);
             for (int i = 0; i < 6; i++)
             {
@@ -386,7 +409,7 @@ namespace NeuroSonic.GamePlay
             m_highwayControl = new HighwayControl(HighwayControlConfig.CreateDefaultKsh168());
             m_highwayView.Reset();
 
-            m_audio.Volume = 0.8f;
+            //m_audio.Volume = 0.8f;
             m_audio.Position = 0.0;
             m_audioController = new AudioEffectController(8, m_audio, true)
             {
@@ -395,13 +418,21 @@ namespace NeuroSonic.GamePlay
             m_audioController.Finish += () =>
             {
                 Logger.Log("track complete");
-                Host.PopToParent(this);
+                ExitGame();
             };
 
             m_audioController.Position = MathL.Min(0.0, (double)m_chart.TimeStart - 2);
 
             m_gameTable["Begin"] = (Action)Begin;
             m_guiScript.CallIfExists("Init");
+        }
+
+        private void ExitGame()
+        {
+            DefaultTransitionOverlay.Instance.TransitionClose(() =>
+            {
+                Host.PopToParent(this);
+            });
         }
 
         public void Begin()
@@ -494,7 +525,7 @@ namespace NeuroSonic.GamePlay
                     if (entity is ButtonEntity button && button.HasSample && m_hitSounds.ContainsKey(button.Sample))
                     {
                         var sample = m_hitSounds[button.Sample];
-                        sample.Volume = button.SampleVolume;
+                        sample.Volume = button.SampleVolume * SAMPLE_VOLUME_MOD;
                         sample.Replay();
                     }
                 }
@@ -537,7 +568,7 @@ namespace NeuroSonic.GamePlay
                     }
                     break;
 
-                    case SlamVolumeEvent pars: m_slamSample.Volume = pars.Volume; break;
+                    case SlamVolumeEvent pars: m_slamSample.Volume = pars.Volume * SLAM_VOLUME_MOD; break;
                 }
             }
         }
@@ -574,7 +605,7 @@ namespace NeuroSonic.GamePlay
                 case ControllerInput.Start:
                     break;
 
-                case ControllerInput.Back: Host.PopToParent(this); break;
+                case ControllerInput.Back: ExitGame(); break;
 
                 default: return false;
             }
@@ -642,7 +673,7 @@ namespace NeuroSonic.GamePlay
 
                 case KeyCode.ESCAPE:
                 {
-                    Host.PopToParent(this);
+                    ExitGame();
                 } break;
 
                 // TODO(local): consume whatever the controller does
@@ -678,7 +709,7 @@ namespace NeuroSonic.GamePlay
             (m_judge[lane + 6] as LaserJudge).UserInput(amount, m_judge.Position);
         }
 
-        private void CreateKeyBeam(int streamIndex, JudgeKind kind, bool isEarly)
+        private void CreateKeyBeam(int laneIndex, JudgeKind kind, bool isEarly)
         {
             Vector3 color = Vector3.One;
 
@@ -692,7 +723,8 @@ namespace NeuroSonic.GamePlay
                 case JudgeKind.Miss: color = new Vector3(1, 0, 0); break;
             }
 
-            m_highwayView.CreateKeyBeam(streamIndex, color);
+            m_highwayView.CreateKeyBeam(laneIndex, color);
+            m_critRootWorld.TriggerButtonAnimation(laneIndex, color);
         }
 
         private void SetLuaDynamicData()
@@ -764,13 +796,28 @@ namespace NeuroSonic.GamePlay
                 else e++;
             }
 
+            time_t laserAnticipateLookAhead = visualPosition + m_chart.ControlPoints.MostRecent(visualPosition).MeasureDuration * 0.5;
+            for (int i = 0; i < 2; i++)
+            {
+                m_laserInputs[i] = (float)i;
+
+                var currentLaser = m_chart[i + 6].MostRecent<AnalogEntity>(visualPosition);
+                if (currentLaser == null || visualPosition > currentLaser.AbsoluteEndPosition)
+                {
+                    var checkAnalog = m_chart[i + 6].MostRecent<AnalogEntity>(laserAnticipateLookAhead)?.Head;
+                    while (checkAnalog != null && checkAnalog.HasPrevious && checkAnalog.Previous is AnalogEntity pAnalog && (pAnalog = pAnalog.Head).AbsolutePosition > visualPosition)
+                        checkAnalog = pAnalog;
+
+                    if (checkAnalog != null && checkAnalog.AbsolutePosition > visualPosition)
+                        m_laserInputs[i] = checkAnalog!.InitialValue;
+                }
+                else m_laserInputs[i] = currentLaser.SampleValue(visualPosition);
+            }
+
             m_highwayControl.MeasureDuration = m_chart.ControlPoints.MostRecent(visualPosition).MeasureDuration;
 
-            float leftLaserValue = GetTempRollValue(visualPosition, 6, out float _);
-            float rightLaserValue = GetTempRollValue(visualPosition, 7, out float _, true);
-
-            m_highwayControl.LeftLaserInput = leftLaserValue;
-            m_highwayControl.RightLaserInput = rightLaserValue;
+            m_highwayControl.LeftLaserInput = m_laserInputs[0];
+            m_highwayControl.RightLaserInput = 1 - m_laserInputs[1];
 
             m_highwayControl.Zoom = GetPathValueLerped(visualPosition, NscLane.CameraZoom);
             m_highwayControl.Pitch = GetPathValueLerped(visualPosition, NscLane.CameraPitch);
@@ -831,17 +878,21 @@ namespace NeuroSonic.GamePlay
                 var defaultTransform = m_highwayView.DefaultTransform;
                 var defaultZoomTransform = m_highwayView.DefaultZoomedTransform;
                 var totalWorldTransform = m_highwayView.WorldTransform;
-                var critLineTransform = m_highwayView.CritLineTransform;
+                var critLineUiTransform = m_highwayView.CritLineTransform;
 
                 Vector2 comboLeft = m_highwayView.Project(defaultTransform, new Vector3(-0.8f / 6, 0, 0));
                 Vector2 comboRight = m_highwayView.Project(defaultTransform, new Vector3(0.8f / 6, 0, 0));
 
                 m_comboDisplay.DigitSize = (comboRight.X - comboLeft.X) / 4;
 
-                Vector2 critRootPosition = m_highwayView.Project(critLineTransform, Vector3.Zero);
-                Vector2 critRootPositionWest = m_highwayView.Project(critLineTransform, new Vector3(-1, 0, 0));
-                Vector2 critRootPositionEast = m_highwayView.Project(critLineTransform, new Vector3(1, 0, 0));
-                Vector2 critRootPositionForward = m_highwayView.Project(critLineTransform, new Vector3(0, 0, -1));
+                Vector2 critRootUiPosition = m_highwayView.Project(critLineUiTransform, Vector3.Zero);
+                Vector2 critRootUiPositionWest = m_highwayView.Project(critLineUiTransform, new Vector3(-1, 0, 0));
+                Vector2 critRootUiPositionEast = m_highwayView.Project(critLineUiTransform, new Vector3(1, 0, 0));
+                Vector2 critRootPositionForward = m_highwayView.Project(critLineUiTransform, new Vector3(0, 0, -1));
+
+                Vector2 critRootWorldPosition = m_highwayView.Project(totalWorldTransform, Vector3.Zero);
+                Vector2 critRootWorldPositionWest = m_highwayView.Project(totalWorldTransform, new Vector3(-1, 0, 0));
+                Vector2 critRootWorldPositionEast = m_highwayView.Project(totalWorldTransform, new Vector3(1, 0, 0));
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -867,19 +918,25 @@ namespace NeuroSonic.GamePlay
                 GetCursorPosition(0, out float leftLaserPos, out float leftLaserRange);
                 GetCursorPosition(1, out float rightLaserPos, out float rightLaserRange);
 
-                m_critRoot.LeftCursorPosition = GetCursorPositionWorld((leftLaserPos - 0.5f) * 5.0f / 6 * leftLaserRange);
-                m_critRoot.LeftCursorAlpha = m_cursorAlphas[0];
-                              m_critRoot.RightCursorPosition = GetCursorPositionWorld((rightLaserPos - 0.5f) * 5.0f / 6 * rightLaserRange);
-                m_critRoot.RightCursorAlpha = m_cursorAlphas[1];
+                float critRootWorldWidth = (m_highwayView.Project(defaultZoomTransform, new Vector3(-0.5f, 0, 0)) - m_highwayView.Project(defaultZoomTransform, new Vector3(0.5f, 0, 0))).Length();
+                m_critRootWorld.WorldUnitSize = critRootWorldWidth;
 
-                Vector2 critRotationVector = critRootPositionEast - critRootPositionWest;
-                float critRootRotation = MathL.Atan(critRotationVector.Y, critRotationVector.X);
+                m_critRootWorld.LeftCursorPosition = 2 * (leftLaserPos - 0.5f) * (5.0f / 6) * leftLaserRange;
+                m_critRootWorld.LeftCursorAlpha = m_cursorAlphas[0];
+                m_critRootWorld.RightCursorPosition = 2 * (rightLaserPos - 0.5f) * (5.0f / 6) * rightLaserRange;
+                m_critRootWorld.RightCursorAlpha = m_cursorAlphas[1];
 
-                //m_critRoot.Roll = m_highwayView.LaserRoll;
-                //m_critRoot.EffectRoll = m_highwayControl.EffectRoll;
-                //m_critRoot.EffectOffset = m_highwayControl.EffectOffset;
-                m_critRoot.Position = critRootPosition;
-                m_critRoot.Rotation = MathL.ToDegrees(critRootRotation) + m_highwayControl.CritLineEffectRoll * 25;
+                Vector2 critUiRotationVector = critRootUiPositionEast - critRootUiPositionWest;
+                float critRootUiRotation = MathL.Atan(critUiRotationVector.Y, critUiRotationVector.X);
+
+                Vector2 critWorldRotationVector = critRootWorldPositionEast - critRootWorldPositionWest;
+                float critRootWorldRotation = MathL.Atan(critWorldRotationVector.Y, critWorldRotationVector.X);
+
+                m_critRootUi.Position = critRootUiPosition;
+                m_critRootWorld.Position = critRootWorldPosition;
+
+                m_critRootUi.Rotation = MathL.ToDegrees(critRootUiRotation) + m_highwayControl.CritLineEffectRoll * 25;
+                m_critRootWorld.Rotation = MathL.ToDegrees(critRootWorldRotation);
             }
 
             m_background.HorizonHeight = m_highwayView.HorizonHeight;

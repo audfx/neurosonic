@@ -7,8 +7,10 @@ using theori.Resources;
 
 namespace NeuroSonic.GamePlay
 {
-    public class ComboDisplay : Panel
+    public class ComboDisplay : Panel, IAsyncLoadable
     {
+        private readonly ClientResourceManager m_resources;
+
         private int m_combo;
         private float m_lastDisplayTime;
 
@@ -32,12 +34,27 @@ namespace NeuroSonic.GamePlay
             }
         }
 
-        public ComboDisplay(ClientResourceManager skin)
+        public ComboDisplay(ClientResourceManager resources)
         {
-            m_color = new Vector4(1, 1, 0.5f, 1);
+            m_resources = resources;
 
+            m_color = new Vector4(1, 1, 0.5f, 1);
+        }
+
+        public bool AsyncLoad()
+        {
             for (int i = 0; i < 10; i++)
-                m_digits[i] = skin.AquireTexture($"textures/combo/{ i }");
+                m_digits[i] = m_resources.QueueTextureLoad($"textures/combo/{ i }");
+
+            return true;
+        }
+
+        public bool AsyncFinalize()
+        {
+            for (int i = 0; i < 10; i++)
+                m_digits[i] = m_resources.GetTexture($"textures/combo/{ i }");
+
+            return true;
         }
 
         public override void Render(GuiRenderQueue rq)
