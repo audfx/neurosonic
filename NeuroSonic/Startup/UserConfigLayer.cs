@@ -105,20 +105,18 @@ namespace NeuroSonic.Startup
 
         private void OpenCalibration()
         {
-            Host.PushLayer(new CalibrationLayer());
+            Push(new CalibrationLayer());
         }
 
-        public override void Resumed()
+        public override void Resumed(Layer previousLayer)
         {
-            base.Resumed();
-
             m_voffValue = Plugin.Config.GetInt(NscConfigKey.VideoOffset);
             m_ioffValue = Plugin.Config.GetInt(NscConfigKey.InputOffset);
         }
 
-        public override void Init()
+        public override void Initialize()
         {
-            base.Init();
+            base.Initialize();
 
             const int ALIGN = 300;
             const int SPACING = MenuItem.SPACING;

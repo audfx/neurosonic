@@ -1,4 +1,8 @@
-﻿using theori;
+﻿using System.Numerics;
+
+using theori;
+using theori.Graphics;
+using theori.Gui;
 
 using NeuroSonic.IO;
 
@@ -13,7 +17,9 @@ namespace NeuroSonic
 
     public abstract class NscLayer : Layer, IControllerInputLayer
     {
-        public override void Init()
+        protected Panel? ForegroundGui;
+
+        public override void Initialize()
         {
             Input.Register(this);
         }
@@ -26,22 +32,30 @@ namespace NeuroSonic
         public virtual bool ControllerButtonPressed(ControllerInput input) => false;
         public virtual bool ControllerButtonReleased(ControllerInput input) => false;
         public virtual bool ControllerAxisChanged(ControllerInput input, float delta) => false;
-    }
 
-    public abstract class NscOverlay : Overlay, IControllerInputLayer
-    {
-        public override void Init()
+        public override void LateUpdate()
         {
-            Input.Register(this);
+            base.LateUpdate();
+
+            ForegroundGui?.Update();
         }
 
-        public override void Destroy()
+        public override void LateRender()
         {
-            Input.UnRegister(this);
-        }
+            static void RenderGui(Panel? panel)
+            {
+                if (panel == null) return;
 
-        public virtual bool ControllerButtonPressed(ControllerInput input) => false;
-        public virtual bool ControllerButtonReleased(ControllerInput input) => false;
-        public virtual bool ControllerAxisChanged(ControllerInput input, float delta) => false;
+                var dimensions = new Vector2(Window.Width, Window.Height);
+
+                panel.Size = dimensions;
+                panel.Position = Vector2.Zero;
+
+                using var rq = new GuiRenderQueue(dimensions);
+                panel.Render(rq);
+            }
+
+            RenderGui(ForegroundGui);
+        }
     }
 }

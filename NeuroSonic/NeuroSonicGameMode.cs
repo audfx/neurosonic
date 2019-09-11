@@ -1,8 +1,6 @@
-﻿using theori;
-using theori.Charting;
+﻿using theori.Charting;
 using theori.GameModes;
 
-using NeuroSonic.GamePlay;
 using NeuroSonic.Charting;
 
 namespace NeuroSonic
@@ -19,8 +17,8 @@ namespace NeuroSonic
         {
         }
 
-        public override void InvokeStandalone(string[] args) => Plugin.NSC_Main(args);
 #if false
+        public override void InvokeStandalone(string[] args) => Plugin.NSC_Main(args);
         public override Layer CreateSharedGameLayer() => new GameLayer(null, null, null, AutoPlay.None);
 #endif
 

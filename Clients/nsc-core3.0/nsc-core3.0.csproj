@@ -3,9 +3,13 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <RootNamespace>NeuroSonic.NetCore30</RootNamespace>
+    <RootNamespace>NeuroSonic.Core30</RootNamespace>
     <Configurations>Debug;Release;Deploy</Configurations>
     <Platforms>x64</Platforms>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

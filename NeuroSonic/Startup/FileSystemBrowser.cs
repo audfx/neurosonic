@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using NeuroSonic.IO;
-using theori;
+
 using theori.Graphics;
 using theori.IO;
+
+using NeuroSonic.IO;
 
 namespace NeuroSonic.Startup
 {
@@ -31,6 +31,13 @@ namespace NeuroSonic.Startup
             m_renderer = new BasicSpriteRenderer();
 
             PopulateDirectoryChildren();
+        }
+
+        public override void Initialize()
+        {
+            base.Initialize();
+
+            SetInvalidForResume();
         }
 
         private void PopulateDirectoryChildren()
@@ -60,6 +67,8 @@ namespace NeuroSonic.Startup
             if (m_directoryPath == Directory.GetDirectoryRoot(m_directoryPath))
                 m_directoryPath = "";
             else m_directoryPath = Directory.GetParent(m_directoryPath).FullName;
+            if (m_directoryPath.EndsWith('\\') || m_directoryPath.EndsWith('/'))
+                m_directoryPath = m_directoryPath.Substring(0, m_directoryPath.Length - 1);
 
             PopulateDirectoryChildren();
             m_selected = m_directoryChildren.IndexOf($"{ currentDirName }{ Path.DirectorySeparatorChar }");
@@ -77,7 +86,6 @@ namespace NeuroSonic.Startup
                 else
                 {
                     m_onSelected?.Invoke(new[] { Path.Combine(m_directoryPath, selected) });
-                    Host.PopToParent(this);
                     return;
                 }
             }
@@ -98,7 +106,7 @@ namespace NeuroSonic.Startup
 
             switch (info.KeyCode)
             {
-                case KeyCode.ESCAPE: Host.PopToParent(this); break;
+                case KeyCode.ESCAPE: Pop(); break;
 
                 case KeyCode.RETURN: SelectEntry(); break;
 
@@ -122,7 +130,7 @@ namespace NeuroSonic.Startup
 
             switch (input)
             {
-                case ControllerInput.Back: Host.PopToParent(this); break;
+                case ControllerInput.Back: Pop(); break;
 
                 case ControllerInput.Start: SelectEntry(); break;
 

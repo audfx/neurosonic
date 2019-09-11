@@ -117,8 +117,9 @@ namespace NeuroSonic.IO
             m_gamepad = null;
         }
 
-        private void OnButtonPressed(uint index)
+        private void OnButtonPressed(ButtonInfo info)
         {
+            uint index = info.Button;
             if (m_buttonToControllerInput.TryGetValue((int)index, out ControllerInput input))
             {
                 var list = m_buttons[input];
@@ -131,8 +132,9 @@ namespace NeuroSonic.IO
             }
         }
 
-        private void OnButtonReleased(uint index)
+        private void OnButtonReleased(ButtonInfo info)
         {
+            uint index = info.Button;
             if (m_buttonToControllerInput.TryGetValue((int)index, out ControllerInput input))
             {
                 var list = m_buttons[input];
@@ -144,8 +146,11 @@ namespace NeuroSonic.IO
             }
         }
 
-        private void OnAxisChanged(uint index, float value)
+        private void OnAxisChanged(AnalogInfo info)
         {
+            uint index = info.Axis;
+            float value = info.Value;
+
             if (!m_axisToControllerInput.TryGetValue((int)index, out ControllerInput input))
                 return;
 
@@ -353,7 +358,7 @@ namespace NeuroSonic.IO
             Mouse.Move -= Mouse_Move;
         }
 
-        private void Mouse_Move(int xDelta, int yDelta)
+        private void Mouse_Move(int x, int y, int xDelta, int yDelta)
         {
             float amt = m_sensitivity * Time.Delta;
             if (xDelta != 0)

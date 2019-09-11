@@ -24,7 +24,7 @@ namespace NeuroSonic.GamePlay
 
         class GlowInfo
         {
-            public Entity Object;
+            public Entity? Object;
             public float Glow;
             public int GlowState;
         }
@@ -60,7 +60,7 @@ namespace NeuroSonic.GamePlay
         private Material laserMaterial, laserEntryMaterial;
 
         private Drawable3D m_highwayDrawable;
-        private Dictionary<LaneLabel, Drawable3D> m_keyBeamDrawables = new Dictionary<LaneLabel, Drawable3D>();
+        private Dictionary<LaneLabel, Drawable3D?> m_keyBeamDrawables = new Dictionary<LaneLabel, Drawable3D?>();
         private Drawable3D m_lVolEntryDrawable, m_lVolExitDrawable;
         private Drawable3D m_rVolEntryDrawable, m_rVolExitDrawable;
 
@@ -107,7 +107,6 @@ namespace NeuroSonic.GamePlay
 
             Camera = new BasicCamera();
             Camera.SetPerspectiveFoV(2 * 60, 1.0f, 0.01f, 1000);
-            //Camera.SetPerspectiveFoV(60, (float)Window.Width / Window.Height, 0.01f, 1000);
 
             for (int i = 0; i < 8; i++)
             {
@@ -342,12 +341,8 @@ namespace NeuroSonic.GamePlay
             
             Transform GetAtRoll(float roll, float xOffset)
             {
-                //const float ANCHOR_Y = -0.825f;
-                //const float CONTNR_Z = -1.1f;
-                
                 const float ANCHOR_ROT = 2.5f;
                 const float ANCHOR_Y = -0.7925f;
-                //const float CONTNR_Z = -0.975f;
                 const float CONTNR_Z = -0.51f;
 
                 var origin = Transform.RotationZ(roll);
@@ -364,7 +359,7 @@ namespace NeuroSonic.GamePlay
             var worldNoRoll = GetAtRoll(0, 0);
             var worldCritLine = GetAtRoll(TargetBaseRoll * 360 + roll, TargetOffset + TargetEffectOffset);
 
-            Vector3 ZoomDirection(Transform t, out float dist)
+            static Vector3 ZoomDirection(Transform t, out float dist)
             {
                 var dir = ((Matrix4x4)t).Translation;
                 dist = dir.Length();
@@ -382,20 +377,16 @@ namespace NeuroSonic.GamePlay
             var critDir = Vector3.Normalize(((Matrix4x4)worldNoRoll).Translation);
             float rotToCrit = MathL.Atan(critDir.Y, -critDir.Z);
 
-            //float cameraRot = Camera.FieldOfView / 2 - Camera.FieldOfView * CritScreenY;
             float cameraRot = Camera.FieldOfView * 0.3405f;
-            //float cameraRot = 0;
             float cameraPitch = rotToCrit + MathL.ToRadians(cameraRot);
 
             Camera.Position = CameraOffset;
             Camera.Rotation = Quaternion.CreateFromYawPitchRoll(0, cameraPitch, 0);
 
-            //HorizonHeight = Camera.ProjectNormalized(Transform.Identity, Camera.Position + new Vector3(0, 0, -1)).Y;
             HorizonHeight = Project(Transform.Identity, Camera.Position + new Vector3(0, 0, -1)).Y / Window.Height;
 
-            Vector3 V3Project(Vector3 a, Vector3 b) => b * (Vector3.Dot(a, b) / Vector3.Dot(b, b));
-
-            float SignedDistance(Vector3 point, Vector3 ray)
+            static Vector3 V3Project(Vector3 a, Vector3 b) => b * (Vector3.Dot(a, b) / Vector3.Dot(b, b));
+            static float SignedDistance(Vector3 point, Vector3 ray)
             {
                 Vector3 projected = V3Project(point, ray);
                 return MathL.Sign(Vector3.Dot(ray, projected)) * projected.Length();
@@ -467,6 +458,7 @@ namespace NeuroSonic.GamePlay
                     else xOffs = -1 / 6.0f + (i - 4) / 3.0f;
 
                     // TODO(local): [CONFIG] Allow user to change the scaling of chips, or use a different texture
+                    // TODO(local): change default scaling to take up exactly N degrees of the field of view at all times
                     Transform tDiff = Transform.Identity;
                     if (objr.Object.IsInstant)
                     {
@@ -492,8 +484,6 @@ namespace NeuroSonic.GamePlay
                         }
                         else
                         {
-                            //glowObj.Glow = m_streamsActive[objr.Object.Lane] ? 0.0f : -0.5f;
-                            //glowObj.GlowState = m_streamsActive[objr.Object.Lane] ? 1 : 0;
                             glowObj.Glow = 0.0f;
                             glowObj.GlowState = 1;
                         }
@@ -510,8 +500,8 @@ namespace NeuroSonic.GamePlay
 
                 foreach (var objr in m_renderables[i + 6].Values)
                 {
-                    var analog = objr.Object as AnalogEntity;
-                    var glowObj = objr as GlowingRenderState3D;
+                    var analog = (AnalogEntity)objr.Object;
+                    var glowObj = (GlowingRenderState3D)objr;
 
                     if (m_glowInfos[analog.Lane].Object == analog.Head)
                     {
@@ -542,8 +532,7 @@ namespace NeuroSonic.GamePlay
                         time_t entryPosition = objr.Object.AbsolutePosition;
                         float zEntry = LENGTH_BASE * (float)((entryPosition - PlaybackPosition) / ViewDuration);
 
-                        Transform tEntry = Transform.Translation(((objr.Object as AnalogEntity).InitialValue - 0.5f) * laneSpace, 0, -zEntry) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
-                        //queue.Draw(tEntry, laserEntryMesh, laserEntryMaterial, i == 0 ? lLaserEntryParams : rLaserEntryParams);
+                        Transform tEntry = Transform.Translation((((AnalogEntity)objr.Object).InitialValue - 0.5f) * laneSpace, 0, -zEntry) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
                         (i == 0 ? m_lVolEntryDrawable : m_rVolEntryDrawable).DrawToQueue(queue, tEntry);
                     }
 
@@ -558,25 +547,19 @@ namespace NeuroSonic.GamePlay
 
                         float zExit = LENGTH_BASE * (float)((exitPosition - PlaybackPosition) / ViewDuration);
 
-                        Transform tExit = Transform.Translation(((objr.Object as AnalogEntity).FinalValue - 0.5f) * laneSpace, 0, -zExit) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
-                        //queue.Draw(tExit, laserExitMesh, laserExitMaterial, i == 0 ? lLaserExitParams : rLaserExitParams);
+                        Transform tExit = Transform.Translation((((AnalogEntity)objr.Object).FinalValue - 0.5f) * laneSpace, 0, -zExit) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
                         (i == 0 ? m_lVolExitDrawable : m_rVolExitDrawable).DrawToQueue(queue, tExit);
                     }
                 }
             }
 
-            for (int i = 0; i < 2; i++)
-                RenderButtonStream(i + 4, false);
-            for (int i = 0; i < 4; i++)
-                RenderButtonStream(i, false);
+            for (int i = 0; i < 2; i++) RenderButtonStream(i + 4, false);
+            for (int i = 0; i < 4; i++) RenderButtonStream(i, false);
 
-            for (int i = 0; i < 2; i++)
-                RenderAnalogStream(i);
+            for (int i = 0; i < 2; i++) RenderAnalogStream(i);
 
-            for (int i = 0; i < 2; i++)
-                RenderButtonStream(i + 4, true);
-            for (int i = 0; i < 4; i++)
-                RenderButtonStream(i, true);
+            for (int i = 0; i < 2; i++) RenderButtonStream(i + 4, true);
+            for (int i = 0; i < 4; i++) RenderButtonStream(i, true);
         }
     }
 }

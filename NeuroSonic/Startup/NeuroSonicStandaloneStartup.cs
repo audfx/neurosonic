@@ -2,6 +2,7 @@
 
 using NeuroSonic.ChartSelect;
 using NeuroSonic.Properties;
+using NeuroSonic.Platform;
 
 namespace NeuroSonic.Startup
 {
@@ -20,24 +21,29 @@ namespace NeuroSonic.Startup
         private void EnterInputMethod()
         {
             var layer = new InputMethodConfigLayer();
-            Host.PushLayer(layer);
+            Push(layer);
         }
 
         private void EnterBindingConfig()
         {
             Layer layer;
             layer = new ControllerConfigurationLayer();
-            Host.PushLayer(layer);
+            Push(layer);
         }
 
         private void EnterConfiguration()
         {
-            Host.PushLayer(new UserConfigLayer());
+            Push(new UserConfigLayer());
         }
 
         private void EnterChartManagement()
         {
-            Host.PushLayer(new ChartManagerLayer());
+            Push(new ChartManagerLayer());
+        }
+
+        protected override void OnExit()
+        {
+            ClientAs<NscClient>().CloseCurtain(() => Host.Exit());
         }
     }
 }

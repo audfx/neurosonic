@@ -11,7 +11,7 @@ using theori.IO;
 
 namespace NeuroSonic.Startup
 {
-    public sealed class ControllerConfigurationLayer : BaseMenuLayer
+    public sealed class ControllerConfigurationLayer : BaseMenuLayer, IGamepadListener
     {
         class Bindable : Panel
         {
@@ -147,14 +147,14 @@ namespace NeuroSonic.Startup
             //AddMenuItem(new MenuItem(NextOffset, "Other Misc. Bindings", () => { }));
         }
 
-        public override void Init()
+        public override void Initialize()
         {
-            base.Init();
+            base.Initialize();
 
             Bindable start, back, bt0, bt1, bt2, bt3, fx0, fx1;
 
             Panel container;
-            ForegroundGui.AddChild(m_graphicPanel = new Panel()
+            ForegroundGui!.AddChild(m_graphicPanel = new Panel()
             {
                 Children = new GuiElement[]
                 {
@@ -518,10 +518,11 @@ namespace NeuroSonic.Startup
             return true;
         }
 
-        public override bool ButtonPressed(ButtonInfo info)
+        public bool GamepadButtonPressed(ButtonInfo info)
         {
-            if (info.DeviceIndex != Plugin.Gamepad.DeviceIndex) return false;
-            if (!m_isEditing) return base.ButtonPressed(info);
+            // TODO(local): relic?
+            if (info.Gamepad.DeviceIndex != Plugin.Gamepad.DeviceIndex) return false;
+            if (!m_isEditing) return false;
 
             if (m_codeIndex == -1)
             {
@@ -553,9 +554,14 @@ namespace NeuroSonic.Startup
             return true;
         }
 
-        public override bool AxisChanged(AnalogInfo info)
+        public bool GamepadButtonReleased(ButtonInfo info)
         {
-            if (!m_isEditing) return base.AxisChanged(info);
+            return false;
+        }
+
+        public bool GamepadAxisChanged(AnalogInfo info)
+        {
+            if (!m_isEditing) return false;
 
             if (m_codeIndex == -1)
             {

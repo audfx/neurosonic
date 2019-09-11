@@ -40,9 +40,9 @@ namespace NeuroSonic.ChartSelect
             return true;
         }
 
-        public override void Init()
+        public override void Initialize()
         {
-            base.Init();
+            base.Initialize();
 
             m_script = new LuaScript();
             m_script.LoadFile(m_locator.OpenFileStream("scripts/chart_select/main.lua"));
@@ -82,7 +82,7 @@ namespace NeuroSonic.ChartSelect
         {
             switch (info.KeyCode)
             {
-                case KeyCode.ESCAPE: Host.PopToParent(this); break;
+                case KeyCode.ESCAPE: Pop(); break;
 
                 default: return false;
             }
@@ -94,7 +94,7 @@ namespace NeuroSonic.ChartSelect
         {
             switch (input)
             {
-                case ControllerInput.Back: Host.PopToParent(this); break;
+                case ControllerInput.Back: Pop(); break;
 
                 default: return false;
             }

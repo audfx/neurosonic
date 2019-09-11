@@ -20,6 +20,7 @@ using theori.Scripting;
 using System.Collections.Generic;
 using theori.Configuration;
 using NeuroSonic.Startup;
+using NeuroSonic.Platform;
 
 namespace NeuroSonic.GamePlay
 {
@@ -90,12 +91,6 @@ namespace NeuroSonic.GamePlay
 
         private time_t m_visualOffset = 0;
 
-        #region Debug Overlay
-
-        private GameDebugOverlay m_debugOverlay;
-
-        #endregion
-
         internal GameLayer(ClientResourceLocator resourceLocator, ChartInfo chartInfo, AutoPlay autoPlay = AutoPlay.None)
         {
             m_locator = resourceLocator;
@@ -130,12 +125,6 @@ namespace NeuroSonic.GamePlay
             m_highwayView.Dispose();
             m_background.Dispose();
             m_resources.Dispose();
-
-            if (m_debugOverlay != null)
-            {
-                Host.RemoveOverlay(m_debugOverlay);
-                m_debugOverlay = null;
-            }
 
             m_audioController.Stop();
             m_audioController.Dispose();
@@ -287,9 +276,9 @@ namespace NeuroSonic.GamePlay
             //m_highwayView.Camera.AspectRatio = Window.Aspect;
         }
 
-        public override void Init()
+        public override void Initialize()
         {
-            base.Init();
+            base.Initialize();
 
             m_highwayControl = new HighwayControl(HighwayControlConfig.CreateDefaultKsh168());
             m_background.Init();
@@ -425,14 +414,13 @@ namespace NeuroSonic.GamePlay
 
             m_gameTable["Begin"] = (Action)Begin;
             m_guiScript.CallIfExists("Init");
+
+            ClientAs<NscClient>().OpenCurtain();
         }
 
         private void ExitGame()
         {
-            DefaultTransitionOverlay.Instance.TransitionClose(() =>
-            {
-                Host.PopToParent(this);
-            });
+            ClientAs<NscClient>().CloseCurtain(() => Pop());
         }
 
         public void Begin()
@@ -440,12 +428,12 @@ namespace NeuroSonic.GamePlay
             m_audioController.Play();
         }
 
-        public override void Suspended()
+        public override void Suspended(Layer nextLayer)
         {
             throw new Exception("Cannot suspend gameplay layer");
         }
 
-        public override void Resumed()
+        public override void Resumed(Layer previousLayer)
         {
             throw new Exception("Cannot suspend gameplay layer");
         }
@@ -649,21 +637,6 @@ namespace NeuroSonic.GamePlay
 
         public override bool KeyPressed(KeyInfo key)
         {
-            if ((key.Mods & KeyMod.ALT) != 0 && key.KeyCode == KeyCode.D)
-            {
-                if (m_debugOverlay != null)
-                {
-                    Host.RemoveOverlay(m_debugOverlay);
-                    m_debugOverlay = null;
-                }
-                else
-                {
-                    m_debugOverlay = new GameDebugOverlay(m_resources);
-                    Host.AddOverlay(m_debugOverlay);
-                }
-                return true;
-            }
-
             switch (key.KeyCode)
             {
                 case KeyCode.PAGEUP:
@@ -687,10 +660,9 @@ namespace NeuroSonic.GamePlay
         {
             if (AutoButtons) return;
 
-            var result = (m_judge[lane] as ButtonJudge).UserPressed(m_judge.Position);
+            var result = ((ButtonJudge)m_judge[lane]).UserPressed(m_judge.Position);
             if (result == null)
                 m_highwayView.CreateKeyBeam(lane, Vector3.One);
-            else m_debugOverlay?.AddTimingInfo(result.Value.Difference, result.Value.Kind);
             //else CreateKeyBeam(streamIndex, result.Value.Kind, result.Value.Difference < 0.0);
         }
 
@@ -698,7 +670,7 @@ namespace NeuroSonic.GamePlay
         {
             if (AutoButtons) return;
 
-            (m_judge[lane] as ButtonJudge).UserReleased(m_judge.Position);
+            ((ButtonJudge)m_judge[lane]).UserReleased(m_judge.Position);
         }
 
         void UserInput_VolPulse(int lane, float amount)
@@ -851,7 +823,6 @@ namespace NeuroSonic.GamePlay
                 var obj = m_activeObjects[i];
 
                 m_highwayView.SetStreamActive(i, m_streamHasActiveEffects[i]);
-                m_debugOverlay?.SetStreamActive(i, m_streamHasActiveEffects[i]);
 
                 if (obj == null) continue;
 
@@ -1050,6 +1021,7 @@ namespace NeuroSonic.GamePlay
 
         public override void LateRender()
         {
+            base.LateRender();
             m_guiScript.Draw();
         }
     }

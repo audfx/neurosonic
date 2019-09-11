@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using NeuroSonic.Platform;
 using NeuroSonic.Properties;
 using theori;
 using theori.Graphics;
@@ -44,9 +45,9 @@ namespace NeuroSonic.Startup
 
         protected abstract string Title { get; }
 
-        public override void Init()
+        public override void Initialize()
         {
-            base.Init();
+            base.Initialize();
 
             GenerateMenuItems();
 
@@ -105,6 +106,15 @@ namespace NeuroSonic.Startup
             };
 
             m_items[ItemIndex].Hilited = true;
+
+            ClientAs<NscClient>().OpenCurtain();
+        }
+
+        public override void Resumed(Layer previousLayer)
+        {
+            base.Resumed(previousLayer);
+
+            ClientAs<NscClient>().OpenCurtain();
         }
 
         protected abstract void GenerateMenuItems();
@@ -189,6 +199,6 @@ namespace NeuroSonic.Startup
             return true;
         }
 
-        protected virtual void OnExit() => Host.PopToParent(this);
+        protected virtual void OnExit() => Pop();
     }
 }

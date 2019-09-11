@@ -9,16 +9,6 @@ namespace NeuroSonic.IO
 
         private static readonly List<IControllerInputLayer> layers = new List<IControllerInputLayer>();
 
-        public static void Initialize()
-        {
-            Host.OnInputEnd += Update;
-        }
-
-        public static void Destroy()
-        {
-            Host.OnInputEnd -= Update;
-        }
-
         public static void CreateController()
         {
             DestroyController();

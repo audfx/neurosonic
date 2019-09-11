@@ -1,6 +1,5 @@
 ﻿using System;
 
-using theori;
 using theori.IO;
 
 using NeuroSonic.Properties;
@@ -16,13 +15,10 @@ namespace NeuroSonic.Startup
             AddMenuItem(new MenuItem(NextOffset, Strings.SecretMenu_InputKeyboardOnly, () => SelectKeyboard(false)));
             AddMenuItem(new MenuItem(NextOffset, Strings.SecretMenu_InputKeyboardMouse, () => SelectKeyboard(true)));
 
-            for (int id = 0; id < Gamepad.NumConnected; id++)
+            foreach (var gamepad in Gamepad.Connected)
             {
-                string name = Gamepad.NameOf(id);
-                Logger.Log($"Connected Controller { id }: { name }");
-
-                int gpId = id;
-                AddMenuItem(new MenuItem(NextOffset, name, () => SelectGamepad(gpId)));
+                Logger.Log($"Connected Controller { gamepad.DeviceIndex }: { gamepad.Name }");
+                AddMenuItem(new MenuItem(NextOffset, gamepad.Name ?? "Unknown Gamepad", () => SelectGamepad(gamepad.DeviceIndex)));
             }
         }
 
@@ -32,16 +28,16 @@ namespace NeuroSonic.Startup
             Plugin.Config.Set(NscConfigKey.LaserInputDevice, andMouse ? InputDevice.Mouse : InputDevice.Keyboard);
             Plugin.SaveNscConfig();
 
-            Host.PopToParent(this);
+            Pop();
         }
 
-        private void SelectGamepad(int id)
+        private void SelectGamepad(int deviceId)
         {
             Plugin.Config.Set(NscConfigKey.ButtonInputDevice, InputDevice.Controller);
             Plugin.Config.Set(NscConfigKey.LaserInputDevice, InputDevice.Controller);
-            Plugin.SwitchActiveGamepad(id); // Saves the config anyway
+            Plugin.SwitchActiveGamepad(deviceId); // Saves the config anyway
 
-            Host.PopToParent(this);
+            Pop();
         }
     }
 }

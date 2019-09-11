@@ -118,9 +118,9 @@ namespace NeuroSonic.Startup
             m_renderer = null;
         }
 
-        public override void Init()
+        public override void Initialize()
         {
-            base.Init();
+            base.Initialize();
 
             ForegroundGui = new Panel()
             {
@@ -227,14 +227,14 @@ namespace NeuroSonic.Startup
         {
             switch (key.KeyCode)
             {
-                case KeyCode.ESCAPE: Host.PopToParent(this); break;
+                case KeyCode.ESCAPE: Pop(); break;
 
                 case KeyCode.RETURN:
                 {
                     Plugin.Config.Set(NscConfigKey.InputOffset, InputOffset);
                     Plugin.Config.Set(NscConfigKey.VideoOffset, VideoOffset);
 
-                    Host.PopToParent(this);
+                    Pop();
                 } break;
 
                 case KeyCode.SPACE:
@@ -269,14 +269,14 @@ namespace NeuroSonic.Startup
         {
             switch (input)
             {
-                case ControllerInput.Back: Host.PopToParent(this); break;
+                case ControllerInput.Back: Pop(); break;
 
                 case ControllerInput.Start:
                 {
                     Plugin.Config.Set(NscConfigKey.InputOffset, InputOffset);
                     Plugin.Config.Set(NscConfigKey.VideoOffset, VideoOffset);
 
-                    Host.PopToParent(this);
+                    Pop();
                 }
                 break;
 
