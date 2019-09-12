@@ -678,7 +678,7 @@ namespace NeuroSonic.GamePlay
             if (AutoLasers) return;
             amount *= 0.5f;
 
-            (m_judge[lane + 6] as LaserJudge).UserInput(amount, m_judge.Position);
+            ((LaserJudge)m_judge[lane + 6]).UserInput(amount, m_judge.Position);
         }
 
         private void CreateKeyBeam(int laneIndex, JudgeKind kind, bool isEarly)
@@ -769,19 +769,25 @@ namespace NeuroSonic.GamePlay
             }
 
             time_t laserAnticipateLookAhead = visualPosition + m_chart.ControlPoints.MostRecent(visualPosition).MeasureDuration * 0.5;
+            time_t laserSlamSwingDuration = 0.1;
             for (int i = 0; i < 2; i++)
             {
-                m_laserInputs[i] = (float)i;
+                m_laserInputs[i] = i; // 0 or 1, default values for each side
 
                 var currentLaser = m_chart[i + 6].MostRecent<AnalogEntity>(visualPosition);
                 if (currentLaser == null || visualPosition > currentLaser.AbsoluteEndPosition)
                 {
-                    var checkAnalog = m_chart[i + 6].MostRecent<AnalogEntity>(laserAnticipateLookAhead)?.Head;
-                    while (checkAnalog != null && checkAnalog.HasPrevious && checkAnalog.Previous is AnalogEntity pAnalog && (pAnalog = pAnalog.Head).AbsolutePosition > visualPosition)
-                        checkAnalog = pAnalog;
+                    if (currentLaser is { } slam && slam.IsInstant && visualPosition <= slam.AbsoluteEndPosition + laserSlamSwingDuration)
+                        m_laserInputs[i] = slam.FinalValue;
+                    else
+                    {
+                        var checkAnalog = m_chart[i + 6].MostRecent<AnalogEntity>(laserAnticipateLookAhead)?.Head;
+                        while (checkAnalog != null && checkAnalog.HasPrevious && checkAnalog.Previous is AnalogEntity pAnalog && (pAnalog = pAnalog.Head).AbsolutePosition > visualPosition)
+                            checkAnalog = pAnalog;
 
-                    if (checkAnalog != null && checkAnalog.AbsolutePosition > visualPosition)
-                        m_laserInputs[i] = checkAnalog!.InitialValue;
+                        if (checkAnalog != null && checkAnalog.AbsolutePosition > visualPosition)
+                            m_laserInputs[i] = checkAnalog!.InitialValue;
+                    }
                 }
                 else m_laserInputs[i] = currentLaser.SampleValue(visualPosition);
             }

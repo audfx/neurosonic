@@ -43,7 +43,7 @@ namespace NeuroSonic.Startup
 
         protected override void OnExit()
         {
-            ClientAs<NscClient>().CloseCurtain(() => Host.Exit());
+            ClientAs<NscClient>().CloseCurtain(0.25f, () => Host.Exit());
         }
     }
 }

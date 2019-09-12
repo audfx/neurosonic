@@ -369,8 +369,8 @@ namespace NeuroSonic.GamePlay
                 } break;
             }
 
-            const float SPEED_FAST = 90;
-            const float SPEED_SLOW = 60;
+            const float SPEED_FAST = 70;
+            const float SPEED_SLOW = 40;
 
             m_targetCombinedLaserOutput = laserOutput;
             if (m_targetCombinedLaserOutput == 0)
@@ -381,8 +381,8 @@ namespace NeuroSonic.GamePlay
             {
                 switch (m_laserDamping)
                 {
-                    case Damping.Fast: LerpTo(ref m_combinedLaserOutput, m_targetCombinedLaserOutput, SPEED_FAST, 10); break;
-                    case Damping.Slow: LerpTo(ref m_combinedLaserOutput, m_targetCombinedLaserOutput, SPEED_SLOW, 10); break;
+                    case Damping.Fast: LerpTo(ref m_combinedLaserOutput, m_targetCombinedLaserOutput, SPEED_FAST, 20); break;
+                    case Damping.Slow: LerpTo(ref m_combinedLaserOutput, m_targetCombinedLaserOutput, SPEED_SLOW, 20); break;
                     case Damping.Off:
                     {
                         const int SPEED = 60;

@@ -67,8 +67,6 @@ namespace NeuroSonic.Startup
             if (m_directoryPath == Directory.GetDirectoryRoot(m_directoryPath))
                 m_directoryPath = "";
             else m_directoryPath = Directory.GetParent(m_directoryPath).FullName;
-            if (m_directoryPath.EndsWith('\\') || m_directoryPath.EndsWith('/'))
-                m_directoryPath = m_directoryPath.Substring(0, m_directoryPath.Length - 1);
 
             PopulateDirectoryChildren();
             m_selected = m_directoryChildren.IndexOf($"{ currentDirName }{ Path.DirectorySeparatorChar }");
@@ -82,7 +80,7 @@ namespace NeuroSonic.Startup
             {
                 string selected = m_directoryChildren[m_selected];
                 if (selected.EndsWith(Path.DirectorySeparatorChar))
-                    m_directoryPath = Path.Combine(m_directoryPath, selected);
+                    m_directoryPath = Path.Combine(m_directoryPath, selected[0..^1]);
                 else
                 {
                     m_onSelected?.Invoke(new[] { Path.Combine(m_directoryPath, selected) });
