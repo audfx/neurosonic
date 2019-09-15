@@ -1,5 +1,6 @@
 [![dev & player chat](https://discordapp.com/api/guilds/594032849804591114/widget.png?style=shield)](https://discord.gg/pQkF5HM)
 
+[![Standard Gameplay](https://www.youtube.com/watch?v=3X5OVUh50rA)](https://www.youtube.com/watch?v=3X5OVUh50rA)
 [![Running on .NET Core](https://img.youtube.com/vi/I5wOUcjP_MQ/2.jpg)](https://www.youtube.com/watch?v=I5wOUcjP_MQ)
 
 # NeuroSonic
