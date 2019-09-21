@@ -23,8 +23,24 @@ namespace NeuroSonic.Charting
 
                 case CurveShape.Cosine:
                 {
-                    // TODO(local): "strengthen" the curve based on `a` and `b`
-                    float angle = alpha * MathL.Pi;
+                    // linear interpolator, from regular sampling to squished sampling
+                    static float r(float x, float a) => a * m(x) + (1 - a) * x;
+                    // cube root function
+                    static float cbrt(float x) => x < 0 ? -MathL.Pow(-x, 1 / 3.0f) : MathL.Pow(x, 1 / 3.0f);
+                    // desmos :: m\left(x\right)=\frac{2\sin^{-1}\left(\sqrt[3]{\left(x-0.5\right)\left(2\sin\left(\frac{\pi}{4}\right)^3\right)}\right)}{\pi}+0.5\left\{0\le x\le1\right\}
+                    static float m(float x)
+                    {
+                        float pi = MathL.Pi;
+
+                        float _2sinpi4to3 = 2 * MathL.Pow(MathL.Sin(pi * 0.25f), 3);
+                        float _cbrtv = cbrt((x - 0.5f) * _2sinpi4to3);
+                        float _asincb = MathL.Asin(_cbrtv);
+                        float result = 0.5f + (2 * _asincb / pi);
+
+                        return result;
+                    }
+                    
+                    float angle = r(alpha, a * 0.75f) * MathL.Pi;
                     return (1 - (float)Math.Cos(angle)) * 0.5f;
                 }
 

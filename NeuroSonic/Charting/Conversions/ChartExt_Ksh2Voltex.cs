@@ -531,9 +531,16 @@ namespace NeuroSonic.Charting.Conversions
                                     ls.CurveA = a;
                                     ls.CurveB = b;
                                 }
-                                else if (c == "Cosine")
+                                else if (c.StartsWith("Cosine"))
                                 {
+                                    float a = 0.0f;
+                                    if (c != "Cosine" && c.TrySplit(' ', out string tp, out string sa))
+                                    {
+                                        float.TryParse(sa, out a);
+                                    }
+
                                     ls.Shape = CurveShape.Cosine;
+                                    ls.CurveA = a;
                                 }
                                 else continue;
                                 break;
