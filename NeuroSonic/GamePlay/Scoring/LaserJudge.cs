@@ -196,6 +196,7 @@ namespace NeuroSonic.GamePlay.Scoring
         }
 
         public override int CalculateNumScorableTicks() => m_scoreTicks.Count;
+        public override int[] GetCategorizedTicks() => new int[] { CalculateNumScorableTicks() };
 
         protected override void AdvancePosition(time_t position)
         {
@@ -288,7 +289,7 @@ namespace NeuroSonic.GamePlay.Scoring
                                     m_direction = nextStateTick.SegmentEntity.DirectionSign;
                                     m_currentStateTick = nextStateTick;
 
-                                    Logger.Log($"Direction Switch ({ (m_direction == 1 ? "->" : (m_direction == -1 ? "<-" : "|")) }) Missed (by { position - (nextStateTick.Position + JudgementOffset) }): { nextStateTick.SegmentEntity.Position } ({ nextStateTick.SegmentEntity.AbsolutePosition })");
+                                    //Logger.Log($"Direction Switch ({ (m_direction == 1 ? "->" : (m_direction == -1 ? "<-" : "|")) }) Missed (by { position - (nextStateTick.Position + JudgementOffset) }): { nextStateTick.SegmentEntity.Position } ({ nextStateTick.SegmentEntity.AbsolutePosition })");
 
                                     m_lockTimer = 0.0;
                                 }
@@ -377,17 +378,17 @@ namespace NeuroSonic.GamePlay.Scoring
                             m_direction = nextStateTick.SegmentEntity.DirectionSign;
                             m_currentStateTick = nextStateTick;
 
-                            Logger.Log($"Direction Switch ({ (m_direction == 1 ? "->" : (m_direction == -1 ? "<-" : "|")) }) Hit: { nextStateTick.SegmentEntity.Position } ({ nextStateTick.SegmentEntity.AbsolutePosition })");
+                            //Logger.Log($"Direction Switch ({ (m_direction == 1 ? "->" : (m_direction == -1 ? "<-" : "|")) }) Hit: { nextStateTick.SegmentEntity.Position } ({ nextStateTick.SegmentEntity.AbsolutePosition })");
 
                             if (nextStateTick.IsSlam)
                             {
                                 OnSlamHit?.Invoke(position, nextStateTick.SegmentEntity);
-                                Logger.Log($"  Direction Switch on Slam: { CursorPosition }, { nextStateTick.SegmentEntity.InitialValue } ({ MathL.Abs(CursorPosition - nextStateTick.SegmentEntity.InitialValue) } <? { m_cursorActiveRange })");
+                                //Logger.Log($"  Direction Switch on Slam: { CursorPosition }, { nextStateTick.SegmentEntity.InitialValue } ({ MathL.Abs(CursorPosition - nextStateTick.SegmentEntity.InitialValue) } <? { m_cursorActiveRange })");
 
                                 // If the cursor was near the head of the laser, we lock it regardless of previous locked status.
                                 if (MathL.Abs(CursorPosition - nextStateTick.SegmentEntity.InitialValue) < m_cursorActiveRange)
                                 {
-                                    Logger.Log($"  Direction Switch on Slam triggered Lock");
+                                    //Logger.Log($"  Direction Switch on Slam triggered Lock");
                                     SetLocked();
                                 }
                             }

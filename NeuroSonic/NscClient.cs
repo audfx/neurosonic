@@ -47,7 +47,7 @@ namespace NeuroSonic.Platform
         }
 
         public bool CloseCurtain(float holdTime, Action? onClosed = null) => m_curtain!.Close(holdTime, onClosed);
-        public bool CloseCurtain(Action? onClosed = null) => m_curtain!.Close(1.5f, onClosed);
+        public bool CloseCurtain(Action? onClosed = null) => m_curtain!.Close(0.5f, onClosed);
         public bool OpenCurtain(Action? onOpened = null) => m_curtain!.Open(onOpened);
 
         protected override void EndInputStep()

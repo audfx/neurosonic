@@ -9,6 +9,7 @@ using theori.Graphics.OpenGL;
 using theori.Resources;
 
 using NeuroSonic.Charting;
+using theori.Charting.Playback;
 
 namespace NeuroSonic.GamePlay
 {
@@ -71,9 +72,7 @@ namespace NeuroSonic.GamePlay
         private readonly Dictionary<LaneLabel, GlowInfo> m_glowInfos = new Dictionary<LaneLabel, GlowInfo>();
         private readonly Dictionary<LaneLabel, bool> m_streamsActive = new Dictionary<LaneLabel, bool>();
 
-        public time_t PlaybackPosition { get; set; }
-
-        public time_t ViewDuration { get; set; }
+        public SlidingChartPlayback Playback { get; }
 
         public float LaserRoll => roll;
         public float CriticalHeight => (1 - CritScreenY) * Camera.ViewportHeight;
@@ -98,8 +97,10 @@ namespace NeuroSonic.GamePlay
         const float SLAM_DUR_TICKS = 1 / 32.0f;
         time_t SlamDurationTime(Entity obj) => obj.Chart.ControlPoints.MostRecent(obj.Position).MeasureDuration * SLAM_DUR_TICKS;
 
-        public HighwayView(ClientResourceLocator locator)
+        public HighwayView(ClientResourceLocator locator, SlidingChartPlayback playback)
         {
+            Playback = playback;
+
             m_resources = new ClientResourceManager(locator);
 
             m_lVolColor = Color.HSVtoRGB(new Vector3(Plugin.Config.GetInt(NscConfigKey.Laser0Color) / 360.0f, 1, 1));
@@ -258,41 +259,25 @@ namespace NeuroSonic.GamePlay
 
             if (obj is ButtonEntity bobj)
             {
-                ObjectRenderable3D br3d;
                 if (obj.IsInstant)
-                    br3d = new ButtonChipRenderState3D(bobj, m_resources, m_obj3dResources);
-                else
-                {
-                    float zDur = (float)(obj.AbsoluteDuration.Seconds / ViewDuration.Seconds);
-                    br3d = new ButtonHoldRenderState3D(bobj, zDur * LENGTH_BASE, m_resources, m_obj3dResources);
-                }
-
-                m_renderables[obj.Lane][obj] = br3d;
+                    m_renderables[obj.Lane][obj] = new ButtonChipRenderState3D(bobj, m_resources, m_obj3dResources);
+                else m_renderables[obj.Lane][obj] = new ButtonHoldRenderState3D(bobj, m_resources, m_obj3dResources);
             }
             else if (obj is AnalogEntity aobj)
             {
                 var color = obj.Lane == 6 ? m_lVolColor : m_rVolColor;
-
                 if (obj.IsInstant)
-                {
-                    float zDur = (float)(SlamDurationTime(aobj).Seconds / ViewDuration.Seconds);
-                    m_renderables[obj.Lane][obj] = new SlamRenderState3D(aobj, zDur * LENGTH_BASE, color, m_resources);
-                }
-                else
-                {
-                    time_t duration = obj.AbsoluteDuration;
-                    if (aobj.PreviousConnected != null && aobj.Previous.IsInstant)
-                        duration -= SlamDurationTime(aobj.PreviousConnected);
-
-                    float zDur = (float)(duration.Seconds / ViewDuration.Seconds);
-                    m_renderables[obj.Lane][obj] = new LaserRenderState3D(aobj, zDur * LENGTH_BASE, color, m_resources);
-                }
+                    m_renderables[obj.Lane][obj] = new SlamRenderState3D(aobj, color, m_resources);
+                else m_renderables[obj.Lane][obj] = new LaserRenderState3D(aobj, color, m_resources);
             }
         }
 
         public void RenderableObjectDisappear(Entity obj)
         {
             if (!m_renderables.ContainsKey(obj.Lane)) return;
+
+            var lane = m_renderables[obj.Lane];
+            if (!lane.ContainsKey(obj)) return;
 
             m_renderables[obj.Lane][obj].Dispose();
             m_renderables[obj.Lane].Remove(obj);
@@ -449,8 +434,8 @@ namespace NeuroSonic.GamePlay
                 {
                     if (chip != objr.Object.IsInstant) continue;
 
-                    float zAbs = (float)((objr.Object.AbsolutePosition - PlaybackPosition) / ViewDuration);
-                    float z = LENGTH_BASE * zAbs;
+                    float z = LENGTH_BASE * Playback.GetRelativeDistance(objr.Object.AbsolutePosition);
+                    float zDur = 1;
 
                     float xOffs = 0;
                     if (i < 4)
@@ -462,7 +447,7 @@ namespace NeuroSonic.GamePlay
                     Transform tDiff = Transform.Identity;
                     if (objr.Object.IsInstant)
                     {
-                        float distScaling = zAbs * 1.0f;
+                        float distScaling = z / LENGTH_BASE;
                         float widthMult = 1.0f;
 
                         if ((int)objr.Object.Lane < 4)
@@ -472,7 +457,13 @@ namespace NeuroSonic.GamePlay
                                 widthMult = 0.8f;
                         }
 
-                        tDiff = Transform.Scale(widthMult, 1, 1 + distScaling);
+                        tDiff = Transform.Scale(widthMult, 1, 1);
+                        zDur = 1 + distScaling;
+                    }
+                    else
+                    {
+                        tDiff = Transform.Scale(1, 1, zDur);
+                        zDur = LENGTH_BASE * Playback.GetRelativeDistanceFromTime(objr.Object.AbsolutePosition, objr.Object.AbsoluteEndPosition);
                     }
 
                     if (objr is GlowingRenderState3D glowObj)
@@ -490,7 +481,7 @@ namespace NeuroSonic.GamePlay
                     }
 
                     Transform t = tDiff * Transform.Translation(xOffs, 0, -z) * WorldTransform;
-                    objr.Render(queue, t);
+                    objr.Render(queue, t, zDur);
                 }
             }
 
@@ -514,15 +505,20 @@ namespace NeuroSonic.GamePlay
                         glowObj.GlowState = m_streamsActive[analog.Lane] ? 1 : 0;
                     }
 
-                    time_t position = objr.Object.AbsolutePosition;
-                    if (objr.Object.PreviousConnected != null && objr.Object.Previous.IsInstant)
-                        position += SlamDurationTime(objr.Object.PreviousConnected);
+                    time_t position = analog.AbsolutePosition;
+                    if (analog.PreviousConnected != null && analog.Previous.IsInstant)
+                        position += SlamDurationTime(analog.PreviousConnected);
 
-                    float z = LENGTH_BASE * (float)((position - PlaybackPosition) / ViewDuration);
+                    time_t endPosition;
+                    if (analog.IsInstant)
+                        endPosition = position + SlamDurationTime(objr.Object);
+                    else endPosition = objr.Object.AbsoluteEndPosition;
 
-                    Transform s = Transform.Scale(1, 1, 1 + HISCALE);
+                    float z = LENGTH_BASE * Playback.GetRelativeDistance(position);
+                    float zDur = LENGTH_BASE * Playback.GetRelativeDistanceFromTime(position, endPosition);
+
                     Transform t = Transform.Translation(0, 0, -z) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
-                    objr.Render(queue, t);
+                    objr.Render(queue, t, zDur);
 
                     if (objr.Object.PreviousConnected == null)
                     {
@@ -530,7 +526,8 @@ namespace NeuroSonic.GamePlay
                         if (analog.RangeExtended) laneSpace *= 2;
 
                         time_t entryPosition = objr.Object.AbsolutePosition;
-                        float zEntry = LENGTH_BASE * (float)((entryPosition - PlaybackPosition) / ViewDuration);
+                        float zEntryAbs = Playback.GetRelativeDistance(entryPosition);
+                        float zEntry = LENGTH_BASE * zEntryAbs;
 
                         Transform tEntry = Transform.Translation((((AnalogEntity)objr.Object).InitialValue - 0.5f) * laneSpace, 0, -zEntry) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
                         (i == 0 ? m_lVolEntryDrawable : m_rVolEntryDrawable).DrawToQueue(queue, tEntry);
@@ -545,7 +542,8 @@ namespace NeuroSonic.GamePlay
                         if (objr.Object.IsInstant)
                             exitPosition += SlamDurationTime(objr.Object);
 
-                        float zExit = LENGTH_BASE * (float)((exitPosition - PlaybackPosition) / ViewDuration);
+                        float zExitAbs = Playback.GetRelativeDistance(exitPosition);
+                        float zExit = LENGTH_BASE * zExitAbs;
 
                         Transform tExit = Transform.Translation((((AnalogEntity)objr.Object).FinalValue - 0.5f) * laneSpace, 0, -zExit) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
                         (i == 0 ? m_lVolExitDrawable : m_rVolExitDrawable).DrawToQueue(queue, tExit);

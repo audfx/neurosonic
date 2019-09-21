@@ -4,6 +4,7 @@ using theori;
 using theori.Charting;
 
 using NeuroSonic.Charting.KShootMania;
+using System.Collections.Generic;
 
 namespace NeuroSonic.Charting.Conversions
 {
@@ -51,10 +52,10 @@ namespace NeuroSonic.Charting.Conversions
 
         public static Chart ToVoltex(this KshChart ksh)
         {
-            Logger.Log("ksh.convert start");
+            Logger.Log($"ksh.convert start");
 
             bool hasActiveEffects = !(ksh.Metadata.MusicFile != null && ksh.Metadata.MusicFileNoFx != null);
-            Logger.Log("ksh.convert effects disabled");
+            Logger.Log($"ksh.convert effects disabled");
 
             var chart = NeuroSonicChartFactory.Instance.CreateNew();
             chart.Offset = ksh.Metadata.OffsetMillis / 1_000.0;
@@ -99,6 +100,63 @@ namespace NeuroSonic.Charting.Conversions
                 slamVolume.Volume = ksh.Metadata.SlamVolume / 100.0f;
             }
 
+            double modeBpm;
+            if (ksh.Metadata.HiSpeedBpm != null)
+                modeBpm = ksh.Metadata.HiSpeedBpm.Value;
+            else
+            {
+                var bpms = new List<(tick_t, double)>();
+                tick_t lastTick = 0;
+
+                foreach (var tickRef in ksh)
+                {
+                    var tick = tickRef.Tick;
+                    
+                    int blockOffset = tickRef.Block;
+                    tick_t chartPos = blockOffset + (double)tickRef.Index / tickRef.MaxIndex;
+
+                    foreach (var setting in tick.Settings)
+                    {
+                        if (setting.Key == "t")
+                        {
+                            double bpm = double.Parse(setting.Value.ToString());
+                            if (bpms.Count > 0 && bpm == bpms[bpms.Count - 1].Item2)
+                                continue;
+                            bpms.Add((chartPos, bpm));
+                        }
+                    }
+
+                    lastTick = chartPos;
+                }
+
+                var bpmDurs = new Dictionary<double, tick_t>();
+                tick_t longest = -1;
+
+                double result = 120.0;
+                for (int i = 0; i < bpms.Count; i++)
+                {
+                    bool last = i == bpms.Count - 1;
+                    var (when, bpm) = bpms[i];
+
+                    tick_t duration;
+                    if (last)
+                        duration = lastTick - when;
+                    else duration = bpms[i].Item1 - when;
+
+                    if (bpmDurs.TryGetValue(bpm, out tick_t accum))
+                        bpmDurs[bpm] = accum + duration;
+                    else bpmDurs[bpm] = duration;
+
+                    if (bpmDurs[bpm] > longest)
+                    {
+                        longest = bpmDurs[bpm];
+                        result = bpm;
+                    }
+                }
+
+                modeBpm = result;
+            }
+
             var lastCp = chart.ControlPoints.Root;
 
             var buttonStates = new TempButtonState[6];
@@ -126,7 +184,7 @@ namespace NeuroSonic.Charting.Conversions
                             if (!setting.Value.ToString().TrySplit('/', out string n, out string d))
                             {
                                 n = d = "4";
-                                Logger.Log($"ksh.convert error: { setting.Value } is not a valid time signature. Defaulting to 4/4.");
+                                Logger.Log($"ksh.convert({ chartPos }) error: { setting.Value } is not a valid time signature. Defaulting to 4/4.");
                             }
 
                             tick_t pos = MathL.Ceil((double)chartPos);
@@ -135,15 +193,16 @@ namespace NeuroSonic.Charting.Conversions
                             cp.BeatKind = int.Parse(d);
                             lastCp = cp;
 
-                            Logger.Log($"ksh.convert time signature { cp.BeatCount }/{ cp.BeatKind }");
+                            Logger.Log($"ksh.convert({ chartPos }) time signature { cp.BeatCount }/{ cp.BeatKind }");
                         } break;
 
                         case "t":
                         {
                             ControlPoint cp = chart.ControlPoints.GetOrCreate(chartPos, true);
                             cp.BeatsPerMinute = double.Parse(setting.Value.ToString());
+                            cp.SpeedMultiplier = cp.BeatsPerMinute / modeBpm;
                             lastCp = cp;
-                            Logger.Log($"ksh.convert bpm { cp.BeatsPerMinute }");
+                            Logger.Log($"ksh.convert({ chartPos }) bpm { cp.BeatsPerMinute }");
                         } break;
 
                         case "fx-l":
@@ -154,9 +213,9 @@ namespace NeuroSonic.Charting.Conversions
                                 var effectEvent = chart[NscLane.ButtonEvent].Add<EffectKindEvent>(chartPos);
                                 effectEvent.EffectIndex = key == "fx-l" ? 4 : 5;
                                 effectEvent.Effect = (setting.Value.Value as KshEffectRef)?.CreateEffectDef(ksh.FxDefines);
-                                Logger.Log($"ksh.convert set { key } { effectEvent.Effect?.GetType().Name ?? "nothing" }");
+                                Logger.Log($"ksh.convert({ chartPos }) set { key } { effectEvent.Effect?.GetType().Name ?? "nothing" }");
                             }
-                            else Logger.Log($"ksh.convert effects disabled for { key }");
+                            else Logger.Log($"ksh.convert({ chartPos }) effects disabled for { key }");
                         } break;
 
                         case "fx-l_se":
@@ -180,12 +239,12 @@ namespace NeuroSonic.Charting.Conversions
 
                         case "fx-l_param1":
                         {
-                            Logger.Log($"ksh.convert skipping fx-l_param1.");
+                            Logger.Log($"ksh.convert({ chartPos }) skipping fx-l_param1.");
                         } break;
 
                         case "fx-r_param1":
                         {
-                            Logger.Log($"ksh.convert skipping fx-r_param1.");
+                            Logger.Log($"ksh.convert({ chartPos }) skipping fx-r_param1.");
                         } break;
 
                         case "pfiltergain":
@@ -195,9 +254,9 @@ namespace NeuroSonic.Charting.Conversions
                                 var laserGain = chart[NscLane.LaserEvent].Add<LaserFilterGainEvent>(chartPos);
                                 laserGain.LaserIndex = LaserIndex.Both;
                                 laserGain.Gain = setting.Value.ToInt() / 100.0f;
-                                Logger.Log($"ksh.convert set { key } { setting.Value }");
+                                Logger.Log($"ksh.convert({ chartPos }) set { key } { setting.Value }");
                             }
-                            else Logger.Log($"ksh.convert effects disabled for { key }");
+                            else Logger.Log($"ksh.convert({ chartPos }) effects disabled for { key }");
                         } break;
 
                         case "filtertype":
@@ -207,23 +266,23 @@ namespace NeuroSonic.Charting.Conversions
                                 var laserFilter = chart[NscLane.LaserEvent].Add<LaserFilterKindEvent>(chartPos);
                                 laserFilter.LaserIndex = LaserIndex.Both;
                                 laserFilter.Effect = (setting.Value.Value as KshEffectRef)?.CreateEffectDef(ksh.FilterDefines);
-                                Logger.Log($"ksh.convert set { key } { laserFilter.Effect?.GetType().Name ?? "nothing" }");
+                                Logger.Log($"ksh.convert({ chartPos }) set { key } { laserFilter.Effect?.GetType().Name ?? "nothing" }");
                             }
-                            else Logger.Log($"ksh.convert effects disabled for { key }");
+                            else Logger.Log($"ksh.convert({ chartPos }) effects disabled for { key }");
                         }
                         break;
 
                         case "filter-l": // NOTE(local): This is an extension, not originally supported in KSH. Used primarily for development purposes, but may also be exported to KSH should someone want to export back to that format.
                         case "filter-r": // NOTE(local): This is an extension, not originally supported in KSH. Used primarily for development purposes, but may also be exported to KSH should someone want to export back to that format.
                         {
-                            Logger.Log($"ksh.convert skipping { key }.");
+                            Logger.Log($"ksh.convert({ chartPos }) skipping { key }.");
                         }
                         break;
 
                         case "filter-l_gain": // NOTE(local): This is an extension, not originally supported in KSH. Used primarily for development purposes, but may also be exported to KSH should someone want to export back to that format.
                         case "filter-r_gain": // NOTE(local): This is an extension, not originally supported in KSH. Used primarily for development purposes, but may also be exported to KSH should someone want to export back to that format.
                         {
-                            Logger.Log($"ksh.convert skipping { key }.");
+                            Logger.Log($"ksh.convert({ chartPos }) skipping { key }.");
                         }
                         break;
 
@@ -231,7 +290,7 @@ namespace NeuroSonic.Charting.Conversions
                         {
                             var slamVoume = chart[NscLane.LaserEvent].Add<SlamVolumeEvent>(chartPos);
                             slamVoume.Volume = setting.Value.ToInt() / 100.0f;
-                            Logger.Log($"ksh.convert set { key } { setting.Value }");
+                            Logger.Log($"ksh.convert({ chartPos }) set { key } { setting.Value }");
                         } break;
 
                         case "laserrange_l": { laserIsExtended[0] = true; } break;
@@ -241,28 +300,28 @@ namespace NeuroSonic.Charting.Conversions
                         {
                             var point = chart[NscLane.CameraZoom].Add<GraphPointEvent>(chartPos);
                             point.Value = setting.Value.ToInt() / 100.0f;
-                            Logger.Log($"ksh.convert zoom { setting.Value }");
+                            Logger.Log($"ksh.convert({ chartPos }) zoom { setting.Value }");
                         } break;
                         
                         case "zoom_top":
                         {
                             var point = chart[NscLane.CameraPitch].Add<GraphPointEvent>(chartPos);
                             point.Value = setting.Value.ToInt() / 100.0f;
-                            Logger.Log($"ksh.convert pitch { setting.Value }");
+                            Logger.Log($"ksh.convert({ chartPos }) pitch { setting.Value }");
                         } break;
                         
                         case "zoom_side":
                         {
                             var point = chart[NscLane.CameraOffset].Add<GraphPointEvent>(chartPos);
                             point.Value = setting.Value.ToInt() / 100.0f;
-                            Logger.Log($"ksh.convert offset { setting.Value }");
+                            Logger.Log($"ksh.convert({ chartPos }) offset { setting.Value }");
                         } break;
 
                         case "roll": // NOTE(local): This is an extension, not originally supported in KSH. Used primarily for development purposes, but may also be exported to KSH should someone want to export back to that format.
                         {
                             var point = chart[NscLane.CameraTilt].Add<GraphPointEvent>(chartPos);
                             point.Value = setting.Value.ToInt() / 360.0f;
-                            Logger.Log($"ksh.convert custom manual tilt { setting.Value }");
+                            Logger.Log($"ksh.convert({ chartPos }) custom manual tilt { setting.Value }");
                         } break;
 
                         case "tilt":
@@ -314,17 +373,24 @@ namespace NeuroSonic.Charting.Conversions
 
                         case "fx_sample":
                         {
-                            Logger.Log($"ksh.convert skipping fx_sample.");
+                            Logger.Log($"ksh.convert({ chartPos }) skipping fx_sample.");
                         } break;
 
                         case "stop":
                         {
-                            Logger.Log($"ksh.convert skipping stop.");
+                            ControlPoint cp = chart.ControlPoints.GetOrCreate(chartPos, true);
+                            // TODO(local): this breaks when there's another control point between here and there
+                            chart.ControlPoints.GetOrCreate(chartPos + int.Parse(setting.Value.ToString()) / 192.0, true);
+
+                            cp.StopChart = true;
+                            lastCp = cp;
+
+                            Logger.Log($"ksh.convert({ chartPos }) stop { int.Parse(setting.Value.ToString()) / 192.0 }");
                         } break;
 
                         case "lane_toggle":
                         {
-                            Logger.Log($"ksh.convert skipping lane_toggle.");
+                            Logger.Log($"ksh.convert({ chartPos }) skipping lane_toggle.");
                         } break;
                     }
                 }
@@ -507,18 +573,7 @@ namespace NeuroSonic.Charting.Conversions
                 }
             }
 
-            double modeBpm;
-            if (ksh.Metadata.HiSpeedBpm != null)
-                modeBpm = ksh.Metadata.HiSpeedBpm.Value;
-            else modeBpm = chart.ControlPoints.ModeBeatsPerMinute;
-
-            foreach (var cp in chart.ControlPoints)
-            {
-                if (cp.BeatsPerMinute != modeBpm)
-                    cp.SpeedMultiplier = cp.BeatsPerMinute / modeBpm;
-            }
-
-            Logger.Log("ksh.convert end");
+            Logger.Log($"ksh.convert end");
             return chart;
         }
     }

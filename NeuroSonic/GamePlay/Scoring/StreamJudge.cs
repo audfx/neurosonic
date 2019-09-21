@@ -54,6 +54,8 @@ namespace NeuroSonic.GamePlay.Scoring
         }
 
         protected abstract void AdvancePosition(time_t position);
+
         public abstract int CalculateNumScorableTicks();
+        public abstract int[] GetCategorizedTicks();
     }
 }

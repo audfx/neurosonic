@@ -29,7 +29,7 @@ namespace NeuroSonic.GamePlay
 
         public bool AsyncLoad()
         {
-            m_script.LoadFile(Plugin.DefaultResourceLocator.OpenFileStream("scripts/game/bg-stars.lua"));
+            m_script.LoadFile(ClientSkinService.CurrentlySelectedSkin.OpenFileStream("scripts/game/bg-stars.lua"));
             m_script.InitResourceLoading(m_locator);
 
             if (!m_script.LuaAsyncLoad())

@@ -25,7 +25,7 @@ namespace NeuroSonic.ChartSelect
 
         protected override void GenerateMenuItems()
         {
-            AddMenuItem(new MenuItem(NextOffset, "Go To Chart Select", () => Push(new ChartSelectLayer(Plugin.DefaultResourceLocator))));
+            AddMenuItem(new MenuItem(NextOffset, "Go To Chart Select", () => Push(new ChartSelectLayer(ClientSkinService.CurrentlySelectedSkin))));
 
             AddSpacing();
             AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts and Open Selected", () =>
@@ -41,7 +41,7 @@ namespace NeuroSonic.ChartSelect
                         string primaryKshFile = paths[0];
                         var chartSetInfo = ConvertKSHAndSave(primaryKshFile, out ChartInfo selected);
 
-                        Push(new GameLayer(Plugin.DefaultResourceLocator, selected, autoPlay));
+                        Push(new GameLayer(ClientSkinService.CurrentlySelectedSkin, selected, autoPlay));
                     });
                 }));
             }));

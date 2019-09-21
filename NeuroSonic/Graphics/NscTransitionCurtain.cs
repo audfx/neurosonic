@@ -1,5 +1,8 @@
-﻿using System;
+﻿#define DIAMOND_POPULATE
+
+using System;
 using System.Numerics;
+
 using theori;
 using theori.Graphics;
 

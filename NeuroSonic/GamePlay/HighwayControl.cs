@@ -375,7 +375,7 @@ namespace NeuroSonic.GamePlay
             m_targetCombinedLaserOutput = laserOutput;
             if (m_targetCombinedLaserOutput == 0)
             {
-                LerpTo(ref m_combinedLaserOutput, m_targetCombinedLaserOutput, 0, (float)m_measureDuration.Seconds * 4);
+                LerpTo(ref m_combinedLaserOutput, m_targetCombinedLaserOutput, 0, (float)m_measureDuration.Seconds * 2);
             }
             else
             {

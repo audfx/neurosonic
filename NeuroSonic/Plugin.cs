@@ -27,8 +27,6 @@ namespace NeuroSonic
             set => Strings.Culture = value;
         }
 
-        public static ClientResourceLocator DefaultResourceLocator { get; private set; }
-
         public static void Initialize(ClientHost host)
         {
             Plugin.host = host;
@@ -38,9 +36,6 @@ namespace NeuroSonic
                 LoadNscConfig();
             // save the defaults on init
             else SaveNscConfig();
-
-            DefaultResourceLocator = ClientResourceLocator.Default.Clone();
-            DefaultResourceLocator.AddManifestResourceLoader(ManifestResourceLoader.GetResourceLoader(typeof(Plugin).Assembly, "NeuroSonic.Resources"));
 
             //UICulture = CultureInfo.CreateSpecificCulture("ja-JP");
 

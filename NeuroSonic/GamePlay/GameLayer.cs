@@ -37,8 +37,8 @@ namespace NeuroSonic.GamePlay
 
     public sealed class GameLayer : NscLayer
     {
-        private const float SLAM_VOLUME_MOD = 0.7f;
-        private const float SAMPLE_VOLUME_MOD = 0.5f;
+        private const float SLAM_VOLUME_MOD = 0.75f;
+        private const float SAMPLE_VOLUME_MOD = 0.75f;
 
         public override int TargetFrameRate => 0;
 
@@ -99,7 +99,6 @@ namespace NeuroSonic.GamePlay
             m_chartInfo = chartInfo;
             m_autoPlay = autoPlay;
 
-            m_highwayView = new HighwayView(m_locator);
             m_background = new ScriptableBackground(m_locator);
         }
 
@@ -114,7 +113,6 @@ namespace NeuroSonic.GamePlay
 
             m_autoPlay = autoPlay;
 
-            m_highwayView = new HighwayView(m_locator);
             m_background = new ScriptableBackground(m_locator);
         }
 
@@ -145,6 +143,11 @@ namespace NeuroSonic.GamePlay
                 m_audio.Channel = Mixer.MasterChannel;
                 m_audio.Volume = m_chart.Info.SongVolume / 100.0f;
             }
+
+            m_audioPlayback = new SlidingChartPlayback(m_chart, false);
+            m_visualPlayback = new SlidingChartPlayback(m_chart, true);
+
+            m_highwayView = new HighwayView(m_locator, m_visualPlayback);
 
             m_guiScript = new LuaScript();
             m_guiScript.InitResourceLoading(m_locator);
@@ -283,22 +286,19 @@ namespace NeuroSonic.GamePlay
             m_highwayControl = new HighwayControl(HighwayControlConfig.CreateDefaultKsh168());
             m_background.Init();
 
-            m_audioPlayback = new SlidingChartPlayback(m_chart, false);
-            m_visualPlayback = new SlidingChartPlayback(m_chart, false);
-
             var hispeedKind = Plugin.Config.GetEnum<HiSpeedMod>(NscConfigKey.HiSpeedModKind);
             switch (hispeedKind)
             {
                 case HiSpeedMod.Default:
                 {
                     double hiSpeed = Plugin.Config.GetFloat(NscConfigKey.HiSpeed);
-                    m_visualPlayback.LookAhead = m_audioPlayback.LookAhead = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
+                    m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
                 } break;
                 case HiSpeedMod.MMod:
                 {
                     var modSpeed = Plugin.Config.GetFloat(NscConfigKey.ModSpeed);
                     double hiSpeed = modSpeed / m_chart.ControlPoints.ModeBeatsPerMinute;
-                    m_visualPlayback.LookAhead = m_audioPlayback.LookAhead = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
+                    m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
                 } break;
                 case HiSpeedMod.CMod:
                 {
@@ -364,8 +364,6 @@ namespace NeuroSonic.GamePlay
                     PlaybackVisualEventTrigger(evt, dir);
             };
 
-            m_highwayView.ViewDuration = m_visualPlayback.LookAhead;
-
             m_judge = new MasterJudge(m_chart);
             for (int i = 0; i < 6; i++)
             {
@@ -376,6 +374,7 @@ namespace NeuroSonic.GamePlay
                 judge.OnTickProcessed += Judge_OnTickProcessed;
                 judge.OnHoldPressed += Judge_OnHoldPressed;
                 judge.OnHoldReleased += Judge_OnHoldReleased;
+                judge.SpawnKeyBeam = CreateKeyBeam;
             }
             for (int i = 0; i < 2; i++)
             {
@@ -509,7 +508,6 @@ namespace NeuroSonic.GamePlay
             {
                 if (result.Kind != JudgeKind.Miss)
                 {
-                    CreateKeyBeam((int)entity.Lane, result.Kind, result.Difference < 0.0);
                     if (entity is ButtonEntity button && button.HasSample && m_hitSounds.ContainsKey(button.Sample))
                     {
                         var sample = m_hitSounds[button.Sample];
@@ -530,7 +528,7 @@ namespace NeuroSonic.GamePlay
 
         private void Judge_OnHoldPressed(time_t position, Entity obj)
         {
-            CreateKeyBeam((int)obj.Lane, JudgeKind.Passive, false);
+            //CreateKeyBeam((int)obj.Lane, JudgeKind.Passive, false);
         }
 
         private void PlaybackEventTrigger(EventEntity evt, PlayDirection direction)
@@ -659,11 +657,7 @@ namespace NeuroSonic.GamePlay
         void UserInput_BtPress(int lane)
         {
             if (AutoButtons) return;
-
             var result = ((ButtonJudge)m_judge[lane]).UserPressed(m_judge.Position);
-            if (result == null)
-                m_highwayView.CreateKeyBeam(lane, Vector3.One);
-            //else CreateKeyBeam(streamIndex, result.Value.Kind, result.Value.Difference < 0.0);
         }
 
         void UserInput_BtRelease(int lane)
@@ -681,13 +675,14 @@ namespace NeuroSonic.GamePlay
             ((LaserJudge)m_judge[lane + 6]).UserInput(amount, m_judge.Position);
         }
 
-        private void CreateKeyBeam(int laneIndex, JudgeKind kind, bool isEarly)
+        private void CreateKeyBeam(LaneLabel label, JudgeKind kind, bool isEarly)
         {
             Vector3 color = Vector3.One;
 
+            bool doAnim = true;
             switch (kind)
             {
-                case JudgeKind.Passive:
+                case JudgeKind.Passive: doAnim = false; break;
                 case JudgeKind.Perfect: color = new Vector3(1, 1, 0); break;
                 case JudgeKind.Critical: color = new Vector3(1, 1, 0); break;
                 case JudgeKind.Near: color = isEarly ? new Vector3(1.0f, 0, 1.0f) : new Vector3(0.5f, 1, 0.25f); break;
@@ -695,17 +690,18 @@ namespace NeuroSonic.GamePlay
                 case JudgeKind.Miss: color = new Vector3(1, 0, 0); break;
             }
 
-            m_highwayView.CreateKeyBeam(laneIndex, color);
-            m_critRootWorld.TriggerButtonAnimation(laneIndex, color);
+            m_highwayView.CreateKeyBeam(label, color);
+            if (doAnim) m_critRootWorld.TriggerButtonAnimation((int)label, color);
         }
 
         private void SetLuaDynamicData()
         {
+            m_gameTable["Progress"] = MathL.Clamp01((double)(m_audioController.Position / m_chart.LastObjectTime));
+
             m_scoringTable["CurrentBpm"] = m_chart.ControlPoints.MostRecent(m_audioController.Position).BeatsPerMinute;
             m_scoringTable["CurrentHiSpeed"] = 1.0;
 
-            m_scoringTable["Progress"] = MathL.Clamp01((double)(m_audioController.Position / m_chart.LastObjectTime));
-            m_scoringTable["Gauge"] = 0.0;
+            m_scoringTable["Gauge"] = m_judge.Gauge;
             m_scoringTable["Score"] = m_judge.Score;
         }
 
@@ -721,6 +717,8 @@ namespace NeuroSonic.GamePlay
 
             m_visualPlayback.Position = visualPosition;
             m_highwayControl.Position = visualPosition;
+
+            //Logger.Log($"{ m_visualPlayback.ViewDistanceForward } / { m_visualPlayback.ViewDistanceForward }");
 
             float GetPathValueLerped(time_t pos, LaneLabel stream)
             {
@@ -769,7 +767,7 @@ namespace NeuroSonic.GamePlay
             }
 
             time_t laserAnticipateLookAhead = visualPosition + m_chart.ControlPoints.MostRecent(visualPosition).MeasureDuration * 0.5;
-            time_t laserSlamSwingDuration = 0.1;
+            time_t laserSlamSwingDuration = 0.15;
             for (int i = 0; i < 2; i++)
             {
                 m_laserInputs[i] = i; // 0 or 1, default values for each side
@@ -801,8 +799,6 @@ namespace NeuroSonic.GamePlay
             m_highwayControl.Pitch = GetPathValueLerped(visualPosition, NscLane.CameraPitch);
             m_highwayControl.Offset = GetPathValueLerped(visualPosition, NscLane.CameraOffset);
             m_highwayControl.Roll = GetPathValueLerped(visualPosition, NscLane.CameraTilt);
-
-            m_highwayView.PlaybackPosition = visualPosition;
 
             for (int i = 0; i < 8; i++)
             {

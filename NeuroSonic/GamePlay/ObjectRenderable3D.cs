@@ -38,7 +38,7 @@ namespace NeuroSonic.GamePlay
             Object = obj;
         }
 
-        public abstract void Render(RenderQueue rq, Transform world);
+        public abstract void Render(RenderQueue rq, Transform world, float len);
     }
 
     internal abstract class GlowingRenderState3D : ObjectRenderable3D
@@ -70,9 +70,8 @@ namespace NeuroSonic.GamePlay
     {
         public new ButtonEntity Object => (ButtonEntity)base.Object;
 
-        private int m_width = 1;
+        private readonly int m_width;
 
-        private Transform m_transform = Transform.Identity;
         private readonly Drawable3D m_drawable;
 
         public ButtonChipRenderState3D(ButtonEntity obj, ClientResourceManager resources, ObjectRenderable3DStaticResources staticResources)
@@ -83,6 +82,7 @@ namespace NeuroSonic.GamePlay
             string textureName;
             if ((int)obj.Lane < 4)
             {
+                m_width = 1;
                 if (obj.HasSample)
                     textureName = "textures/game/bt_chip_sample";
                 else textureName = "textures/game/bt_chip";
@@ -101,13 +101,11 @@ namespace NeuroSonic.GamePlay
                 Material = resources.GetMaterial("materials/chip"),
                 Mesh = staticResources.ButtonChipMesh,
             };
-
-            m_transform = Transform.Scale(m_width, 1, 1);
         }
 
-        public override void Render(RenderQueue rq, Transform world)
+        public override void Render(RenderQueue rq, Transform world, float len)
         {
-            m_drawable.DrawToQueue(rq, m_transform * world);
+            m_drawable.DrawToQueue(rq, Transform.Scale(m_width, 1, len) * world);
         }
     }
 
@@ -118,22 +116,21 @@ namespace NeuroSonic.GamePlay
 
         public new ButtonEntity Object => (ButtonEntity)base.Object;
 
-        private Transform m_entryTransform = Transform.Scale(1, 1, ENTRY_LENGTH);
-        private Transform m_exitTransform = Transform.Scale(1, 1, EXIT_LENGTH);
-        private Transform m_holdTransform = Transform.Identity;
-
-        private int m_width = 1;
+        private readonly int m_width;
 
         private readonly Drawable3D[] m_drawables;
 
-        public ButtonHoldRenderState3D(ButtonEntity obj, float len, ClientResourceManager resources, ObjectRenderable3DStaticResources staticResources)
+        public ButtonHoldRenderState3D(ButtonEntity obj, ClientResourceManager resources, ObjectRenderable3DStaticResources staticResources)
             : base(obj)
         {
             Debug.Assert(obj.IsHold, "Chip object passed to render state which expects a hold");
 
             string holdTextureName;
             if ((int)obj.Lane < 4)
+            {
                 holdTextureName = "textures/game/bt_hold";
+                m_width = 1;
+            }
             else
             {
                 holdTextureName = "textures/game/fx_hold";
@@ -166,10 +163,6 @@ namespace NeuroSonic.GamePlay
 
             m_drawables[1].Params["Color"] = Vector4.One;
 
-            m_entryTransform = Transform.Scale(m_width, 1, ENTRY_LENGTH);
-            m_holdTransform = Transform.Scale(m_width, 1, len - EXIT_LENGTH - ENTRY_LENGTH) * Transform.Translation(0, 0, -ENTRY_LENGTH);
-            m_exitTransform = Transform.Scale(m_width, 1, EXIT_LENGTH) * Transform.Translation(0, 0, -len + EXIT_LENGTH);
-
             Glow = 0.0f;
             GlowState = 1;
         }
@@ -186,11 +179,16 @@ namespace NeuroSonic.GamePlay
                 d.Params["GlowState"] = glowState;
         }
 
-        public override void Render(RenderQueue rq, Transform world)
+        public override void Render(RenderQueue rq, Transform world, float len)
         {
-            m_drawables[0].DrawToQueue(rq, m_holdTransform * world);
-            m_drawables[1].DrawToQueue(rq, m_entryTransform * world);
-            m_drawables[2].DrawToQueue(rq, m_exitTransform * world);
+            var holdTransform = Transform.Scale(m_width, 1, len - EXIT_LENGTH - ENTRY_LENGTH) * Transform.Translation(0, 0, -ENTRY_LENGTH);
+            m_drawables[0].DrawToQueue(rq, holdTransform * world);
+
+            var entryTransform = Transform.Scale(m_width, 1, ENTRY_LENGTH);
+            var exitTransform = Transform.Scale(m_width, 1, EXIT_LENGTH) * Transform.Translation(0, 0, -len + EXIT_LENGTH);
+
+            m_drawables[1].DrawToQueue(rq, entryTransform * world);
+            m_drawables[2].DrawToQueue(rq, exitTransform * world);
         }
     }
 
@@ -200,17 +198,15 @@ namespace NeuroSonic.GamePlay
 
         public new AnalogEntity Object => (AnalogEntity)base.Object;
         
-        private Transform m_transform = Transform.Identity;
         private readonly Drawable3D m_drawable;
 
-        public SlamRenderState3D(AnalogEntity obj, float len, Vector3 color, ClientResourceManager skin)
+        public SlamRenderState3D(AnalogEntity obj, Vector3 color, ClientResourceManager skin)
             : base(obj)
         {
             Debug.Assert(obj.IsInstant, "Analog for slam render state wasn't a slam");
             
             float range = 5 / 6.0f * (obj.RangeExtended ? 2 : 1);
             
-            m_transform = Transform.Scale(1, 1, len);
             var mesh = new Mesh();
 
             const float W = LASER_WIDTH / 6.0f;
@@ -338,9 +334,9 @@ namespace NeuroSonic.GamePlay
             m_drawable.Mesh.Dispose();
         }
 
-        public override void Render(RenderQueue rq, Transform world)
+        public override void Render(RenderQueue rq, Transform world, float len)
         {
-            m_drawable.DrawToQueue(rq, m_transform * world);
+            m_drawable.DrawToQueue(rq, Transform.Scale(1, 1, len) * world);
         }
     }
 
@@ -351,15 +347,13 @@ namespace NeuroSonic.GamePlay
 
         public new AnalogEntity Object => (AnalogEntity)base.Object;
         
-        private Transform m_transform = Transform.Identity;
         private readonly Drawable3D m_drawable;
 
-        public LaserRenderState3D(AnalogEntity obj, float len, Vector3 color, ClientResourceManager skin)
+        public LaserRenderState3D(AnalogEntity obj, Vector3 color, ClientResourceManager skin)
             : base(obj)
         {
             Debug.Assert(!obj.IsInstant, "analog for segment render state was a slam");
 
-            m_transform = Transform.Scale(1, 1, len);
             var mesh = new Mesh();
 
             const float W = LASER_WIDTH / 6.0f;
@@ -398,7 +392,7 @@ namespace NeuroSonic.GamePlay
                     indices[i * 6 + 5] = (ushort)(i * 2 + 3);
                 }
 
-                float fTex = 0.0f, fTexOffs = len / segments;
+                float fTex = 0.0f, fTexOffs = 1.0f / segments;
                 for (int v = 0; v <= segments; v++, fTex += fTexOffs)
                 {
                     int i = v * 2;
@@ -457,9 +451,9 @@ namespace NeuroSonic.GamePlay
             m_drawable.Mesh.Dispose();
         }
 
-        public override void Render(RenderQueue rq, Transform world)
+        public override void Render(RenderQueue rq, Transform world, float len)
         {
-            m_drawable.DrawToQueue(rq, m_transform * world);
+            m_drawable.DrawToQueue(rq, Transform.Scale(1, 1, len) * world);
         }
     }
 }

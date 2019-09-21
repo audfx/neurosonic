@@ -12,7 +12,6 @@ end
 function Init()
 end
 
-
 function Update(delta, total)
     globalTimer = globalTimer + delta;
 end

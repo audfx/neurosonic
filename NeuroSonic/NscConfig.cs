@@ -112,9 +112,9 @@ namespace NeuroSonic
 
             // Default keyboard bindings
             Set(NscConfigKey.Key_Start, KeyCode.D1); // Start button on Dao controllers
-            Set(NscConfigKey.Key_Back, KeyCode.UNKNOWN); // Start button on Dao controllers
-            Set(NscConfigKey.Key_StartAlt, KeyCode.UNKNOWN); // Start button on Dao controllers
-            Set(NscConfigKey.Key_BackAlt, KeyCode.UNKNOWN); // Start button on Dao controllers
+            Set(NscConfigKey.Key_Back, KeyCode.UNKNOWN);
+            Set(NscConfigKey.Key_StartAlt, KeyCode.UNKNOWN);
+            Set(NscConfigKey.Key_BackAlt, KeyCode.UNKNOWN);
             Set(NscConfigKey.Key_BT0, KeyCode.D);
             Set(NscConfigKey.Key_BT1, KeyCode.F);
             Set(NscConfigKey.Key_BT2, KeyCode.J);

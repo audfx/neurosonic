@@ -9,6 +9,9 @@ using NeuroSonic.Charting;
 
 namespace NeuroSonic.GamePlay.Scoring
 {
+    public delegate void SpawnKeyBeam(LaneLabel label, JudgeKind kind, bool isEarly);
+    public delegate void DespawnKeyBeam(LaneLabel label);
+
     public sealed class ButtonJudge : StreamJudge
     {
         enum JudgeState
@@ -70,7 +73,7 @@ namespace NeuroSonic.GamePlay.Scoring
         private readonly List<ScoreTick> m_scoreTicks = new List<ScoreTick>();
 
         private JudgeState m_state = JudgeState.Idle;
-        private StateTick m_currentStateTick;
+        private StateTick? m_currentStateTick;
 
         private int m_stateIndex = 0, m_scoreIndex = 0;
 
@@ -80,12 +83,15 @@ namespace NeuroSonic.GamePlay.Scoring
         private bool HasScoreTicks => m_scoreIndex < m_scoreTicks.Count;
         private ScoreTick NextScoreTick => m_scoreTicks[m_scoreIndex];
 
-        public event Action<time_t, Entity> OnChipPressed;
+        public event Action<time_t, Entity>? OnChipPressed;
 
-        public event Action<time_t, Entity> OnHoldPressed;
-        public event Action<time_t, Entity> OnHoldReleased;
+        public event Action<time_t, Entity>? OnHoldPressed;
+        public event Action<time_t, Entity>? OnHoldReleased;
 
-        public event Action<Entity, time_t, JudgeResult> OnTickProcessed;
+        public event Action<Entity, time_t, JudgeResult>? OnTickProcessed;
+
+        public SpawnKeyBeam? SpawnKeyBeam;
+        public DespawnKeyBeam? DespawnKeyBeam;
 
         public ButtonJudge(Chart chart, LaneLabel label)
             : base(chart, label)
@@ -126,6 +132,18 @@ namespace NeuroSonic.GamePlay.Scoring
         }
 
         public override int CalculateNumScorableTicks() => m_scoreTicks.Count;
+
+        public override int[] GetCategorizedTicks()
+        {
+            int[] result = new int[2];
+            foreach (var tick in m_scoreTicks)
+            {
+                if (tick.Entity.IsInstant)
+                    result[0]++;
+                else result[1]++;
+            }
+            return result;
+        }
 
         protected override void AdvancePosition(time_t position)
         {
@@ -210,7 +228,11 @@ namespace NeuroSonic.GamePlay.Scoring
             {
                 Debug.Assert(HasScoreTicks);
             }
-            else return null;
+            else
+            {
+                SpawnKeyBeam?.Invoke(Label, JudgeKind.Passive, false);
+                return null;
+            }
 
             switch (m_state)
             {
@@ -242,6 +264,7 @@ namespace NeuroSonic.GamePlay.Scoring
 
                         OnTickProcessed?.Invoke(scoreTick.Entity, position, result);
                         OnChipPressed?.Invoke(position, scoreTick.Entity);
+                        SpawnKeyBeam?.Invoke(scoreTick.Entity.Lane, result.Kind, difference < 0);
 
                         AdvanceStateTick();
                         AdvanceScoreTick();
@@ -267,6 +290,7 @@ namespace NeuroSonic.GamePlay.Scoring
                     }
 
                     // do nothing when pressed otherwise
+                    else SpawnKeyBeam?.Invoke(Label, JudgeKind.Passive, false);
                 } break;
 
                 case JudgeState.HoldOff:
@@ -286,6 +310,8 @@ namespace NeuroSonic.GamePlay.Scoring
 
         public void UserReleased(time_t position)
         {
+            DespawnKeyBeam?.Invoke(Label);
+
             switch (m_state)
             {
                 case JudgeState.Idle:
