@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repo
@@ -21,21 +21,15 @@ jobs:
         with:
           version: 3.0.100-preview8-013656
 
-      - name: Build
-        run: dotnet build --configuration Deploy --framework netcoreapp3.0 neurosonic.sln
-
       - name: Publish
         run: dotnet publish --configuration Deploy --framework netcoreapp3.0 neurosonic.sln
 
       - name: Package
         run: Compress-Archive -Path Clients\nsc-core3.0\bin\x64\Deploy\netcoreapp3.0\* -DestinationPath NeuroSonic
         shell: pwsh
-
-      - name: Publish Artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: NeuroSonic
-          path: NeuroSonic.zip
+        
+      - name: Dump CWD
+        run: dir
           
       - name: Create Github Release
         uses: skx/github-action-publish-binaries@master
