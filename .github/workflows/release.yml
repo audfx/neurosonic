@@ -15,7 +15,7 @@ jobs:
         
       - name: Initialize Submodules
         #uses: textbook/git-checkout-submodule-action@2.0.0
-        run: git submodule init --update --recursive
+        run: git submodule update --init --recursive
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
