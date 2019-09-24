@@ -1,0 +1,40 @@
+name: .NET Core 3.0 CI
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@master
+        
+      - name: Initialize Submodules
+        run: git submodule update --init --recursive
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          version: 3.0.100-preview8-013656
+
+      - name: Publish
+        run: dotnet publish --configuration Deploy --framework netcoreapp3.0 neurosonic.sln
+
+      - name: Package
+        run: Compress-Archive -Path Clients\nsc-core3.0\bin\x64\Deploy\netcoreapp3.0\* -DestinationPath NeuroSonic
+        shell: pwsh
+        
+      - name: Dump CWD
+        run: dir
+          
+      - name: Create Github Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: NeuroSonic.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
