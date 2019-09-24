@@ -2,8 +2,8 @@ name: .NET Core 3.0 CI
 
 on:
   push:
-    branches:
-    - master
+    tags:
+      - 'v*.*.*'
 
 jobs:
   build:
