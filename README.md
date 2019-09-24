@@ -29,6 +29,8 @@ Between choosing your `Input Method` and actually configuring it, you might need
 
 After you're configured, go to the `Chart Management` menu and select `Convert KSH Charts and Open Selected`. This name might be kind of cryptic, but what it does is ask you to browse for a .ksh file you'd like to play. It will then convert that entire folder, all .ksh charts inside it and their associated files, into the format that NeuroSonic understands. The converted chart files are placed inside the NeuroSonic installation directory by default and the process does not alter the original charts. This is currently done because there is no complete chart selection screen as you'd expect from a game of this nature. For the time being, you must navigate to each chart individually in the file browser and select the chart file to play it.
 
+After playing a chart, the score results screen can currently only be exited with the Start button on your controller due to the new way in which it handles user input. This will be changed soon, but don't be alarmed if you can't leave beacuse you're pressing Back or Escape.
+
 The chart selection menu is one of the next things in development! Some gameplay UI and the results screen are taking priority as easier things to work on that develop the internals better for creating the chart selection menu afterwards. Please be patient :)
 
 Issues you may run into that are being worked on:
