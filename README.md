@@ -7,6 +7,8 @@
 A high intensity song-effecting rhythm game based on a popular arcade rhythm gaming experience.
 
 # Running
+Get the latest development release from the [Releases](https://github.com/audfx/neurosonic/releases) tab.
+
 You'll need to grab [.NET Core 3.0](https://dotnet.microsoft.com/download) if you don't already have it; it should come with the latest releases of Windows as of 9/23/2019 and is available for Linux/MacOS as well.
 
 The game is currently only able to run on Windows; it's designed in a cross-platform way but hasn't yet made the commitment to targeting Linux and Mac officially.
