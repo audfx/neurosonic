@@ -343,7 +343,7 @@ namespace NeuroSonic.GamePlay
     internal class LaserRenderState3D : GlowingRenderState3D
     {
         private const float LASER_WIDTH = 2.0f;
-        private const float AUTO_RESOLUTION_AMT = 1.0f / 48;
+        private const float AUTO_RESOLUTION_AMT = 1.0f / 64;
 
         public new AnalogEntity Object => (AnalogEntity)base.Object;
         

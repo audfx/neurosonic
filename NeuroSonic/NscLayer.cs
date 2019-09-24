@@ -5,6 +5,8 @@ using theori.Graphics;
 using theori.Gui;
 
 using NeuroSonic.IO;
+using NeuroSonic.Platform;
+using System;
 
 namespace NeuroSonic
 {
@@ -18,6 +20,10 @@ namespace NeuroSonic
     public abstract class NscLayer : Layer, IControllerInputLayer
     {
         protected Panel? ForegroundGui;
+
+        protected void CloseCurtain(float holdTime, Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(holdTime, onClosed);
+        protected void CloseCurtain(Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(onClosed);
+        protected void OpenCurtain() => ClientAs<NscClient>().OpenCurtain();
 
         public override void Initialize()
         {

@@ -4,10 +4,10 @@ using System.Globalization;
 using theori.Configuration;
 using theori.IO;
 using theori.Platform;
-using theori.Resources;
 
 using NeuroSonic.IO;
 using NeuroSonic.Properties;
+using theori.Scripting;
 
 namespace NeuroSonic
 {
@@ -15,9 +15,9 @@ namespace NeuroSonic
     {
         public const string NSC_CONFIG_FILE = "nsc-config.ini";
 
-        private static ClientHost host;
+        private static ClientHost? host;
 
-        public static NscConfig Config { get; private set; }
+        public static readonly NscConfig Config = new NscConfig();
 
         public static Gamepad? Gamepad { get; private set; }
 
@@ -31,7 +31,8 @@ namespace NeuroSonic
         {
             Plugin.host = host;
 
-            Config = new NscConfig();
+            LuaScript.RegisterType<ControllerInput>();
+
             if (File.Exists(NSC_CONFIG_FILE))
                 LoadNscConfig();
             // save the defaults on init
@@ -47,7 +48,7 @@ namespace NeuroSonic
             if (Gamepad != null && newDeviceIndex == Gamepad.DeviceIndex) return;
             Gamepad?.Close();
 
-            host.Config.Set(TheoriConfigKey.Controller_DeviceID, newDeviceIndex);
+            host!.Config.Set(TheoriConfigKey.Controller_DeviceID, newDeviceIndex);
             if (Gamepad.TryGet(newDeviceIndex) is { } gamepad)
             {
                 Gamepad = gamepad;
@@ -67,7 +68,7 @@ namespace NeuroSonic
         public static void LoadConfig()
         {
             LoadNscConfig();
-            host.LoadConfig();
+            host!.LoadConfig();
         }
 
         internal static void SaveNscConfig()
@@ -79,7 +80,7 @@ namespace NeuroSonic
         public static void SaveConfig()
         {
             SaveNscConfig();
-            host.SaveConfig();
+            host!.SaveConfig();
         }
     }
 }

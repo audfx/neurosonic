@@ -168,6 +168,7 @@ namespace NeuroSonic.GamePlay
 
             m_metaTable["PlayKind"] = "N";
 
+            m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/generic-layer.lua"));
             m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/game/main.lua"));
 
             if (!m_guiScript.LuaAsyncLoad())
@@ -419,7 +420,19 @@ namespace NeuroSonic.GamePlay
 
         private void ExitGame()
         {
-            ClientAs<NscClient>().CloseCurtain(() => Pop());
+            //ClientAs<NscClient>().CloseCurtain(() => Pop());
+            CloseCurtain(() =>
+            {
+                var result = new ScoringResult()
+                {
+                    Score = m_judge.Score,
+
+                    Gauge = m_judge.Gauge,
+                };
+
+                Push(new ChartResultLayer(m_locator, m_chartInfo, result));
+                SetInvalidForResume();
+            });
         }
 
         public void Begin()
@@ -429,7 +442,7 @@ namespace NeuroSonic.GamePlay
 
         public override void Suspended(Layer nextLayer)
         {
-            throw new Exception("Cannot suspend gameplay layer");
+            m_audioController.Stop();
         }
 
         public override void Resumed(Layer previousLayer)
