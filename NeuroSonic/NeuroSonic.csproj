@@ -1,0 +1,145 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1;netcoreapp3.0</TargetFrameworks>
+    <RootNamespace>NeuroSonic</RootNamespace>
+    <Configurations>Debug;Release;Deploy</Configurations>
+    <Platforms>x64</Platforms>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Deploy|netstandard2.0|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netstandard2.0|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Deploy|netcoreapp3.0|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.0|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp3.0|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.1|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Deploy|netstandard2.1|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netstandard2.1|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.0'">
+    <PackageReference Include="System.Numerics.Vectors">
+      <Version>4.5.0</Version>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Numerics.Vectors">
+      <Version>4.5.0</Version>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\audio\sample_clap.ogg" />
+    <EmbeddedResource Include="Resources\audio\sample_kick.ogg" />
+    <EmbeddedResource Include="Resources\audio\sample_snare.ogg" />
+    <EmbeddedResource Include="Resources\audio\sample_snare_lo.ogg" />
+    <EmbeddedResource Include="Resources\audio\slam.ogg" />
+    <EmbeddedResource Include="Resources\materials\chip.fs" />
+    <EmbeddedResource Include="Resources\materials\game_background.fs" />
+    <EmbeddedResource Include="Resources\materials\highway.fs" />
+    <EmbeddedResource Include="Resources\materials\hold.fs" />
+    <EmbeddedResource Include="Resources\materials\laser.fs" />
+    <EmbeddedResource Include="Resources\materials\laser_entry.fs" />
+    <EmbeddedResource Include="Resources\scripts\chart_select\main.lua" />
+    <EmbeddedResource Include="Resources\scripts\game\bg-stars.lua" />
+    <EmbeddedResource Include="Resources\scripts\game\main.lua" />
+    <EmbeddedResource Include="Resources\textures\combo\0.png" />
+    <EmbeddedResource Include="Resources\textures\combo\1.png" />
+    <EmbeddedResource Include="Resources\textures\combo\2.png" />
+    <EmbeddedResource Include="Resources\textures\combo\3.png" />
+    <EmbeddedResource Include="Resources\textures\combo\4.png" />
+    <EmbeddedResource Include="Resources\textures\combo\5.png" />
+    <EmbeddedResource Include="Resources\textures\combo\6.png" />
+    <EmbeddedResource Include="Resources\textures\combo\7.png" />
+    <EmbeddedResource Include="Resources\textures\combo\8.png" />
+    <EmbeddedResource Include="Resources\textures\combo\9.png" />
+    <EmbeddedResource Include="Resources\textures\debug_bt.png" />
+    <EmbeddedResource Include="Resources\textures\debug_bt_active.png" />
+    <EmbeddedResource Include="Resources\textures\debug_fx.png" />
+    <EmbeddedResource Include="Resources\textures\debug_fx_active.png" />
+    <EmbeddedResource Include="Resources\textures\debug_vol.png" />
+    <EmbeddedResource Include="Resources\textures\game\bt_chip.png" />
+    <EmbeddedResource Include="Resources\textures\game\bt_chip_sample.png" />
+    <EmbeddedResource Include="Resources\textures\game\bt_hold.png" />
+    <EmbeddedResource Include="Resources\textures\game\bt_hold_entry.png" />
+    <EmbeddedResource Include="Resources\textures\game\bt_hold_exit.png" />
+    <EmbeddedResource Include="Resources\textures\game\critical_cap.png" />
+    <EmbeddedResource Include="Resources\textures\game\cursor.png" />
+    <EmbeddedResource Include="Resources\textures\game\fx_chip.png" />
+    <EmbeddedResource Include="Resources\textures\game\fx_chip_sample.png" />
+    <EmbeddedResource Include="Resources\textures\game\fx_hold.png" />
+    <EmbeddedResource Include="Resources\textures\game\fx_hold_entry.png" />
+    <EmbeddedResource Include="Resources\textures\game\fx_hold_exit.png" />
+    <EmbeddedResource Include="Resources\textures\game\highway.png" />
+    <EmbeddedResource Include="Resources\textures\game\key_beam.png" />
+    <EmbeddedResource Include="Resources\textures\game\laser.png" />
+    <EmbeddedResource Include="Resources\textures\game\laser_entry.png" />
+    <EmbeddedResource Include="Resources\textures\game\laser_exit.png" />
+    <EmbeddedResource Include="Resources\textures\game\scorebar.png" />
+    <EmbeddedResource Include="Resources\textures\game_bg\background.png" />
+    <EmbeddedResource Include="Resources\textures\game_bg\centerpiece.png" />
+    <EmbeddedResource Include="Resources\textures\game_bg\particle0.png" />
+    <EmbeddedResource Include="Resources\textures\game_bg\particle1.png" />
+    <EmbeddedResource Include="Resources\textures\game_bg\particle2.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\music-theori\music-theori\music-theori.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Strings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Strings.ja-JP.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.ja-JP.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Strings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Properties\Strings.ja-JP.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.ja-JP.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

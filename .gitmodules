@@ -1,0 +1,3 @@
+[submodule "music-theori"]
+	path = music-theori
+	url = https://github.com/audfx/music-theori
