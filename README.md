@@ -13,6 +13,8 @@ You'll need to grab [.NET Core 3.0](https://dotnet.microsoft.com/download) if yo
 
 The game is currently only able to run on Windows; it's designed in a cross-platform way but hasn't yet made the commitment to targeting Linux and Mac officially.
 
+Report issues in the GitHub Issues tab for the project and feel free to join the Discord server linked at the top of this ReadMe to discuss with other players and talk with me about questions and concerns :)
+
 Worth noting: all of the debug menus can be navigated with a controller (except the binding menu). Most of the bindings are displayed in the lower corners of the screen, but some actions are notably missing. To cover all bases, here's a general list of what buttons you can expect to do what:
 - BT-A and BT-B: navigate up/down the menu options.
 - BT-C and BT-D: adjust selected options left/right.
