@@ -32,8 +32,8 @@ jobs:
         run: dir
           
       - name: Create Github Release
-        uses: skx/github-action-publish-binaries@master
+        uses: softprops/action-gh-release@v1
+        with:
+          files: NeuroSonic.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: 'NeuroSonic.zip'
