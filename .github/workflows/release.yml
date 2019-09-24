@@ -14,7 +14,6 @@ jobs:
         uses: actions/checkout@master
         
       - name: Initialize Submodules
-        #uses: textbook/git-checkout-submodule-action@2.0.0
         run: git submodule update --init --recursive
 
       - name: Setup .NET Core
@@ -22,17 +21,17 @@ jobs:
         with:
           version: 3.0.100-preview8-013656
 
-      - name: Build Release
-        run: dotnet build --configuration Release
+      - name: Build
+        run: dotnet build --configuration Deploy --framework netcoreapp3.0 neurosonic.sln
 
-      - name: Publish Release
-        run: dotnet publish --configuration Release --framework netcoreapp3.0 --output artifacts
+      - name: Publish
+        run: dotnet publish --configuration Deploy --framework netcoreapp3.0 neurosonic.sln
 
-      - name: Package Release
-        run: Compress-Archive -Path artifacts\* -DestinationPath NeuroSonic
+      - name: Package
+        run: Compress-Archive -Path Clients\nsc-core3.0\bin\x64\Deploy\netcoreapp3.0\* -DestinationPath NeuroSonic
         shell: pwsh
 
-      - name: Publish NeuroSonic Artifacts
+      - name: Publish Artifacts
         uses: actions/upload-artifact@v1
         with:
           name: NeuroSonic
