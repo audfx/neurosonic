@@ -38,6 +38,8 @@ jobs:
           path: NeuroSonic.zip
           
       - name: Create Github Release
-        uses: frankjuniorr/github-create-release-action@v2.1.1
+        uses: skx/github-action-publish-binaries@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: 'NeuroSonic.zip'
