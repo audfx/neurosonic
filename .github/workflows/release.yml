@@ -26,7 +26,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Publish Release
-        run: dotnet publish --configuration Release --output artifacts\NeuroSonic
+        run: dotnet publish --configuration Release --framework netcoreapp3.0 --output artifacts\NeuroSonic
 
       - name: Package Release
         run: Compress-Archive -Path artifacts\NeuroSonic\* -DestinationPath NeuroSonic
