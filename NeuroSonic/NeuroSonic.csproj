@@ -60,6 +60,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Resources\scripts\game\chart-result.lua" />
+    <None Remove="Resources\scripts\generic-layer.lua" />
+    <None Remove="Resources\textures\generic_bg_landscape.png" />
+    <None Remove="Resources\textures\generic_bg_portrait.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Resources\audio\sample_clap.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_kick.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_snare.ogg" />
@@ -73,7 +80,9 @@
     <EmbeddedResource Include="Resources\materials\laser_entry.fs" />
     <EmbeddedResource Include="Resources\scripts\chart_select\main.lua" />
     <EmbeddedResource Include="Resources\scripts\game\bg-stars.lua" />
+    <EmbeddedResource Include="Resources\scripts\game\chart-result.lua" />
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
+    <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />
     <EmbeddedResource Include="Resources\textures\combo\0.png" />
     <EmbeddedResource Include="Resources\textures\combo\1.png" />
     <EmbeddedResource Include="Resources\textures\combo\2.png" />
@@ -112,6 +121,8 @@
     <EmbeddedResource Include="Resources\textures\game_bg\particle0.png" />
     <EmbeddedResource Include="Resources\textures\game_bg\particle1.png" />
     <EmbeddedResource Include="Resources\textures\game_bg\particle2.png" />
+    <EmbeddedResource Include="Resources\textures\generic_bg_landscape.png" />
+    <EmbeddedResource Include="Resources\textures\generic_bg_portrait.png" />
   </ItemGroup>
 
   <ItemGroup>

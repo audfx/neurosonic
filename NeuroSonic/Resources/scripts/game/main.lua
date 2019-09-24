@@ -1,89 +1,8 @@
 
-local Layout;
-local LayoutWidth, LayoutHeight;
-local LayoutScale;
+-- requires `generic-layer.lua`
 
-local ViewportWidth, ViewportHeight;
-
-local IntroAnimTimer = 0.0;
-
-local Layouts = {
-	Landscape = { },
-	WideLandscape = { },
-	Portrait = { },
-	TallPortrait = { },
-};
-
---
-
-local ScoreDigitTextures = { };
-
---
-
-local function CalculateLayout()
-	ViewportWidth, ViewportHeight = g2d.GetViewportSize();
-	Layout = ViewportWidth > ViewportHeight and "Landscape" or "Portrait";
-
-	if (Layout == "Landscape") then
-		if (ViewportWidth / ViewportHeight > 2) then
-			Layout = "WideLandscape";
-		end
-
-		LayoutHeight = 720;
-
-		LayoutScale = ViewportHeight / LayoutHeight;
-		LayoutWidth = ViewportWidth / LayoutScale;
-	else
-		if (ViewportHeight / ViewportWidth > 2) then
-			Layout = "TallPortrait";
-		end
-
-		LayoutWidth = 720;
-
-		LayoutScale = ViewportWidth / LayoutWidth;
-		LayoutHeight = ViewportHeight / LayoutScale;
-	end
-end
-
-local function DoLayoutTransform()
-	g2d.Scale(LayoutScale, LayoutScale);
-end
-
-function AsyncLoad()
-	for i = 0, 9 do
-		ScoreDigitTextures[i] = res.QueueTextureLoad("textures/combo/" .. i);
-	end
-
-	return true;
-end
-
-function AsyncFinalize()
-	return true;
-end
-
-function Init()
-	CalculateLayout();
+function Override.Init()
 	game.Begin();
-end
-
-function Update(delta, total)
-	do -- check if layout needs to be refreshed
-		local cvw, cvh = g2d.GetViewportSize();
-		if (ViewportWidth != cvw and ViewportHeight != cvh) then
-			CalculateLayout();
-		end
-	end
-
-	Layouts[Layout]:Update(delta, total);
-end
-
-function Draw()
-	g2d.SaveTransform();
-	DoLayoutTransform();
-
-	Layouts[Layout]:Draw();
-
-	g2d.RestoreTransform();
 end
 
 -- Landscape Layout
@@ -108,12 +27,7 @@ function Layouts.Landscape.DrawHeader(self)
 end
 
 function Layouts.Landscape.DrawScore(self)
-	local h = 120;
-
-	local ndigw = ScoreDigitTextures[0].Width * ((h / 3) / ScoreDigitTextures[0].Height);
-	local ndigdw = ndigw * 4 + ndigw * 0.75 * 4;
-
-	local w = ndigdw + 20;
+	local w, h = 400, 120;
 	local x, y = LayoutWidth - 10 - w, 10;
 	
 	g2d.SetColor(60, 60, 60, 225);
@@ -124,19 +38,7 @@ function Layouts.Landscape.DrawScore(self)
 	g2d.SetTextAlign(Anchor.TopLeft);
 	g2d.Write("SCORE", x + 10, y + 10);
 
-	--g2d.Write(string.format("%08i", game.scoring.Score), x + w / 2, y + h / 2);
-	local score, xoff = game.scoring.Score, 10;
-	for i = 7, 0, -1 do
-		local digit = math.floor(score / (10 ^ i)) % 10;
-		local digs = i >= 4 and 1 or 0.75;
-
-		local texture = ScoreDigitTextures[digit];
-		local textureScale = digs * (h / 3) / texture.Height;
-
-		g2d.Image(texture, x + xoff, y + h / 2 + h / 6 - texture.Height * textureScale,
-				  texture.Width * textureScale, texture.Height * textureScale);
-		xoff = xoff + texture.Width * textureScale;
-	end
+	DrawNumber(game.scoring.Score, 4, 4, true, x + 10, y + h / 3, w - 20, h / 3);
 end
 
 function Layouts.Landscape.DrawGauge(self)
@@ -210,11 +112,10 @@ end
 function Layouts.Portrait.Draw(self)
 end
 
-
 -- Tall Portrait Layout
 
-function Layouts.Portrait.Update(self, delta, total)
+function Layouts.TallPortrait.Update(self, delta, total)
 end
 
-function Layouts.Portrait.Draw(self)
+function Layouts.TallPortrait.Draw(self)
 end

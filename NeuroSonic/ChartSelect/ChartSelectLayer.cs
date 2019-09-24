@@ -13,7 +13,6 @@ namespace NeuroSonic.ChartSelect
         private ClientResourceManager m_resources;
         private ChartDatabase m_database;
 
-        private AsyncLoader m_loader;
         private LuaScript m_script;
 
         public ChartSelectLayer(ClientResourceLocator locator)
@@ -32,24 +31,29 @@ namespace NeuroSonic.ChartSelect
             m_database = new ChartDatabase("nsc-local.chart-db");
             m_database.OpenLocal(Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory));
 
+            m_script = new LuaScript();
+            m_script.LoadFile(m_locator.OpenFileStream("scripts/generic-layer.lua"));
+            m_script.LoadFile(m_locator.OpenFileStream("scripts/chart_select/main.lua"));
+            m_script.InitResourceLoading(m_locator);
+
+            if (!m_script.LuaAsyncLoad())
+                return false;
+
             return true;
         }
 
         public override bool AsyncFinalize()
         {
+            if (!m_script.LuaAsyncFinalize())
+                return false;
+            m_script.InitSpriteRenderer(m_locator);
+
             return true;
         }
 
         public override void Initialize()
         {
             base.Initialize();
-
-            m_script = new LuaScript();
-            m_script.LoadFile(m_locator.OpenFileStream("scripts/chart_select/main.lua"));
-            m_script.InitResourceLoading(m_locator);
-            m_script.InitSpriteRenderer(m_locator);
-
-            m_loader = new AsyncLoader();
 
             m_script.CallIfExists("Init");
         }
@@ -69,7 +73,6 @@ namespace NeuroSonic.ChartSelect
         {
             base.Update(delta, total);
 
-            m_loader.LoadAll();
             m_script.Update(delta, total);
         }
 
