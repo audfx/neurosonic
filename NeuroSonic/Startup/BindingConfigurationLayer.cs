@@ -11,7 +11,7 @@ using theori.IO;
 
 namespace NeuroSonic.Startup
 {
-    public sealed class ControllerConfigurationLayer : BaseMenuLayer, IGamepadListener
+    public sealed class ControllerConfigurationLayer : BaseMenuLayer//, IGamepadListener
     {
         class Bindable : Panel
         {
@@ -147,9 +147,20 @@ namespace NeuroSonic.Startup
             //AddMenuItem(new MenuItem(NextOffset, "Other Misc. Bindings", () => { }));
         }
 
+        public override void Destroy()
+        {
+            base.Destroy();
+
+            Plugin.Gamepad!.ButtonPressed -= GamepadButtonPressed;
+            Plugin.Gamepad!.AxisChanged -= GamepadAxisChanged;
+        }
+
         public override void Initialize()
         {
             base.Initialize();
+
+            Plugin.Gamepad!.ButtonPressed += GamepadButtonPressed;
+            Plugin.Gamepad!.AxisChanged += GamepadAxisChanged;
 
             Bindable start, back, bt0, bt1, bt2, bt3, fx0, fx1;
 
@@ -518,11 +529,15 @@ namespace NeuroSonic.Startup
             return true;
         }
 
-        public bool GamepadButtonPressed(ButtonInfo info)
+        public override bool ControllerButtonPressed(ControllerInput input) => true;
+        public override bool ControllerButtonReleased(ControllerInput input) => true;
+        public override bool ControllerAxisChanged(ControllerInput input, float delta) => true;
+
+        public void GamepadButtonPressed(ButtonInfo info)
         {
             // TODO(local): relic?
-            if (info.Gamepad.DeviceIndex != Plugin.Gamepad.DeviceIndex) return false;
-            if (!m_isEditing) return false;
+            if (info.Gamepad.DeviceIndex != Plugin.Gamepad.DeviceIndex) return;
+            if (!m_isEditing) return;
 
             if (m_codeIndex == -1)
             {
@@ -535,9 +550,9 @@ namespace NeuroSonic.Startup
                 // buttons on controllers currently don't work for axes sorry,
                 //  if needed will add but uhhh I've only seen one controller use
                 //  buttons for lasers and IDEK if that was gamepad mode or keyboard mode sooo.
-                if (!buttonBinding) return true;
+                if (!buttonBinding) return;
                 // also duh we have to be in controller mode
-                if (m_buttonInputDevice != InputDevice.Controller) return true;
+                if (m_buttonInputDevice != InputDevice.Controller) return;
 
                 var configKeys = m_bindingIndices[binding.Which];
                 var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
@@ -550,18 +565,11 @@ namespace NeuroSonic.Startup
 
                 m_codeIndex = -1; // when we set the binding, exit binding config
             }
-
-            return true;
         }
 
-        public bool GamepadButtonReleased(ButtonInfo info)
+        public void GamepadAxisChanged(AnalogInfo info)
         {
-            return false;
-        }
-
-        public bool GamepadAxisChanged(AnalogInfo info)
-        {
-            if (!m_isEditing) return false;
+            if (!m_isEditing) return;
 
             if (m_codeIndex == -1)
             {
@@ -572,9 +580,9 @@ namespace NeuroSonic.Startup
                 bool buttonBinding = (int)binding.Which < (int)ControllerInput.Laser0Axis;
 
                 // kill for analog devices on button settings duh
-                if (buttonBinding) return true;
+                if (buttonBinding) return;
                 // and second duh, controller mode
-                if (m_laserInputDevice != InputDevice.Controller) return true;
+                if (m_laserInputDevice != InputDevice.Controller) return;
 
                 var configKeys = m_bindingIndices[binding.Which];
                 var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
@@ -588,7 +596,7 @@ namespace NeuroSonic.Startup
                 m_codeIndex = -1; // when we set the binding, exit binding config
             }
 
-            return true;
+            return;
         }
 
         private void UpdateBindableText(Bindable b, (NscConfigKey Primary, NscConfigKey? Secondary) keys)
