@@ -56,6 +56,7 @@ namespace NeuroSonic.Startup
 
         private int m_hsKindIndex, m_hsValueIndex;
         private int m_voIndex, m_ioIndex;
+        private int m_lsensIndex, m_lsmoothIndex;
         private int m_llHueIndex, m_rlHueIndex;
 
         private Action<Nav>[] m_configActions;
@@ -72,6 +73,12 @@ namespace NeuroSonic.Startup
         private int m_ioffValue;
         private TextLabel m_ioff;
 
+        private float m_laserSensitivityValue;
+        private TextLabel m_laserSensitivity;
+
+        private int m_laserSmoothingValue;
+        private TextLabel m_laserSmoothing;
+
         private int m_llHueValue;
         private Sprite m_llHueSprite;
         private TextLabel m_llHue;
@@ -83,12 +90,26 @@ namespace NeuroSonic.Startup
         private int m_maxConfigIndex;
         private int m_activeIndex = -1;
 
+        private NscConfigKey GetSensitivityKey()
+        {
+            var device = Plugin.Config.GetEnum<InputDevice>(NscConfigKey.LaserInputDevice);
+            return device switch
+            {
+                InputDevice.Controller => NscConfigKey.Controller_Sensitivity,
+                InputDevice.Keyboard => NscConfigKey.Key_Sensitivity,
+                InputDevice.Mouse => NscConfigKey.Mouse_Sensitivity,
+                _ => throw new NotImplementedException(),
+            };
+        }
+
         protected override void GenerateMenuItems()
         {
             AddMenuItem(new MenuItem(m_hsKindIndex = NextOffset, Strings.Term_HiSpeedKind, null));
             AddMenuItem(new MenuItem(m_hsValueIndex = NextOffset, Strings.Term_HiSpeedValue, null));
             AddMenuItem(new MenuItem(m_voIndex = NextOffset, Strings.Term_VideoOffset, null));
             AddMenuItem(new MenuItem(m_ioIndex = NextOffset, Strings.Term_InputOffset, null));
+            AddMenuItem(new MenuItem(m_lsensIndex = NextOffset, "Laser Sensitivity", null));
+            AddMenuItem(new MenuItem(m_lsmoothIndex = NextOffset, "Laser Smoothing", null));
             AddMenuItem(new MenuItem(m_llHueIndex = NextOffset, Strings.Term_Gameplay_LeftLaserHue, null));
             AddMenuItem(new MenuItem(m_rlHueIndex = NextOffset, Strings.Term_Gameplay_RightLaserHue, null));
             m_maxConfigIndex = NextOffset;
@@ -126,6 +147,8 @@ namespace NeuroSonic.Startup
             m_modSpeed = Plugin.Config.GetFloat(NscConfigKey.ModSpeed);
             m_voffValue = Plugin.Config.GetInt(NscConfigKey.VideoOffset);
             m_ioffValue = Plugin.Config.GetInt(NscConfigKey.InputOffset);
+            m_laserSensitivityValue = Plugin.Config.GetFloat(GetSensitivityKey());
+            m_laserSmoothingValue = Plugin.Config.GetInt(NscConfigKey.LaserInputSmoothing);
             m_llHueValue = Plugin.Config.GetInt(NscConfigKey.Laser0Color);
             m_rlHueValue = Plugin.Config.GetInt(NscConfigKey.Laser1Color);
 
@@ -151,7 +174,7 @@ namespace NeuroSonic.Startup
                         Position = new Vector2(0, SPACING * m_hsValueIndex),
                         Children = new TextLabel[]
                         {
-                            m_hs = new TextLabel(Font.Default, 24, "0")   { Position = new Vector2(0, 0) },
+                            m_hs = new TextLabel(Font.Default, 24, "0") { Position = new Vector2(0, 0) },
                         }
                     },
 
@@ -160,7 +183,7 @@ namespace NeuroSonic.Startup
                         Position = new Vector2(0, SPACING * m_voIndex),
                         Children = new TextLabel[]
                         {
-                            m_voff = new TextLabel(Font.Default, 24, "0")   { Position = new Vector2(0, 0) },
+                            m_voff = new TextLabel(Font.Default, 24, "0") { Position = new Vector2(0, 0) },
                         }
                     },
 
@@ -169,7 +192,25 @@ namespace NeuroSonic.Startup
                         Position = new Vector2(0, SPACING * m_ioIndex),
                         Children = new TextLabel[]
                         {
-                            m_ioff = new TextLabel(Font.Default, 24, "0")   { Position = new Vector2(0, 0) },
+                            m_ioff = new TextLabel(Font.Default, 24, "0") { Position = new Vector2(0, 0) },
+                        }
+                    },
+
+                    new Panel()
+                    {
+                        Position = new Vector2(0, SPACING * m_lsensIndex),
+                        Children = new TextLabel[]
+                        {
+                            m_laserSensitivity = new TextLabel(Font.Default, 24, "0.0") { Position = new Vector2(0, 0) },
+                        }
+                    },
+
+                    new Panel()
+                    {
+                        Position = new Vector2(0, SPACING * m_lsmoothIndex),
+                        Children = new TextLabel[]
+                        {
+                            m_laserSmoothing = new TextLabel(Font.Default, 24, "1") { Position = new Vector2(0, 0) },
                         }
                     },
 
@@ -179,7 +220,7 @@ namespace NeuroSonic.Startup
                         Children = new GuiElement[]
                         {
                             m_llHueSprite = new Sprite(null) { Size = new Vector2(SPACING - 10) },
-                            m_llHue = new TextLabel(Font.Default, 24, "0")   { Position = new Vector2(SPACING, 0) },
+                            m_llHue = new TextLabel(Font.Default, 24, "0") { Position = new Vector2(SPACING, 0) },
                         }
                     },
 
@@ -189,7 +230,7 @@ namespace NeuroSonic.Startup
                         Children = new GuiElement[]
                         {
                             m_rlHueSprite = new Sprite(null) { Size = new Vector2(SPACING - 10) },
-                            m_rlHue = new TextLabel(Font.Default, 24, "0")   { Position = new Vector2(SPACING, 0) },
+                            m_rlHue = new TextLabel(Font.Default, 24, "0") { Position = new Vector2(SPACING, 0) },
                         }
                     },
                 }
@@ -201,6 +242,8 @@ namespace NeuroSonic.Startup
                 KeyPressed_HiSpeed,
                 KeyPressed_VideoOffset,
                 KeyPressed_InputOffset,
+                KeyPressed_LaserSensitivity,
+                KeyPressed_LaserSmoothing,
                 KeyPressed_LeftLaserHue,
                 KeyPressed_RightLaserHue,
             };
@@ -263,6 +306,27 @@ namespace NeuroSonic.Startup
 
             m_ioffValue += dir * amt;
             Plugin.Config.Set(NscConfigKey.InputOffset, m_ioffValue);
+        }
+
+        private void KeyPressed_LaserSensitivity(Nav key)
+        {
+            if (!key.Left && !key.Right) return;
+            int dir = key.Left ? -1 : 1;
+
+            bool ctrl = key.Modified;
+            float amt = ctrl ? 0.1f : 0.5f;
+
+            m_laserSensitivityValue = MathL.Round(m_laserSensitivityValue + dir * amt, 1);
+            Plugin.Config.Set(GetSensitivityKey(), m_laserSensitivityValue);
+        }
+
+        private void KeyPressed_LaserSmoothing(Nav key)
+        {
+            if (!key.Left && !key.Right) return;
+            int dir = key.Left ? -1 : 1;
+
+            m_laserSmoothingValue = MathL.Max(1, m_laserSmoothingValue + dir);
+            Plugin.Config.Set(NscConfigKey.LaserInputSmoothing, m_laserSmoothingValue);
         }
 
         private void KeyPressed_LeftLaserHue(Nav key)
@@ -330,6 +394,20 @@ namespace NeuroSonic.Startup
             bool active = m_activeIndex == m_ioIndex;
             m_ioff.Color = active ? new Vector4(1, 1, 1, 1) : new Vector4(0.5f, 0.5f, 0.5f, 1);
             m_ioff.Text = $"{m_ioffValue}";
+        }
+
+        private void UpdateLaserSensitivity()
+        {
+            bool active = m_activeIndex == m_lsensIndex;
+            m_laserSensitivity.Color = active ? new Vector4(1, 1, 1, 1) : new Vector4(0.5f, 0.5f, 0.5f, 1);
+            m_laserSensitivity.Text = $"{m_laserSensitivityValue:0.0}";
+        }
+
+        private void UpdateLaserSmoothing()
+        {
+            bool active = m_activeIndex == m_lsmoothIndex;
+            m_laserSmoothing.Color = active ? new Vector4(1, 1, 1, 1) : new Vector4(0.5f, 0.5f, 0.5f, 1);
+            m_laserSmoothing.Text = $"{m_laserSmoothingValue}";
         }
 
         private void UpdateLeftLaserHue()
@@ -410,6 +488,8 @@ namespace NeuroSonic.Startup
             UpdateHiSpeed();
             UpdateVideoOffset();
             UpdateInputOffset();
+            UpdateLaserSensitivity();
+            UpdateLaserSmoothing();
             UpdateLeftLaserHue();
             UpdateRightLaserHue();
         }

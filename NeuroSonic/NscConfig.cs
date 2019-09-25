@@ -30,6 +30,7 @@ namespace NeuroSonic
         Laser0Color,
         Laser1Color,
         Allow3BtStart,
+        LaserInputSmoothing,
 
         // Input device setting per element
         LaserInputDevice,
@@ -104,6 +105,7 @@ namespace NeuroSonic
             Set(NscConfigKey.Laser0Color, 200);
             Set(NscConfigKey.Laser1Color, 300);
             Set(NscConfigKey.Allow3BtStart, false);
+            Set(NscConfigKey.LaserInputSmoothing, 2);
 
             // TODO(local): change this to Keyboard for both by default
             // Input settings

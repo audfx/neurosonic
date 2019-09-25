@@ -83,7 +83,7 @@ namespace NeuroSonic.IO
         public static void Update() => Controller?.Update();
 
         public static bool IsButtonDown(ControllerInput input) => Controller?.IsButtonDown(input) ?? false;
-        public static float AxisDelta(ControllerInput input) => Controller?.AxisDelta(input) ?? 0.0f;
-        public static float RawAxisValue(ControllerInput input) => Controller?.RawAxisValue(input) ?? 0.0f;
+        //public static float AxisDelta(ControllerInput input) => Controller?.AxisDelta(input) ?? 0.0f;
+        //public static float RawAxisValue(ControllerInput input) => Controller?.RawAxisValue(input) ?? 0.0f;
     }
 }

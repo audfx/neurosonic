@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using theori;
 using theori.Gui;
 using theori.IO;
@@ -33,15 +33,46 @@ namespace NeuroSonic.IO
             throw new InvalidOperationException($"No controller implementation supports Buttons using { btInputMode } and Lasers using { volInputMode }");
         }
 
-        public Action<ControllerInput> ButtonPressed;
-        public Action<ControllerInput> ButtonReleased;
-        public Action<ControllerInput, float> AxisChanged;
+        public Action<ControllerInput>? ButtonPressed;
+        public Action<ControllerInput>? ButtonReleased;
+        public Action<ControllerInput, float>? AxisChanged;
+
+        private readonly float[][] m_axisDeltas;
+
+        protected Controller()
+        {
+            int smoothing = Plugin.Config.GetInt(NscConfigKey.LaserInputSmoothing);
+            m_axisDeltas = new float[2][].Fill(() => new float[smoothing]);
+        }
 
         public abstract bool IsButtonDown(ControllerInput input);
-        public abstract float AxisDelta(ControllerInput input);
-        public abstract float RawAxisValue(ControllerInput input);
 
-        public abstract void Update();
+        private float AxisDelta(ControllerInput input) => m_axisDeltas[input - ControllerInput.Laser0Axis].Average();
+
+        private float RawAxisValue(ControllerInput input) => RawAxisValue_Impl(input);
+
+        protected abstract float AxisDelta_Impl(ControllerInput input);
+        protected abstract float RawAxisValue_Impl(ControllerInput input);
+
+        public void Update()
+        {
+            Update_Impl();
+        }
+
+        protected void PushAxisDelta(int axis, float vDelta)
+        {
+            static void ShiftFloats(float[] values, float newValue)
+            {
+                for (int i = values.Length - 1; i >= 1; i--)
+                    values[i] = values[i - 1];
+                values[0] = newValue;
+            }
+            ShiftFloats(m_axisDeltas[axis], vDelta);
+        }
+
+        protected abstract void Update_Impl();
+
+        protected void InvokeAxisChanged(ControllerInput input) => AxisChanged?.Invoke(input, AxisDelta(input));
     }
 
     public sealed class GamepadController : Controller
@@ -93,7 +124,7 @@ namespace NeuroSonic.IO
             }
         }
 
-        public override void Update()
+        protected override void Update_Impl()
         {
             for (int i = 0; i < 2; i++)
             {
@@ -103,8 +134,8 @@ namespace NeuroSonic.IO
         }
 
         public override bool IsButtonDown(ControllerInput input) => m_buttons[input].Count > 0;
-        public override float AxisDelta(ControllerInput input) => m_currentDelta[input - ControllerInput.Laser0Axis];
-        public override float RawAxisValue(ControllerInput input) => m_axisPrevious[input == ControllerInput.Laser0Axis ? 0 : 1];
+        protected override float AxisDelta_Impl(ControllerInput input) => m_currentDelta[input - ControllerInput.Laser0Axis];
+        protected override float RawAxisValue_Impl(ControllerInput input) => m_axisPrevious[input == ControllerInput.Laser0Axis ? 0 : 1];
 
         protected override void DisposeManaged()
         {
@@ -168,7 +199,8 @@ namespace NeuroSonic.IO
             m_axisPrevious[index] = value;
             m_nextDelta[input - ControllerInput.Laser0Axis] = delta;
 
-            AxisChanged?.Invoke(input, delta);
+            PushAxisDelta(input - ControllerInput.Laser0Axis, delta);
+            InvokeAxisChanged(input);
         }
     }
 
@@ -277,8 +309,8 @@ namespace NeuroSonic.IO
         {
             return base.IsButtonDown(input);
         }
-        public override float AxisDelta(ControllerInput input) => GetDelta(input - ControllerInput.Laser0Axis);
-        public override float RawAxisValue(ControllerInput input) => m_rawValues[input == ControllerInput.Laser0Axis ? 0 : 1];
+        protected override float AxisDelta_Impl(ControllerInput input) => GetDelta(input - ControllerInput.Laser0Axis);
+        protected override float RawAxisValue_Impl(ControllerInput input) => m_rawValues[input == ControllerInput.Laser0Axis ? 0 : 1];
 
         private float GetDelta(int axis)
         {
@@ -287,7 +319,7 @@ namespace NeuroSonic.IO
             return dir * m_sensitivity * Time.Delta;
         }
 
-        public override void Update()
+        protected override void Update_Impl()
         {
             float dir0 = (m_directions[ControllerInput.Laser0Positive].Count
                      - m_directions[ControllerInput.Laser0Negative].Count)
@@ -298,6 +330,9 @@ namespace NeuroSonic.IO
 
             m_rawValues[0] += dir0;
             m_rawValues[1] += dir1;
+
+            // NOTE(local): Keyboard lasers don't care about sending smooth events bc it's not an analog system
+            // This might need to be changed for consistency, not sure.
 
             if (dir0 != 0) AxisChanged?.Invoke(ControllerInput.Laser0Axis, dir0);
             if (dir1 != 0) AxisChanged?.Invoke(ControllerInput.Laser1Axis, dir1);
@@ -330,8 +365,8 @@ namespace NeuroSonic.IO
 
         private readonly float[] m_currentDelta = new float[2], m_nextDelta = new float[2];
 
-        public override float AxisDelta(ControllerInput input) => m_currentDelta[input - ControllerInput.Laser0Axis];
-        public override float RawAxisValue(ControllerInput input) => m_rawValues[input == ControllerInput.Laser0Axis ? 0 : 1];
+        protected override float AxisDelta_Impl(ControllerInput input) => m_currentDelta[input - ControllerInput.Laser0Axis];
+        protected override float RawAxisValue_Impl(ControllerInput input) => m_rawValues[input == ControllerInput.Laser0Axis ? 0 : 1];
 
         public KeyboardMouseController()
         {
@@ -343,7 +378,7 @@ namespace NeuroSonic.IO
             m_mouseToControllerInput[Plugin.Config.GetEnum<Axes>(NscConfigKey.Mouse_Laser1Axis)] = ControllerInput.Laser1Axis;
         }
 
-        public override void Update()
+        protected override void Update_Impl()
         {
             for (int i = 0; i < 2; i++)
             {
@@ -361,19 +396,25 @@ namespace NeuroSonic.IO
         private void Mouse_Move(int x, int y, int xDelta, int yDelta)
         {
             float amt = m_sensitivity * Time.Delta;
+
             if (xDelta != 0)
             {
                 var inputKind = m_mouseToControllerInput[Axes.X];
                 m_nextDelta[inputKind - ControllerInput.Laser0Axis] = xDelta * amt;
                 m_rawValues[inputKind - ControllerInput.Laser0Axis] += xDelta * amt;
-                AxisChanged?.Invoke(inputKind, xDelta * amt);
+
+                PushAxisDelta(0, xDelta * amt);
+                InvokeAxisChanged(inputKind);
             }
+
             if (yDelta != 0)
             {
                 var inputKind = m_mouseToControllerInput[Axes.Y];
                 m_nextDelta[inputKind - ControllerInput.Laser0Axis] = yDelta * amt;
                 m_rawValues[inputKind - ControllerInput.Laser0Axis] += yDelta * amt;
-                AxisChanged?.Invoke(inputKind, yDelta * amt);
+
+                PushAxisDelta(1, yDelta * amt);
+                InvokeAxisChanged(inputKind);
             }
         }
     }

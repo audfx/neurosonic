@@ -39,7 +39,7 @@ function Layouts.Landscape.DrawScorePanel(self, x, y, w, h)
 	g2d.FillRect(x, y, w, h);
 
 	g2d.SetColor(255, 255, 255, 255);
-	DrawNumber(layer.result.Score, 4, 4, true, x - 10, y - 10, w - 20, h - 20);
+	DrawNumber(layer.result.Score, 4, 4, true, x + 10, y + 10, w - 20, h - 20);
 end
 
 function Layouts.Landscape.Update(self, delta, total)
