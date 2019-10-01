@@ -62,6 +62,8 @@
   <ItemGroup>
     <None Remove="Resources\scripts\game\chart-result.lua" />
     <None Remove="Resources\scripts\generic-layer.lua" />
+    <None Remove="Resources\scripts\testPrinter.lua" />
+    <None Remove="Resources\scripts\titleScreen\main.lua" />
     <None Remove="Resources\textures\generic_bg_landscape.png" />
     <None Remove="Resources\textures\generic_bg_portrait.png" />
   </ItemGroup>
@@ -83,6 +85,7 @@
     <EmbeddedResource Include="Resources\scripts\game\chart-result.lua" />
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
     <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />
+    <EmbeddedResource Include="Resources\scripts\titleScreen\main.lua" />
     <EmbeddedResource Include="Resources\textures\combo\0.png" />
     <EmbeddedResource Include="Resources\textures\combo\1.png" />
     <EmbeddedResource Include="Resources\textures\combo\2.png" />

@@ -3,6 +3,7 @@ using theori.Graphics;
 using theori.IO;
 
 using NeuroSonic.Platform;
+using System;
 
 namespace NeuroSonic.Startup
 {
@@ -17,8 +18,11 @@ namespace NeuroSonic.Startup
 
         private float m_timer = 0.0f, m_alpha = 0.0f;
 
+        private Action m_onSplashFinished;
+
         public SplashScreen()
         {
+            m_onSplashFinished = () => Push(new NscLuaLayer("titleScreen.main"));
         }
 
         public override void Initialize()
@@ -30,7 +34,12 @@ namespace NeuroSonic.Startup
         {
             if (info.KeyCode == KeyCode.ESCAPE)
                 Host.Exit();
-            else m_timer = TOTAL_TIME;
+            else
+            {
+                m_timer = TOTAL_TIME;
+                if (info.KeyCode == KeyCode.F1)
+                    m_onSplashFinished = () => Push(new NeuroSonicStandaloneStartup());
+            }
 
             return true;
         }
@@ -40,7 +49,7 @@ namespace NeuroSonic.Startup
             m_timer += delta;
             if (m_timer > TOTAL_TIME)
             {
-                ClientAs<NscClient>().CloseCurtain(() => Push(new NeuroSonicStandaloneStartup()));
+                ClientAs<NscClient>().CloseCurtain(m_onSplashFinished);
                 SetInvalidForResume();
             }
             else

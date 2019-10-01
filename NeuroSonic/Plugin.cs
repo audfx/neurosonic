@@ -31,6 +31,8 @@ namespace NeuroSonic
         {
             Plugin.host = host;
 
+            LuaScript.RegisterType<KeyCode>();
+            LuaScript.RegisterType<MouseButton>();
             LuaScript.RegisterType<ControllerInput>();
 
             if (File.Exists(NSC_CONFIG_FILE))

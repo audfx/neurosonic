@@ -1,6 +1,4 @@
-﻿using theori;
-using theori.Database;
-using theori.IO;
+﻿using theori.IO;
 using theori.Resources;
 using theori.Scripting;
 
@@ -9,16 +7,16 @@ namespace NeuroSonic.ChartSelect
     public class ChartSelectLayer : NscLayer
     {
         private readonly ClientResourceLocator m_locator;
+        private readonly ClientResourceManager m_resources;
 
-        private ClientResourceManager m_resources;
-        private ChartDatabase m_database;
-
-        private LuaScript m_script;
+        private readonly LuaScript m_script;
 
         public ChartSelectLayer(ClientResourceLocator locator)
         {
             m_locator = locator;
             m_resources = new ClientResourceManager(locator);
+
+            m_script = new LuaScript();
         }
 
         public override bool AsyncLoad()
@@ -28,10 +26,7 @@ namespace NeuroSonic.ChartSelect
             //  since we plan to have online chart repos be streamed and scores uploaded rather than stored locally.
             // So only local charts would -need- a database? And extra databases would be caches for the
             //  repos you play with? So that's a reason for multiple dbs?
-            m_database = new ChartDatabase("nsc-local.chart-db");
-            m_database.OpenLocal(Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory));
 
-            m_script = new LuaScript();
             m_script.LoadFile(m_locator.OpenFileStream("scripts/generic-layer.lua"));
             m_script.LoadFile(m_locator.OpenFileStream("scripts/chart_select/main.lua"));
             m_script.InitResourceLoading(m_locator);
@@ -63,10 +58,7 @@ namespace NeuroSonic.ChartSelect
             base.Destroy();
 
             m_script.Dispose();
-            m_script = null;
-
             m_resources.Dispose();
-            m_resources = null;
         }
 
         public override void Update(float delta, float total)
