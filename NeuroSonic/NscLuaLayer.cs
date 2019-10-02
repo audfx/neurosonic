@@ -13,6 +13,9 @@ using NeuroSonic.Platform;
 using MoonSharp.Interpreter;
 using theori.Audio;
 using NeuroSonic.Startup;
+using NeuroSonic.GamePlay;
+using theori.Charting.Playback;
+using theori.Charting;
 
 namespace NeuroSonic
 {
@@ -28,12 +31,46 @@ namespace NeuroSonic
             m_handle = target;
         }
     }
+    
+    class NscHighwayHandle
+    {
+        public static implicit operator NscHighwayHandle(HighwayView highway) => new NscHighwayHandle(highway);
+        public static implicit operator HighwayView(NscHighwayHandle handle) => handle.m_highway;
+
+        private readonly HighwayView m_highway;
+
+        public float HorizonHeight => m_highway.HorizonHeight;
+
+        public NscHighwayHandle(HighwayView highway)
+        {
+            m_highway = highway;
+        }
+
+        public void SetViewport(float x, float y, float size)
+        {
+            m_highway.Viewport = ((int)x, (int)y, (int)size);
+        }
+
+        public bool DoAsyncLoad() => m_highway.AsyncLoad();
+        public bool DoAsyncFinalize() => m_highway.AsyncFinalize();
+
+        public void Update(float delta, float total)
+        {
+            m_highway.Update();
+        }
+
+        public void Render()
+        {
+            m_highway.Render();
+        }
+    }
 
     public sealed class NscLuaLayer : Layer, IControllerInputLayer
     {
         static NscLuaLayer()
         {
             LuaScript.RegisterType<NscAudioHandle>();
+            LuaScript.RegisterType<NscHighwayHandle>();
         }
 
         private readonly ClientResourceLocator m_locator;
@@ -120,10 +157,28 @@ namespace NeuroSonic
 
             m_tbl_nsc["charts"] = m_tbl_nsc_charts = m_script.NewTable();
 
+            m_tbl_nsc_charts["newHighway"] = (Func<NscHighwayHandle>)(() =>
+            {
+                var highway = new HighwayView(m_locator, null);
+                m_resources.Manage(highway);
+                return highway;
+            });
+
             m_tbl_nsc["game"] = m_tbl_nsc_game = m_script.NewTable();
 
             m_tbl_nsc_game["exit"] = (Action)(() => Host.Exit());
             m_tbl_nsc_game["pushDebugMenu"] = (Action)(() => Push(new NeuroSonicStandaloneStartup()));
+            m_tbl_nsc_game["newPlayback"] = (Func<SlidingChartPlayback, HighwayView>)(playback =>
+            {
+                var highway = new HighwayView(m_locator, playback);
+                return highway;
+            });
+            m_tbl_nsc_game["newHighway"] = (Func<NscHighwayHandle>)(() =>
+            {
+                var highway = new HighwayView(m_locator, null);
+                m_resources.Manage(highway);
+                return highway;
+            });
 
             m_tbl_nsc["graphics"] = m_tbl_nsc_graphics = m_script.NewTable();
             
@@ -279,7 +334,7 @@ namespace NeuroSonic
         {
             base.ClientSizeChanged(width, height);
 
-            m_script.Call(m_tbl_nsc_layer["onClientSizeChanged"]);
+            m_script.Call(m_tbl_nsc_layer["onClientSizeChanged"], width, height);
         }
 
         public override bool KeyPressed(KeyInfo info)

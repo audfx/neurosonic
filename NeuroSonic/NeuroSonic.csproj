@@ -61,11 +61,14 @@
 
   <ItemGroup>
     <None Remove="Resources\scripts\driver.lua" />
+    <None Remove="Resources\scripts\game.lua" />
+    <None Remove="Resources\scripts\game\backgrounds\stars.lua" />
     <None Remove="Resources\scripts\game\chart-result.lua" />
     <None Remove="Resources\scripts\generic-layer.lua" />
     <None Remove="Resources\scripts\layerLayout.lua" />
     <None Remove="Resources\scripts\splashScreen.lua" />
     <None Remove="Resources\scripts\testPrinter.lua" />
+    <None Remove="Resources\scripts\titleScreen.lua" />
     <None Remove="Resources\scripts\titleScreen\main.lua" />
     <None Remove="Resources\textures\genericBackground_LS.png" />
     <None Remove="Resources\textures\generic_bg_landscape.png" />
@@ -111,13 +114,15 @@
     <EmbeddedResource Include="Resources\materials\laser_entry.fs" />
     <EmbeddedResource Include="Resources\scripts\chart_select\main.lua" />
     <EmbeddedResource Include="Resources\scripts\driver.lua" />
+    <EmbeddedResource Include="Resources\scripts\game.lua" />
+    <EmbeddedResource Include="Resources\scripts\game\backgrounds\stars.lua" />
     <EmbeddedResource Include="Resources\scripts\game\bg-stars.lua" />
     <EmbeddedResource Include="Resources\scripts\game\chart-result.lua" />
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
     <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />
     <EmbeddedResource Include="Resources\scripts\layerLayout.lua" />
     <EmbeddedResource Include="Resources\scripts\splashScreen.lua" />
-    <EmbeddedResource Include="Resources\scripts\titleScreen\main.lua" />
+    <EmbeddedResource Include="Resources\scripts\titleScreen.lua" />
     <EmbeddedResource Include="Resources\textures\combo\0.png" />
     <EmbeddedResource Include="Resources\textures\combo\1.png" />
     <EmbeddedResource Include="Resources\textures\combo\2.png" />
@@ -205,6 +210,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Strings.ja-JP.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Resources\scripts\titleScreen\" />
   </ItemGroup>
 
 </Project>

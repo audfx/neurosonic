@@ -21,10 +21,12 @@ function nsc.layer.doAsyncLoad()
     return true;
 end
 
+function nsc.layer.onClientSizeChanged(w, h)
+    Layout.CalculateLayout();
+end
+
 function nsc.layer.init()
     titleTexture = nsc.graphics.getStaticTexture("title");
-
-    Layout.CalculateLayout();
 
     nsc.openCurtain();
 
@@ -33,6 +35,7 @@ function nsc.layer.init()
             nsc.closeCurtain(0.1, nsc.game.exit);
         elseif (button == ControllerInput.Start) then
             -- go to login scren stuff and then chart selection
+            nsc.closeCurtain(0.2, function() nsc.layer.push("game"); end);
         end
     end);
 end
@@ -48,6 +51,13 @@ function nsc.layer.render()
     Layout.Render();
 
     local w, h = LayoutWidth, LayoutHeight;
+
+    do
+        local width = w * 0.8;
+        local height = width * titleTexture.Height / titleTexture.Width;
+        nsc.graphics.draw(titleTexture, (w - width) / 2, h / 2 - height - 10, width, height);
+    end
+    
     nsc.graphics.draw(startBtnTexture, (w - 100) / 2, (h - 50) * 3 / 4, 100, 100);
 
     nsc.graphics.setTextAlign(Anchor.TopCenter);

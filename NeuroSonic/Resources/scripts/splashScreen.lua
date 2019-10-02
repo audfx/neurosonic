@@ -8,7 +8,7 @@ local alpha = 0;
 local timer = 0;
 
 local transitionFunction = function()
-    nsc.layer.push("titleScreen/main");
+    nsc.layer.push("titleScreen");
 end;
 
 function nsc.layer.init()
@@ -53,6 +53,6 @@ function nsc.layer.render()
     local width = w * 0.7;
     local height = width * text.Height / text.Width;
     
-    nsc.graphics.setImageColor(255, 0, 255, 255 * alpha);
+    nsc.graphics.setImageColor(0, 169, 255, 255 * alpha);
     nsc.graphics.draw(text, (w - width) / 2, (h - height) / 2, width, height);
 end
