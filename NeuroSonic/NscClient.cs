@@ -2,23 +2,36 @@
 
 using theori;
 using theori.Graphics;
+using theori.IO;
 using theori.Platform;
+using theori.Resources;
+using theori.Scripting;
 
 using NeuroSonic.Graphics;
-using NeuroSonic.Startup;
 using NeuroSonic.IO;
 
 namespace NeuroSonic.Platform
 {
     public sealed class NscClient : Client
     {
+        static NscClient()
+        {
+            LuaScript.RegisterType<KeyCode>();
+            LuaScript.RegisterType<MouseButton>();
+            LuaScript.RegisterType<ControllerInput>();
+        }
+
+        public ClientResourceManager StaticResources { get; private set; }
+
         private TransitionCurtain? m_curtain;
 
         [Pure] public NscClient()
         {
+            StaticResources = new ClientResourceManager(ClientSkinService.CurrentlySelectedSkin);
         }
 
-        [Const] protected override Layer? CreateInitialLayer() => new SplashScreen();
+        //[Const] protected override Layer? CreateInitialLayer() => new SplashScreen();
+        [Const] protected override Layer? CreateInitialLayer() => new NscLuaLayer("driver");
 
         protected override UnhandledExceptionAction OnUnhandledException()
         {

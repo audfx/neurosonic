@@ -1,20 +1,41 @@
-﻿using theori;
+﻿using System;
+
+using theori;
 using theori.IO;
+using theori.Graphics;
+using theori.Graphics.OpenGL;
 using theori.Resources;
 using theori.Scripting;
 
 using NeuroSonic.IO;
+using NeuroSonic.Platform;
 
 using MoonSharp.Interpreter;
-using System;
-using NeuroSonic.Platform;
-using theori.Graphics;
-using theori.Graphics.OpenGL;
+using theori.Audio;
+using NeuroSonic.Startup;
 
 namespace NeuroSonic
 {
+    class NscAudioHandle
+    {
+        public static implicit operator NscAudioHandle(AudioTrack audio) => new NscAudioHandle(audio);
+        public static implicit operator AudioTrack(NscAudioHandle handle) => handle.m_handle;
+
+        private readonly AudioTrack m_handle;
+
+        public NscAudioHandle(AudioTrack target)
+        {
+            m_handle = target;
+        }
+    }
+
     public sealed class NscLuaLayer : Layer, IControllerInputLayer
     {
+        static NscLuaLayer()
+        {
+            LuaScript.RegisterType<NscAudioHandle>();
+        }
+
         private readonly ClientResourceLocator m_locator;
         private readonly ClientResourceManager m_resources;
 
@@ -26,30 +47,30 @@ namespace NeuroSonic
 
         private readonly Table m_tbl_nsc;
 
-        private readonly Table m_tbl_nsc_layer;
-
+        private readonly Table m_tbl_nsc_audio;
+        private readonly Table m_tbl_nsc_charts;
+        private readonly Table m_tbl_nsc_game;
         private readonly Table m_tbl_nsc_graphics;
-
         private readonly Table m_tbl_nsc_input;
 
         private readonly Table m_tbl_nsc_input_keyboard;
-
         private readonly ScriptEvent m_evt_keyboard_pressed;
         private readonly ScriptEvent m_evt_keyboard_released;
 
         private readonly Table m_tbl_nsc_input_mouse;
-
         private readonly ScriptEvent m_evt_mouse_pressed;
         private readonly ScriptEvent m_evt_mouse_released;
         private readonly ScriptEvent m_evt_mouse_moved;
         private readonly ScriptEvent m_evt_mouse_scrolled;
 
         private readonly Table m_tbl_nsc_input_controller;
-
+        private readonly Table m_tbl_nsc_input_controller_axisPartialTick;
         private readonly ScriptEvent m_evt_controller_pressed;
         private readonly ScriptEvent m_evt_controller_released;
         private readonly ScriptEvent m_evt_controller_axisChanged;
         private readonly ScriptEvent m_evt_controller_axisTicked;
+
+        private readonly Table m_tbl_nsc_layer;
 
         private bool m_hasControllerPriority = true;
 
@@ -83,7 +104,6 @@ namespace NeuroSonic
 
             m_script["nsc"] = m_tbl_nsc = m_script.NewTable();
 
-            m_tbl_nsc["exit"] = (Action)(() => Host.Exit());
             m_tbl_nsc["openCurtain"] = (Action)OpenCurtain;
             m_tbl_nsc["closeCurtain"] = (Action<float, DynValue?>)((duration, callback) =>
             {
@@ -93,34 +113,26 @@ namespace NeuroSonic
                 else CloseCurtain(duration, onClosed);
             });
 
-            m_tbl_nsc["layer"] = m_tbl_nsc_layer = m_script.NewTable();
+            m_tbl_nsc["audio"] = m_tbl_nsc_audio = m_script.NewTable();
 
-            m_tbl_nsc_layer["construct"] = (Action)(() => { });
-            m_tbl_nsc_layer["push"] = DynValue.NewCallback((context, args) =>
-            {
-                if (args.Count == 0) return DynValue.Nil;
+            m_tbl_nsc_audio["loadStaticAudioAsync"] = (Func<string, NscAudioHandle>)(audioName => ClientAs<NscClient>().StaticResources.QueueAudioLoad($"audio/{ audioName }"));
+            m_tbl_nsc_audio["loadAudioAsync"] = (Func<string, NscAudioHandle>)(audioName => m_resources.QueueAudioLoad($"audio/{ audioName }"));
 
-                string layerPath = args.AsStringUsingMeta(context, 0, "push");
-                DynValue[] rest = args.GetArray(1);
+            m_tbl_nsc["charts"] = m_tbl_nsc_charts = m_script.NewTable();
 
-                Push(new NscLuaLayer(layerPath, rest));
-                return DynValue.Nil;
-            });
-            m_tbl_nsc_layer["pop"] = (Action)(() => Pop());
-            m_tbl_nsc_layer["setInvalidForResume"] = (Action)(() => SetInvalidForResume());
-            m_tbl_nsc_layer["doAsyncLoad"] = (Func<bool>)(() => true);
-            m_tbl_nsc_layer["doAsyncFinalize"] = (Func<bool>)(() => true);
-            m_tbl_nsc_layer["init"] = (Action)(() => { OpenCurtain(); });
-            m_tbl_nsc_layer["destroy"] = (Action)(() => { });
-            m_tbl_nsc_layer["suspended"] = (Action)(() => { });
-            m_tbl_nsc_layer["resumed"] = (Action)(() => { OpenCurtain(); });
-            m_tbl_nsc_layer["onExiting"] = (Action)(() => { });
-            m_tbl_nsc_layer["onClientSizeChanged"] = (Action<int, int, int, int>)((x, y, w, h) => { });
-            m_tbl_nsc_layer["update"] = (Action<float, float>)((delta, total) => { });
-            m_tbl_nsc_layer["render"] = (Action)(() => { });
+            m_tbl_nsc["game"] = m_tbl_nsc_game = m_script.NewTable();
+
+            m_tbl_nsc_game["exit"] = (Action)(() => Host.Exit());
+            m_tbl_nsc_game["pushDebugMenu"] = (Action)(() => Push(new NeuroSonicStandaloneStartup()));
 
             m_tbl_nsc["graphics"] = m_tbl_nsc_graphics = m_script.NewTable();
-
+            
+            m_tbl_nsc_graphics["loadStaticTextureAsync"] = (Func<string, Texture>)(textureName => ClientAs<NscClient>().StaticResources.QueueTextureLoad($"textures/{ textureName }"));
+            m_tbl_nsc_graphics["getStaticTexture"] = (Func<string, Texture>)(textureName => ClientAs<NscClient>().StaticResources.GetTexture($"textures/{ textureName }"));
+            m_tbl_nsc_graphics["doStaticTextureLoadsAsync"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.LoadAll());
+            m_tbl_nsc_graphics["finalizeStaticTextureLoads"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.FinalizeLoad());
+            m_tbl_nsc_graphics["loadTextureAsync"] = (Func<string, Texture>)(textureName => m_resources.QueueTextureLoad($"textures/{ textureName }"));
+            m_tbl_nsc_graphics["getTexture"] = (Func<string, Texture>)(textureName => m_resources.GetTexture($"textures/{ textureName }"));
             m_tbl_nsc_graphics["flush"] = (Action)(() => m_spriteRenderer.Flush());
             m_tbl_nsc_graphics["saveTransform"] = (Action)(() => m_spriteRenderer.SaveTransform());
             m_tbl_nsc_graphics["restoreTransform"] = (Action)(() => m_spriteRenderer.RestoreTransform());
@@ -156,10 +168,41 @@ namespace NeuroSonic
 
             m_tbl_nsc_input["controller"] = m_tbl_nsc_input_controller = m_script.NewTable();
 
+            m_tbl_nsc_input_controller["axisPartialTick"] = m_tbl_nsc_input_controller_axisPartialTick = m_script.NewTable(); ;
+            m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser0Axis] = 0.0f;
+            m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser1Axis] = 0.0f;
+
             m_tbl_nsc_input_controller["pressed"] = m_evt_controller_pressed = m_script.NewEvent();
             m_tbl_nsc_input_controller["released"] = m_evt_controller_released = m_script.NewEvent();
             m_tbl_nsc_input_controller["axisChanged"] = m_evt_controller_axisChanged = m_script.NewEvent();
             m_tbl_nsc_input_controller["axisTicked"] = m_evt_controller_axisTicked = m_script.NewEvent();
+            m_tbl_nsc_input_controller["isDown"] = (Func<ControllerInput, bool>)Input.IsButtonDown;
+
+            m_tbl_nsc["layer"] = m_tbl_nsc_layer = m_script.NewTable();
+
+            m_tbl_nsc_layer["construct"] = (Action)(() => { });
+            m_tbl_nsc_layer["push"] = DynValue.NewCallback((context, args) =>
+            {
+                if (args.Count == 0) return DynValue.Nil;
+
+                string layerPath = args.AsStringUsingMeta(context, 0, "push");
+                DynValue[] rest = args.GetArray(1);
+
+                Push(new NscLuaLayer(layerPath, rest));
+                return DynValue.Nil;
+            });
+            m_tbl_nsc_layer["pop"] = (Action)(() => Pop());
+            m_tbl_nsc_layer["setInvalidForResume"] = (Action)(() => SetInvalidForResume());
+            m_tbl_nsc_layer["doAsyncLoad"] = (Func<bool>)(() => true);
+            m_tbl_nsc_layer["doAsyncFinalize"] = (Func<bool>)(() => true);
+            m_tbl_nsc_layer["init"] = (Action)(() => { OpenCurtain(); });
+            m_tbl_nsc_layer["destroy"] = (Action)(() => { });
+            m_tbl_nsc_layer["suspended"] = (Action)(() => { });
+            m_tbl_nsc_layer["resumed"] = (Action)(() => { OpenCurtain(); });
+            m_tbl_nsc_layer["onExiting"] = (Action)(() => { });
+            m_tbl_nsc_layer["onClientSizeChanged"] = (Action<int, int, int, int>)((x, y, w, h) => { });
+            m_tbl_nsc_layer["update"] = (Action<float, float>)((delta, total) => { });
+            m_tbl_nsc_layer["render"] = (Action)(() => { });
         }
 
         private void CloseCurtain(float holdTime, Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(holdTime, onClosed);
@@ -321,6 +364,7 @@ namespace NeuroSonic
                 value -= 1;
             }
 
+            m_tbl_nsc_input_controller_axisPartialTick[input] = value;
             m_evt_controller_axisChanged.Fire(input, delta);
             return true;
         }
@@ -335,6 +379,7 @@ namespace NeuroSonic
                 if (value < 0)
                     value = MathL.Min(value + delta * 2, 0);
                 else value = MathL.Max(value - delta * 2, 0);
+                m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser0Axis + i] = value;
             }
 
             m_script.Call(m_tbl_nsc_layer["update"], delta, total);

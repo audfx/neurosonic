@@ -4,10 +4,10 @@ using System.Globalization;
 using theori.Configuration;
 using theori.IO;
 using theori.Platform;
+using theori.Scripting;
 
 using NeuroSonic.IO;
 using NeuroSonic.Properties;
-using theori.Scripting;
 
 namespace NeuroSonic
 {
@@ -30,10 +30,6 @@ namespace NeuroSonic
         public static void Initialize(ClientHost host)
         {
             Plugin.host = host;
-
-            LuaScript.RegisterType<KeyCode>();
-            LuaScript.RegisterType<MouseButton>();
-            LuaScript.RegisterType<ControllerInput>();
 
             if (File.Exists(NSC_CONFIG_FILE))
                 LoadNscConfig();

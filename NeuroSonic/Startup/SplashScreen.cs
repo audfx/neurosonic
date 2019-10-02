@@ -22,7 +22,8 @@ namespace NeuroSonic.Startup
 
         public SplashScreen()
         {
-            m_onSplashFinished = () => Push(new NscLuaLayer("titleScreen.main"));
+            //m_onSplashFinished = () => Push(new NscLuaLayer("titleScreen.main"));
+            m_onSplashFinished = () => Push(new NscLuaLayer("driver"));
         }
 
         public override void Initialize()

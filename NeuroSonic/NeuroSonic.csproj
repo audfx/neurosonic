@@ -60,12 +60,41 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Resources\scripts\driver.lua" />
     <None Remove="Resources\scripts\game\chart-result.lua" />
     <None Remove="Resources\scripts\generic-layer.lua" />
+    <None Remove="Resources\scripts\layerLayout.lua" />
+    <None Remove="Resources\scripts\splashScreen.lua" />
     <None Remove="Resources\scripts\testPrinter.lua" />
     <None Remove="Resources\scripts\titleScreen\main.lua" />
+    <None Remove="Resources\textures\genericBackground_LS.png" />
     <None Remove="Resources\textures\generic_bg_landscape.png" />
     <None Remove="Resources\textures\generic_bg_portrait.png" />
+    <None Remove="Resources\textures\generigBackground_PR.png" />
+    <None Remove="Resources\textures\legend\bt\a.png" />
+    <None Remove="Resources\textures\legend\bt\ab.png" />
+    <None Remove="Resources\textures\legend\bt\abc.png" />
+    <None Remove="Resources\textures\legend\bt\abcd.png" />
+    <None Remove="Resources\textures\legend\bt\abd.png" />
+    <None Remove="Resources\textures\legend\bt\ac.png" />
+    <None Remove="Resources\textures\legend\bt\acd.png" />
+    <None Remove="Resources\textures\legend\bt\ad.png" />
+    <None Remove="Resources\textures\legend\bt\b.png" />
+    <None Remove="Resources\textures\legend\bt\bc.png" />
+    <None Remove="Resources\textures\legend\bt\bcd.png" />
+    <None Remove="Resources\textures\legend\bt\bd.png" />
+    <None Remove="Resources\textures\legend\bt\c.png" />
+    <None Remove="Resources\textures\legend\bt\cd.png" />
+    <None Remove="Resources\textures\legend\bt\d.png" />
+    <None Remove="Resources\textures\legend\fx\l.png" />
+    <None Remove="Resources\textures\legend\fx\lr.png" />
+    <None Remove="Resources\textures\legend\fx\r.png" />
+    <None Remove="Resources\textures\legend\start.png" />
+    <None Remove="Resources\textures\legend\vol\l.png" />
+    <None Remove="Resources\textures\legend\vol\r.png" />
+    <None Remove="Resources\textures\startButton.png" />
+    <None Remove="Resources\textures\start_button.png" />
+    <None Remove="Resources\textures\title.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -81,10 +110,13 @@
     <EmbeddedResource Include="Resources\materials\laser.fs" />
     <EmbeddedResource Include="Resources\materials\laser_entry.fs" />
     <EmbeddedResource Include="Resources\scripts\chart_select\main.lua" />
+    <EmbeddedResource Include="Resources\scripts\driver.lua" />
     <EmbeddedResource Include="Resources\scripts\game\bg-stars.lua" />
     <EmbeddedResource Include="Resources\scripts\game\chart-result.lua" />
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
     <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />
+    <EmbeddedResource Include="Resources\scripts\layerLayout.lua" />
+    <EmbeddedResource Include="Resources\scripts\splashScreen.lua" />
     <EmbeddedResource Include="Resources\scripts\titleScreen\main.lua" />
     <EmbeddedResource Include="Resources\textures\combo\0.png" />
     <EmbeddedResource Include="Resources\textures\combo\1.png" />
@@ -96,11 +128,6 @@
     <EmbeddedResource Include="Resources\textures\combo\7.png" />
     <EmbeddedResource Include="Resources\textures\combo\8.png" />
     <EmbeddedResource Include="Resources\textures\combo\9.png" />
-    <EmbeddedResource Include="Resources\textures\debug_bt.png" />
-    <EmbeddedResource Include="Resources\textures\debug_bt_active.png" />
-    <EmbeddedResource Include="Resources\textures\debug_fx.png" />
-    <EmbeddedResource Include="Resources\textures\debug_fx_active.png" />
-    <EmbeddedResource Include="Resources\textures\debug_vol.png" />
     <EmbeddedResource Include="Resources\textures\game\bt_chip.png" />
     <EmbeddedResource Include="Resources\textures\game\bt_chip_sample.png" />
     <EmbeddedResource Include="Resources\textures\game\bt_hold.png" />
@@ -124,8 +151,32 @@
     <EmbeddedResource Include="Resources\textures\game_bg\particle0.png" />
     <EmbeddedResource Include="Resources\textures\game_bg\particle1.png" />
     <EmbeddedResource Include="Resources\textures\game_bg\particle2.png" />
+    <EmbeddedResource Include="Resources\textures\genericBackground_LS.png" />
     <EmbeddedResource Include="Resources\textures\generic_bg_landscape.png" />
     <EmbeddedResource Include="Resources\textures\generic_bg_portrait.png" />
+    <EmbeddedResource Include="Resources\textures\generigBackground_PR.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\a.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\ab.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\abc.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\abcd.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\abd.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\ac.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\acd.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\ad.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\b.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\bc.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\bcd.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\bd.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\c.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\cd.png" />
+    <EmbeddedResource Include="Resources\textures\legend\bt\d.png" />
+    <EmbeddedResource Include="Resources\textures\legend\fx\l.png" />
+    <EmbeddedResource Include="Resources\textures\legend\fx\lr.png" />
+    <EmbeddedResource Include="Resources\textures\legend\fx\r.png" />
+    <EmbeddedResource Include="Resources\textures\legend\start.png" />
+    <EmbeddedResource Include="Resources\textures\legend\vol\l.png" />
+    <EmbeddedResource Include="Resources\textures\legend\vol\r.png" />
+    <EmbeddedResource Include="Resources\textures\title.png" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,16 +1,9 @@
 
-local menuIndex = 0;
-local menuItems = { count = 0, items = { } };
+include "layerLayout";
 
-local exitOnLeave = true;
+local titleTexture;
 
-local function AddMenuItem(text, callback)
-    menuItems.items[menuItems.count] = {
-        text = text,
-        callback = callback
-    };
-    menuItems.count = menuItems.count + 1;
-end
+local startBtnTexture;
 
 function nsc.layer.construct(...)
     local args = { ... };
@@ -20,49 +13,55 @@ function nsc.layer.construct(...)
 end
 
 function nsc.layer.doAsyncLoad()
-    return true;
-end
+    startBtnTexture = nsc.graphics.loadTextureAsync("legend/start");
 
-function nsc.layer.doAsyncFinalize()
+    Layouts.Landscape.Background = nsc.graphics.loadTextureAsync("genericBackground_LS");
+    Layouts.Portrait.Background = nsc.graphics.loadTextureAsync("generigBackground_PR");
+
     return true;
 end
 
 function nsc.layer.init()
-    AddMenuItem("This is a Test!", function()
-        nsc.closeCurtain(0.2, function()
-            if (not exitOnLeave) then
-                nsc.layer.setInvalidForResume();
-            end
-            nsc.layer.push("titleScreen.main", true);
-        end);
-    end);
-    AddMenuItem("What about Chart Select??", function() print("Chart Select pressed!"); end);
-    AddMenuItem("These are useless!!", function() print("Useless pressed!"); end);
+    titleTexture = nsc.graphics.getStaticTexture("title");
+
+    Layout.CalculateLayout();
 
     nsc.openCurtain();
 
-    nsc.input.controller.axisTicked:connect(function(axis, dir)
-        menuIndex = (menuIndex + dir + menuItems.count) % menuItems.count;
-        print(menuIndex);
-    end);
-
     nsc.input.controller.pressed:connect(function(button)
         if (button == ControllerInput.Back) then
-            nsc.closeCurtain(0.2, exitOnLeave and nsc.exit or nsc.layer.pop);
+            nsc.closeCurtain(0.1, nsc.game.exit);
         elseif (button == ControllerInput.Start) then
-            menuItems.items[menuIndex].callback();
+            -- go to login scren stuff and then chart selection
         end
     end);
 end
 
 function nsc.layer.update(delta, total)
+    Layout.Update(delta, total);
 end
 
 function nsc.layer.render()
-    for k, v in next, menuItems.items do
-        local selected = k == menuIndex;
+    Layout.CheckLayout();
+    Layout.DoTransform();
 
-        nsc.graphics.setColor(255, 255, selected and 0 or 255, 255);
-        nsc.graphics.drawString(v.text, 10, 10 + k * 30);
-    end
+    Layout.Render();
+
+    local w, h = LayoutWidth, LayoutHeight;
+    nsc.graphics.draw(startBtnTexture, (w - 100) / 2, (h - 50) * 3 / 4, 100, 100);
+
+    nsc.graphics.setTextAlign(Anchor.TopCenter);
+    nsc.graphics.drawString("PRESS START", w / 2, h * 3 / 4 + 60);
+end
+
+-- Landscape
+
+function Layouts.Landscape.Render(self)
+    Layout.DrawBackgroundFilled(self.Background);
+end
+
+-- Portrait
+
+function Layouts.Portrait.Render(self)
+    Layout.DrawBackgroundFilled(self.Background);
 end
