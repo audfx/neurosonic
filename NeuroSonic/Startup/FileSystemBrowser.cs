@@ -12,7 +12,12 @@ namespace NeuroSonic.Startup
 {
     public sealed class FileSystemBrowser : NscLayer
     {
+        public bool PopOnSelected = false;
+
         private readonly Action<string[]> m_onSelected;
+        private readonly bool m_folderSelectOnly;
+
+        private bool m_filterInputs = false;
 
         private string m_directoryPath;
         private readonly List<string> m_directoryChildren = new List<string>();
@@ -21,8 +26,9 @@ namespace NeuroSonic.Startup
 
         private readonly BasicSpriteRenderer m_renderer;
 
-        public FileSystemBrowser(Action<string[]> onSelected)
+        public FileSystemBrowser(bool selectFolders, Action<string[]> onSelected)
         {
+            m_folderSelectOnly = selectFolders;
             string storedLastPath = Plugin.Config.GetString(NscConfigKey.FileBrowserLastDirectory);
 
             m_directoryPath = string.IsNullOrWhiteSpace(storedLastPath) || !Directory.Exists(storedLastPath) ? Directory.GetCurrentDirectory() : storedLastPath;
@@ -52,7 +58,8 @@ namespace NeuroSonic.Startup
             else
             {
                 m_directoryChildren.AddRange(Directory.EnumerateDirectories(m_directoryPath).Select(dir => $"{ Path.GetFileName(dir) }{ Path.DirectorySeparatorChar }"));
-                m_directoryChildren.AddRange(Directory.EnumerateFiles(m_directoryPath).Where(file => file.EndsWith(".ksh")).Select(file => Path.GetFileName(file)));
+                if (!m_folderSelectOnly)
+                    m_directoryChildren.AddRange(Directory.EnumerateFiles(m_directoryPath).Where(file => file.EndsWith(".ksh")).Select(file => Path.GetFileName(file)));
             }
 
             m_selected = 0;
@@ -72,23 +79,42 @@ namespace NeuroSonic.Startup
             m_selected = m_directoryChildren.IndexOf($"{ currentDirName }{ Path.DirectorySeparatorChar }");
         }
 
-        private void SelectEntry()
+        private void NavigateInto()
         {
             if (m_directoryPath == "")
                 m_directoryPath = m_directoryChildren[m_selected];
             else
             {
                 string selected = m_directoryChildren[m_selected];
-                if (selected.EndsWith(Path.DirectorySeparatorChar))
+                bool isDirectory = selected.EndsWith(Path.DirectorySeparatorChar);
+
+                if (isDirectory)
                     m_directoryPath = Path.Combine(m_directoryPath, selected[0..^1]);
                 else
                 {
+                    m_filterInputs = true;
                     m_onSelected?.Invoke(new[] { Path.Combine(m_directoryPath, selected) });
+                    if (PopOnSelected) Pop();
                     return;
                 }
             }
 
             PopulateDirectoryChildren();
+        }
+
+        private void SelectEntry()
+        {
+            if (!m_folderSelectOnly)
+                NavigateInto();
+            else
+            {
+                string selected = m_directoryChildren.Count == 0 ?
+                    m_directoryPath : Path.Combine(m_directoryPath, m_directoryChildren[m_selected]);
+
+                m_filterInputs = true;
+                m_onSelected?.Invoke(new[] { Path.Combine(m_directoryPath, selected) });
+                if (PopOnSelected) Pop();
+            }
         }
 
         private void ScrollBy(int amount)
@@ -100,6 +126,7 @@ namespace NeuroSonic.Startup
 
         public override bool KeyPressed(KeyInfo info)
         {
+            if (m_filterInputs) return true;
             bool speedy = Keyboard.IsDown(KeyCode.LCTRL) || Keyboard.IsDown(KeyCode.RCTRL);
 
             switch (info.KeyCode)
@@ -109,6 +136,7 @@ namespace NeuroSonic.Startup
                 case KeyCode.RETURN: SelectEntry(); break;
 
                 case KeyCode.LEFT: NavigateToParent(); break;
+                case KeyCode.RIGHT: NavigateInto(); break;
 
                 case KeyCode.UP: ScrollBy(-(speedy ? 10 : 1)); break;
                 case KeyCode.DOWN: ScrollBy((speedy ? 10 : 1)); break;
@@ -124,6 +152,7 @@ namespace NeuroSonic.Startup
 
         public override bool ControllerButtonPressed(ControllerInput input)
         {
+            if (m_filterInputs) return true;
             bool speedy = Input.IsButtonDown(ControllerInput.FX0);
 
             switch (input)
@@ -133,6 +162,7 @@ namespace NeuroSonic.Startup
                 case ControllerInput.Start: SelectEntry(); break;
 
                 case ControllerInput.BT2: NavigateToParent(); break;
+                case ControllerInput.BT3: NavigateInto(); break;
 
                 case ControllerInput.BT0: ScrollBy(-(speedy ? 10 : 1)); break;
                 case ControllerInput.BT1: ScrollBy((speedy ? 10 : 1)); break;

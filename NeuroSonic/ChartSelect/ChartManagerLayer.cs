@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 using theori;
@@ -25,14 +26,28 @@ namespace NeuroSonic.ChartSelect
 
         protected override void GenerateMenuItems()
         {
-            AddMenuItem(new MenuItem(NextOffset, "Go To Chart Select", () => Push(new ChartSelectLayer(ClientSkinService.CurrentlySelectedSkin))));
+            AddMenuItem(new MenuItem(NextOffset, "Generate NSC Chart Database From KSH Songs Folder", () =>
+            {
+                Push(new FileSystemBrowser(true, paths =>
+                {
+                    if (paths == null) return; // selection cancelled?? idk I guess just backing out is a cancel.
+
+                    string rootDirectory = paths[0];
+                    Push(new ChartImportLayer(rootDirectory));
+                }));
+            }));
+            AddMenuItem(new MenuItem(NextOffset, "Delete NSC Chart Database", () =>
+            {
+                if (File.Exists("local-charts.sqlite"))
+                    File.Delete("local-charts.sqlite");
+            }));
 
             AddSpacing();
             AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts and Open Selected", () =>
             {
                 AutoPlay autoPlay = Keyboard.IsDown(KeyCode.LCTRL) || Keyboard.IsDown(KeyCode.RCTRL) ? AutoPlay.ButtonsAndLasers : AutoPlay.None;
 
-                Push(new FileSystemBrowser(paths =>
+                Push(new FileSystemBrowser(false, paths =>
                 {
                     if (paths == null) return; // selection cancelled?? idk I guess just backing out is a cancel.
 
@@ -44,13 +59,6 @@ namespace NeuroSonic.ChartSelect
                         Push(new GameLayer(ClientSkinService.CurrentlySelectedSkin, selected, autoPlay));
                     });
                 }));
-            }));
-
-            AddSpacing();
-            AddMenuItem(new MenuItem(NextOffset, "Delete NSC Chart Database", () =>
-            {
-                if (File.Exists("nsc-local.chart-db"))
-                    File.Delete("nsc-local.chart-db");
             }));
         }
 
@@ -64,6 +72,7 @@ namespace NeuroSonic.ChartSelect
                 m_inGame = false;
             }
         }
+
         private ChartSetInfo ConvertKSHAndSave(string primaryKshFile, out ChartInfo selected)
         {
             var primaryKshChart = KshChart.CreateFromFile(primaryKshFile);

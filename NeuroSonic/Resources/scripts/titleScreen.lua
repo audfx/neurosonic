@@ -35,7 +35,7 @@ function nsc.layer.init()
             nsc.closeCurtain(0.1, nsc.game.exit);
         elseif (button == ControllerInput.Start) then
             -- go to login scren stuff and then chart selection
-            nsc.closeCurtain(0.2, function() nsc.layer.push("game"); end);
+            nsc.closeCurtain(0.2, function() nsc.layer.push("chartSelect"); end);
         end
     end);
 end

@@ -12,6 +12,7 @@ end
 
 -- on first startup, push the splash screen
 function nsc.layer.init()
+    --nsc.charts.setDatabaseToPopulate();
     nsc.layer.push("splashScreen");
 end
 

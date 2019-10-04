@@ -9,6 +9,7 @@ using theori.Scripting;
 
 using NeuroSonic.Graphics;
 using NeuroSonic.IO;
+using NeuroSonic.Database;
 
 namespace NeuroSonic.Platform
 {
@@ -23,11 +24,14 @@ namespace NeuroSonic.Platform
 
         public ClientResourceManager StaticResources { get; private set; }
 
+        public ChartDatabaseWorker DatabaseWorker { get; private set; }
+
         private TransitionCurtain? m_curtain;
 
         [Pure] public NscClient()
         {
             StaticResources = new ClientResourceManager(ClientSkinService.CurrentlySelectedSkin);
+            DatabaseWorker = new ChartDatabaseWorker("local-charts.sqlite");
         }
 
         //[Const] protected override Layer? CreateInitialLayer() => new SplashScreen();
@@ -67,6 +71,7 @@ namespace NeuroSonic.Platform
         {
             base.EndInputStep();
 
+            DatabaseWorker.Update();
             Input.Update();
         }
 

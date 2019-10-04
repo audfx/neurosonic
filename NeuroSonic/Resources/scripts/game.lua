@@ -1,38 +1,41 @@
 
--- chart data, audio, and judgement
-local chart, audio, judge;
--- playback for visuals and for judgements
-local playbackVisual, playbackInput;
--- renderable highway and its parameters
-local highway, highwayParams;
+-- controls chart playback (with highway params),
+--  audio playback and judgement
+local gameSystem;
+-- renderable highway
+local highway;
 -- background is another lua script
 local background;
 
 function nsc.layer.construct()
+    local chart = nsc.charts.loadChart();
+    gameSystem = nsc.game.newGameSystem(chart);
+    --highway = nsc.graphics.newHighway();
+    highway = gameSystem.createHighway();
     background = include("game/backgrounds/stars");
 end
 
 function nsc.layer.doAsyncLoad()
-    if (not background.doAsyncLoad()) then
+    if (not gameSystem.doAsyncLoad()) then
         return false;
     end
 
-    highway = nsc.game.newHighway();
     if (not highway.doAsyncLoad()) then
         return false;
     end
 
-    --[[
-    highwayParams = nsc.game.newHighwayParams();
-    if (not highwayParams.doAsyncLoad()) then
+    if (not background.doAsyncLoad()) then
         return false;
     end
-    --]]
 
     return true;
 end
 
 function nsc.layer.doAsyncFinalize()
+    if (not gameSystem.doAsyncFinalize()) then
+        return false;
+    end
+
     if (not background.doAsyncFinalize()) then
         return false;
     end
@@ -40,17 +43,12 @@ function nsc.layer.doAsyncFinalize()
     if (not highway.doAsyncFinalize()) then
         return false;
     end
-    
-    --[[
-    if (not highwayParams.doAsyncFinalize()) then
-        return false;
-    end
-    --]]
 
     return true;
 end
 
 function nsc.layer.init()
+    gameSystem.init();
     background.init();
 
     nsc.openCurtain();
@@ -71,13 +69,13 @@ function nsc.layer.update(delta, total)
         highway.setViewport(0, (h - w) / 2 - w / 5, w);
     end
 
-    highway.update(delta, total);
+    gameSystem.update(delta, total);
 
+    gameSystem.applyToHighway(highway);
+    gameSystem.applyToBackground(background);
+
+    highway.update(delta, total);
     background.horizonHeight = highway.horizonHeight;
-    background.combinedTilt = 0;
-    background.effectRotation = 0;
-    background.spinTimer = 0;
-    background.swingTimer = 0;
 
     background.update(delta, total);
 end
