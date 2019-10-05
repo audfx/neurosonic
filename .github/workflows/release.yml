@@ -21,22 +21,16 @@ jobs:
         with:
           version: 3.0.100-preview8-013656
 
-      - name: Build
-        run: dotnet build --configuration Deploy --framework netcoreapp3.0 neurosonic.sln
-
       - name: Publish
-        run: dotnet publish --configuration Deploy --framework netcoreapp3.0 neurosonic.sln
+        run: dotnet publish --output ClientBuild\Win64 --configuration Deploy --framework netcoreapp3.0 --runtime win10-x64 neurosonic.sln
 
       - name: Package
-        run: Compress-Archive -Path Clients\nsc-core3.0\bin\x64\Deploy\netcoreapp3.0\publish\* -DestinationPath NeuroSonic
+        run: Compress-Archive -Path ClientBuild\Win64\* -DestinationPath NeuroSonic-Win64
         shell: pwsh
-        
-      - name: Dump CWD
-        run: dir & dir Clients\nsc-core3.0\bin\x64\Deploy\netcoreapp3.0
           
       - name: Create Github Release
         uses: softprops/action-gh-release@v1
         with:
-          files: NeuroSonic.zip
+          files: NeuroSonic-Win64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
