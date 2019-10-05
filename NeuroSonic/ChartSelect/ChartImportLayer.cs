@@ -85,14 +85,18 @@ namespace NeuroSonic.ChartSelect
             var chartFiles = new List<(string, Chart)>();
             foreach (string kshChartFile in Directory.EnumerateFiles(inputSetDir, "*.ksh"))
             {
-                KshChartMetadata kshMeta;
-                using (var reader = new StreamReader(File.OpenRead(kshChartFile)))
-                    kshMeta = KshChartMetadata.Create(reader);
+                try
+                {
+                    KshChartMetadata kshMeta;
+                    using (var reader = new StreamReader(File.OpenRead(kshChartFile)))
+                        kshMeta = KshChartMetadata.Create(reader);
 
-                var kshChart = KshChart.CreateFromFile(kshChartFile);
-                var chart = kshChart.ToVoltex();
+                    var kshChart = KshChart.CreateFromFile(kshChartFile);
+                    var chart = kshChart.ToVoltex();
 
-                chartFiles.Add((kshChartFile, chart));
+                    chartFiles.Add((kshChartFile, chart));
+                }
+                catch (Exception) { Logger.Log($"  Failed for { kshChartFile }"); }
             }
 
             var chartSetInfo = new ChartSetInfo()

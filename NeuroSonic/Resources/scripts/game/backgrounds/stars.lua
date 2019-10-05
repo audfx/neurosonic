@@ -53,10 +53,10 @@ local function CreateParticleSpawner(frequency, spawnOffset, texture, size, posx
 end
 
 function Background.doAsyncLoad()
-	CenterpieceTex = nsc.graphics.loadTextureAsync("game_bg/centerpiece");
-	ParticlesTex[1] = nsc.graphics.loadTextureAsync("game_bg/particle0");
-	ParticlesTex[2] = nsc.graphics.loadTextureAsync("game_bg/particle1");
-	ParticlesTex[3] = nsc.graphics.loadTextureAsync("game_bg/particle2");
+	CenterpieceTex = nsc.graphics.queueTextureLoad("game_bg/centerpiece");
+	ParticlesTex[1] = nsc.graphics.queueTextureLoad("game_bg/particle0");
+	ParticlesTex[2] = nsc.graphics.queueTextureLoad("game_bg/particle1");
+	ParticlesTex[3] = nsc.graphics.queueTextureLoad("game_bg/particle2");
 
 	return true;
 end

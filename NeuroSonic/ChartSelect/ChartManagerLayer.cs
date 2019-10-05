@@ -36,11 +36,6 @@ namespace NeuroSonic.ChartSelect
                     Push(new ChartImportLayer(rootDirectory));
                 }));
             }));
-            AddMenuItem(new MenuItem(NextOffset, "Delete NSC Chart Database", () =>
-            {
-                if (File.Exists("local-charts.sqlite"))
-                    File.Delete("local-charts.sqlite");
-            }));
 
             AddSpacing();
             AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts and Open Selected", () =>

@@ -80,6 +80,13 @@ namespace NeuroSonic.Database
 
                 case WorkState.CleanSearching:
                 {
+                    foreach (var set in m_database.ChartSets)
+                    {
+                        string dirPath = Path.Combine(m_chartsDir, set.FilePath);
+                        if (!Directory.Exists(dirPath))
+                            m_database.RemoveSet(set);
+                    }
+
                     Logger.Log("Setting database worker to Clean");
                     State = WorkState.Cleaning;
                 }
@@ -182,6 +189,10 @@ namespace NeuroSonic.Database
 
             //m_database.OpenLocal();
             State = WorkState.CleanSearching;
+        }
+
+        private static void CleanDatabaseOfMissingEntries()
+        {
         }
 
         #region File System Watcher

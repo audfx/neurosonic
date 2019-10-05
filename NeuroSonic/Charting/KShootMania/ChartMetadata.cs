@@ -25,7 +25,9 @@ namespace NeuroSonic.Charting.KShootMania
                 {
                     case Difficulty.Infinite:
                         if (fileNameContext.Contains("inf") || fileNameContext.Contains("grv")
-                         || fileNameContext.Contains("hvn") || fileNameContext.Contains("vvd"))
+                         || fileNameContext.Contains("hvn") || fileNameContext.Contains("vvd")
+                         || fileNameContext.Contains("infinite") || fileNameContext.Contains("gravity")
+                         || fileNameContext.Contains("heavenly") || fileNameContext.Contains("vivid"))
 #if SDVX_SPECIAL_DIFFS_SEPARATE
                             return 4;
 #else
@@ -65,15 +67,15 @@ namespace NeuroSonic.Charting.KShootMania
                             return "Exhaust";
                         break;
                     case Difficulty.Infinite:
-                        if (fileNameContext.Contains("inf"))
+                        if (fileNameContext.Contains("inf") || fileNameContext.Contains("infinite"))
                             return "Infinite";
-                        else if (fileNameContext.Contains("grv"))
+                        else if (fileNameContext.Contains("grv") || fileNameContext.Contains("gravity"))
                             return "Gravity";
-                        else if (fileNameContext.Contains("hvn"))
+                        else if (fileNameContext.Contains("hvn") || fileNameContext.Contains("heavenly"))
                             return "Heavenly";
-                        else if (fileNameContext.Contains("vvd"))
+                        else if (fileNameContext.Contains("vvd") || fileNameContext.Contains("vivid"))
                             return "Vivid";
-                        else if (fileNameContext.Contains("mxm"))
+                        else if (fileNameContext.Contains("mxm") || fileNameContext.Contains("maximum"))
                             return "Maximum";
                         break;
                 }
@@ -110,15 +112,15 @@ namespace NeuroSonic.Charting.KShootMania
                             return "EXH";
                         break;
                     case Difficulty.Infinite:
-                        if (fileNameContext.Contains("inf"))
+                        if (fileNameContext.Contains("inf") || fileNameContext.Contains("infinite"))
                             return "INF";
-                        else if (fileNameContext.Contains("grv"))
+                        else if (fileNameContext.Contains("grv") || fileNameContext.Contains("gravity"))
                             return "GRV";
-                        else if (fileNameContext.Contains("hvn"))
+                        else if (fileNameContext.Contains("hvn") || fileNameContext.Contains("heavenly"))
                             return "HVN";
-                        else if (fileNameContext.Contains("vvd"))
+                        else if (fileNameContext.Contains("vvd") || fileNameContext.Contains("vivid"))
                             return "VVD";
-                        else if (fileNameContext.Contains("mxm"))
+                        else if (fileNameContext.Contains("mxm") || fileNameContext.Contains("maximum"))
                             return "MXM";
                         break;
                 }
@@ -155,15 +157,15 @@ namespace NeuroSonic.Charting.KShootMania
                             return new Vector3(1, 0.2f, 0.4f);
                         break;
                     case Difficulty.Infinite:
-                        if (fileNameContext.Contains("inf"))
+                        if (fileNameContext.Contains("inf") || fileNameContext.Contains("infinite"))
                             return new Vector3(1, 0.5f, 1);
-                        else if (fileNameContext.Contains("grv"))
+                        else if (fileNameContext.Contains("grv") || fileNameContext.Contains("gravity"))
                             return new Vector3(1, 0.4f, 0);
-                        else if (fileNameContext.Contains("hvn"))
+                        else if (fileNameContext.Contains("hvn") || fileNameContext.Contains("heavenly"))
                             return new Vector3(0, 0.55f, 1);
-                        else if (fileNameContext.Contains("vvd"))
+                        else if (fileNameContext.Contains("vvd") || fileNameContext.Contains("vivid"))
                             return new Vector3(1, 0.1f, 0.55f);
-                        else if (fileNameContext.Contains("mxm"))
+                        else if (fileNameContext.Contains("mxm") || fileNameContext.Contains("maximum"))
                             return new Vector3(0.95f);
                         break;
                 }

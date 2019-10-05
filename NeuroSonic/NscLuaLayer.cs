@@ -111,7 +111,7 @@ namespace NeuroSonic
         public string FileName => Object.FileName;
 
         public List<NscChartInfoHandle> Charts => m_charts ?? (m_charts = Object.Charts
-            .OrderBy(info => info.DifficultyIndex)
+            .OrderBy(info => MathL.Clamp(info.DifficultyIndex ?? 0, 0, 4))
             .ThenBy(info => info.DifficultyLevel)
             .ThenBy(info => info.DifficultyName)
             //.OrderBy(info => info.SongTitle)
@@ -165,7 +165,7 @@ namespace NeuroSonic
         public string BackgroundArtist => Object.BackgroundArtist;
 
         public double DifficultyLevel => Object.DifficultyLevel;
-        public int? DifficultyIndex => Object.DifficultyIndex;
+        public int DifficultyIndex => 1 + MathL.Clamp(Object.DifficultyIndex ?? 0, 0, 4);
 
         public string DifficultyName => Object.DifficultyName;
         public string DifficultyNameShort => Object.DifficultyNameShort;
@@ -182,12 +182,22 @@ namespace NeuroSonic
         {
             if (m_jacketTexture is { } result) return result;
 
-            string chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
-            var texture = Texture.FromFile2D(Path.Combine(chartsDir, Object.Set.FilePath, Object.JacketFileName));
-            m_resources.Manage(texture);
+            m_jacketTexture = Texture.Empty;
+            try
+            {
+                string chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
+                string texturePath = Path.Combine(chartsDir, Object.Set.FilePath, Object.JacketFileName);
 
-            m_jacketTexture = texture;
-            return texture;
+                Texture? actualTexture = null;
+                actualTexture = m_resources.LoadTexture(File.OpenRead(texturePath), Path.GetExtension(Object.JacketFileName), () =>
+                {
+                    m_jacketTexture = actualTexture!;
+                    m_resources.Manage(actualTexture!);
+                });
+            }
+            catch (Exception) { }
+
+            return m_jacketTexture;
         }
     }
 
@@ -287,6 +297,11 @@ namespace NeuroSonic
         }
     }
 
+    class NscResourceLoader
+    {
+
+    }
+
     public sealed class NscLuaLayer : Layer, IControllerInputLayer
     {
         static NscLuaLayer()
@@ -339,7 +354,7 @@ namespace NeuroSonic
         private bool m_hasControllerPriority = true;
 
         private readonly float[] m_controllerAxisMotion = new float[2];
-        private const float ControllerAxisMotionMultiplier = 1.6f;
+        private const float ControllerAxisMotionMultiplier = 3.0f;
 
         public override int TargetFrameRate
         {
@@ -387,8 +402,8 @@ namespace NeuroSonic
 
             m_tbl_nsc["audio"] = m_tbl_nsc_audio = m_script.NewTable();
 
-            m_tbl_nsc_audio["loadStaticAudioAsync"] = (Func<string, NscAudioHandle>)(audioName => ClientAs<NscClient>().StaticResources.QueueAudioLoad($"audio/{ audioName }"));
-            m_tbl_nsc_audio["loadAudioAsync"] = (Func<string, NscAudioHandle>)(audioName => m_resources.QueueAudioLoad($"audio/{ audioName }"));
+            m_tbl_nsc_audio["queueStaticAudioLoad"] = (Func<string, NscAudioHandle>)(audioName => ClientAs<NscClient>().StaticResources.QueueAudioLoad($"audio/{ audioName }"));
+            m_tbl_nsc_audio["queueAudioLoad"] = (Func<string, NscAudioHandle>)(audioName => m_resources.QueueAudioLoad($"audio/{ audioName }"));
 
             m_tbl_nsc["charts"] = m_tbl_nsc_charts = m_script.NewTable();
 
@@ -462,11 +477,11 @@ namespace NeuroSonic
 
             m_tbl_nsc["graphics"] = m_tbl_nsc_graphics = m_script.NewTable();
             
-            m_tbl_nsc_graphics["loadStaticTextureAsync"] = (Func<string, Texture>)(textureName => ClientAs<NscClient>().StaticResources.QueueTextureLoad($"textures/{ textureName }"));
+            m_tbl_nsc_graphics["queueStaticTextureLoad"] = (Func<string, Texture>)(textureName => ClientAs<NscClient>().StaticResources.QueueTextureLoad($"textures/{ textureName }"));
             m_tbl_nsc_graphics["getStaticTexture"] = (Func<string, Texture>)(textureName => ClientAs<NscClient>().StaticResources.GetTexture($"textures/{ textureName }"));
             m_tbl_nsc_graphics["doStaticTextureLoadsAsync"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.LoadAll());
             m_tbl_nsc_graphics["finalizeStaticTextureLoads"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.FinalizeLoad());
-            m_tbl_nsc_graphics["loadTextureAsync"] = (Func<string, Texture>)(textureName => m_resources.QueueTextureLoad($"textures/{ textureName }"));
+            m_tbl_nsc_graphics["queueTextureLoad"] = (Func<string, Texture>)(textureName => m_resources.QueueTextureLoad($"textures/{ textureName }"));
             m_tbl_nsc_graphics["getTexture"] = (Func<string, Texture>)(textureName => m_resources.GetTexture($"textures/{ textureName }"));
             m_tbl_nsc_graphics["flush"] = (Action)(() => m_spriteRenderer.Flush());
             m_tbl_nsc_graphics["saveTransform"] = (Action)(() => m_spriteRenderer.SaveTransform());
@@ -714,6 +729,8 @@ namespace NeuroSonic
         public override void Update(float delta, float total)
         {
             base.Update(delta, total);
+
+            m_resources.Update();
 
             for (int i = 0; i < 2; i++)
             {

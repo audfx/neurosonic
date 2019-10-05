@@ -1,7 +1,7 @@
 
 function nsc.layer.doAsyncLoad()
-    nsc.graphics.loadStaticTextureAsync("title");
-    nsc.graphics.loadStaticTextureAsync("audfx-text-large");
+    nsc.graphics.queueStaticTextureLoad("title");
+    nsc.graphics.queueStaticTextureLoad("audfx-text-large");
 
     return nsc.graphics.doStaticTextureLoadsAsync();
 end
@@ -13,6 +13,7 @@ end
 -- on first startup, push the splash screen
 function nsc.layer.init()
     --nsc.charts.setDatabaseToPopulate();
+    nsc.charts.setDatabaseToClean();
     nsc.layer.push("splashScreen");
 end
 

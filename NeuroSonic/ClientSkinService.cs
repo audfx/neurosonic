@@ -18,7 +18,8 @@ namespace NeuroSonic
 
         static ClientSkinService()
         {
-            DefaultSkin = ClientResourceLocator.Default.Clone();
+            DefaultSkin = new ClientResourceLocator("skins/user-custom", "materials/basic");
+            DefaultSkin.AddManifestResourceLoader(ManifestResourceLoader.GetResourceLoader(typeof(ClientResourceLocator).Assembly, "theori.Resources"));
             DefaultSkin.AddManifestResourceLoader(ManifestResourceLoader.GetResourceLoader(typeof(NscClient).Assembly, "NeuroSonic.Resources"));
 
             CurrentlySelectedSkin = DefaultSkin;

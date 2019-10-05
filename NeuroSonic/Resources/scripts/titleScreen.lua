@@ -13,10 +13,10 @@ function nsc.layer.construct(...)
 end
 
 function nsc.layer.doAsyncLoad()
-    startBtnTexture = nsc.graphics.loadTextureAsync("legend/start");
+    startBtnTexture = nsc.graphics.queueTextureLoad("legend/start");
 
-    Layouts.Landscape.Background = nsc.graphics.loadTextureAsync("genericBackground_LS");
-    Layouts.Portrait.Background = nsc.graphics.loadTextureAsync("generigBackground_PR");
+    Layouts.Landscape.Background = nsc.graphics.queueTextureLoad("genericBackground_LS");
+    Layouts.Portrait.Background = nsc.graphics.queueTextureLoad("generigBackground_PR");
 
     return true;
 end
