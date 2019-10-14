@@ -222,7 +222,7 @@ local function renderChartInfoPanelLandscape(x, y, w, h)
         local category = chartSet.charts[i];
 
         if (#category == 0) then
-            nsc.graphics.setColor(160, 160, 160, 255);
+            nsc.graphics.setColor(60, 60, 60, 100);
             nsc.graphics.fillRect(x + w * 0.25 + bubbleMargin + (i - 1) * (bubblePadding + bubbleSize), y + w * 0.6 + bubbleMargin, bubbleSize, bubbleSize);
         else
             local r, g, b = category[1].difficultyColor;

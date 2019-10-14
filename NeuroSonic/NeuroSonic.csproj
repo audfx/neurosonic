@@ -60,18 +60,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Resources\audio\launchtower-title-loop.ogg" />
+    <None Remove="Resources\scripts\bindingMenu.lua" />
     <None Remove="Resources\scripts\chartSelect.lua" />
+    <None Remove="Resources\scripts\configMenu.lua" />
     <None Remove="Resources\scripts\driver.lua" />
     <None Remove="Resources\scripts\game.lua" />
     <None Remove="Resources\scripts\game\backgrounds\stars.lua" />
     <None Remove="Resources\scripts\game\chart-result.lua" />
     <None Remove="Resources\scripts\generic-layer.lua" />
     <None Remove="Resources\scripts\layerLayout.lua" />
+    <None Remove="Resources\scripts\settingsMenu.lua" />
     <None Remove="Resources\scripts\splashScreen.lua" />
     <None Remove="Resources\scripts\testPrinter.lua" />
     <None Remove="Resources\scripts\titleScreen.lua" />
     <None Remove="Resources\scripts\titleScreen\main.lua" />
     <None Remove="Resources\textures\chartSelect\setFrame.png" />
+    <None Remove="Resources\textures\chartSelect\setTitlePlate.png" />
     <None Remove="Resources\textures\genericBackground_LS.png" />
     <None Remove="Resources\textures\generic_bg_landscape.png" />
     <None Remove="Resources\textures\generic_bg_portrait.png" />
@@ -103,6 +108,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\audio\launchtower-title-loop.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_clap.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_kick.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_snare.ogg" />
@@ -114,8 +120,10 @@
     <EmbeddedResource Include="Resources\materials\hold.fs" />
     <EmbeddedResource Include="Resources\materials\laser.fs" />
     <EmbeddedResource Include="Resources\materials\laser_entry.fs" />
+    <EmbeddedResource Include="Resources\scripts\bindingMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\chartSelect.lua" />
     <EmbeddedResource Include="Resources\scripts\chart_select\main.lua" />
+    <EmbeddedResource Include="Resources\scripts\configMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\driver.lua" />
     <EmbeddedResource Include="Resources\scripts\game.lua" />
     <EmbeddedResource Include="Resources\scripts\game\backgrounds\stars.lua" />
@@ -124,9 +132,11 @@
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
     <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />
     <EmbeddedResource Include="Resources\scripts\layerLayout.lua" />
+    <EmbeddedResource Include="Resources\scripts\settingsMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\splashScreen.lua" />
     <EmbeddedResource Include="Resources\scripts\titleScreen.lua" />
     <EmbeddedResource Include="Resources\textures\chartSelect\setFrame.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\setTitlePlate.png" />
     <EmbeddedResource Include="Resources\textures\combo\0.png" />
     <EmbeddedResource Include="Resources\textures\combo\1.png" />
     <EmbeddedResource Include="Resources\textures\combo\2.png" />

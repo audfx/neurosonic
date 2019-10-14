@@ -91,6 +91,8 @@ namespace NeuroSonic.GamePlay
 
         private time_t m_visualOffset = 0;
 
+        private float m_tempHiSpeedMult = 1.0f;
+
         internal GameLayer(ClientResourceLocator resourceLocator, ChartInfo chartInfo, AutoPlay autoPlay = AutoPlay.None)
         {
             m_locator = resourceLocator;
@@ -287,24 +289,7 @@ namespace NeuroSonic.GamePlay
             m_highwayControl = new HighwayControl(HighwayControlConfig.CreateDefaultKsh168());
             m_background.Init();
 
-            var hispeedKind = Plugin.Config.GetEnum<HiSpeedMod>(NscConfigKey.HiSpeedModKind);
-            switch (hispeedKind)
-            {
-                case HiSpeedMod.Default:
-                {
-                    double hiSpeed = Plugin.Config.GetFloat(NscConfigKey.HiSpeed);
-                    m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
-                } break;
-                case HiSpeedMod.MMod:
-                {
-                    var modSpeed = Plugin.Config.GetFloat(NscConfigKey.ModSpeed);
-                    double hiSpeed = modSpeed / m_chart.ControlPoints.ModeBeatsPerMinute;
-                    m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * hiSpeed);
-                } break;
-                case HiSpeedMod.CMod:
-                {
-                } goto case HiSpeedMod.Default; //break;
-            }
+            SetHiSpeed();
 
             m_audioPlayback.ObjectHeadCrossPrimary += (dir, entity) =>
             {
@@ -416,6 +401,43 @@ namespace NeuroSonic.GamePlay
             m_guiScript.CallIfExists("Init");
 
             ClientAs<NscClient>().OpenCurtain();
+        }
+
+        private void SetHiSpeed()
+        {
+            var hispeedKind = Plugin.Config.GetEnum<HiSpeedMod>(NscConfigKey.HiSpeedModKind);
+            switch (hispeedKind)
+            {
+                case HiSpeedMod.Default:
+                {
+                    double hiSpeed = Plugin.Config.GetFloat(NscConfigKey.HiSpeed);
+                    m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * m_tempHiSpeedMult * hiSpeed);
+                }
+                break;
+                case HiSpeedMod.MMod:
+                {
+                    var modSpeed = Plugin.Config.GetFloat(NscConfigKey.ModSpeed);
+                    double hiSpeed = modSpeed / m_chart.ControlPoints.ModeBeatsPerMinute;
+                    m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * m_tempHiSpeedMult * hiSpeed);
+                }
+                break;
+                case HiSpeedMod.CMod:
+                {
+                }
+                goto case HiSpeedMod.Default; //break;
+            }
+        }
+
+        public void Temp_IncreaseTempHiSpeedMult()
+        {
+            m_tempHiSpeedMult = MathL.Round(MathL.Min(5, m_tempHiSpeedMult + 0.05f), 1);
+            SetHiSpeed();
+        }
+
+        public void Temp_DecreaseTempHiSpeedMult()
+        {
+            m_tempHiSpeedMult = MathL.Round(MathL.Max(0.1f, m_tempHiSpeedMult - 0.05f), 1);
+            SetHiSpeed();
         }
 
         private void ExitGame()
@@ -590,6 +612,9 @@ namespace NeuroSonic.GamePlay
             }
         }
 
+        private float m_lastStartPressTime = 0;
+        private bool m_isChangingHiSpeedMult = false;
+
         public override bool ControllerButtonPressed(ControllerInput input)
         {
             switch (input)
@@ -602,6 +627,17 @@ namespace NeuroSonic.GamePlay
                 case ControllerInput.FX1: UserInput_BtPress(5); break;
 
                 case ControllerInput.Start:
+                    if (Time.Total - m_lastStartPressTime < 0.25f)
+                    {
+                        m_tempHiSpeedMult = 1.0f;
+                        SetHiSpeed();
+
+                        m_lastStartPressTime = 0;
+                    }
+
+                    m_lastStartPressTime = Time.Total;
+                    m_isChangingHiSpeedMult = true;
+
                     break;
 
                 case ControllerInput.Back: ExitGame(); break;
@@ -624,6 +660,9 @@ namespace NeuroSonic.GamePlay
                 case ControllerInput.FX1: UserInput_BtRelease(5); break;
 
                 case ControllerInput.Start:
+                    m_isChangingHiSpeedMult = false;
+                    break;
+
                 case ControllerInput.Back:
                     break;
 
@@ -635,6 +674,12 @@ namespace NeuroSonic.GamePlay
 
         public override bool ControllerAxisChanged(ControllerInput input, float delta)
         {
+            if (m_isChangingHiSpeedMult)
+            {
+                m_tempHiSpeedMult = MathL.Clamp(m_tempHiSpeedMult + delta * 0.1f, 0.1f, 2);
+                SetHiSpeed();
+            }
+
             switch (input)
             {
                 case ControllerInput.Laser0Axis: UserInput_VolPulse(0, delta); break;

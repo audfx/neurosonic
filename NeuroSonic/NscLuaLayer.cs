@@ -208,7 +208,33 @@ namespace NeuroSonic
         public NscAudioHandle(AudioTrack audio)
             : base(audio)
         {
+            audio.Channel = Mixer.MasterChannel;
+            audio.RemoveFromChannelOnFinish = false;
         }
+
+        public double Volume
+        {
+            get => Object.Volume;
+            set => Object.Volume = (float)value;
+        }
+
+        public double Position
+        {
+            get => Object.Position.Seconds;
+            set => Object.Position = value;
+        }
+
+        public bool IsPlaying => Object.PlaybackState == PlaybackState.Playing;
+
+        public void SetLoopAreaSamples(long start, long end) => Object.SetLoopArea(start, end);
+        public void SetLoopArea(double startTime, double endTime) => Object.SetLoopArea(startTime, endTime);
+
+        public void RemoveLoopArea() => Object.RemoveLoopArea();
+
+        public void Play() => Object.Play();
+        public void Stop() => Object.Stop();
+
+        public void PlayFromStart() => Object.Replay();
     }
 
     class NscChartHandle : NscLuaObjectHandle<Chart>
@@ -400,51 +426,34 @@ namespace NeuroSonic
                 else CloseCurtain(duration, onClosed);
             });
 
+            m_tbl_nsc["doStaticLoadsAsync"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.LoadAll());
+            m_tbl_nsc["finalizeStaticLoads"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.FinalizeLoad());
+
             m_tbl_nsc["audio"] = m_tbl_nsc_audio = m_script.NewTable();
 
             m_tbl_nsc_audio["queueStaticAudioLoad"] = (Func<string, NscAudioHandle>)(audioName => ClientAs<NscClient>().StaticResources.QueueAudioLoad($"audio/{ audioName }"));
+            m_tbl_nsc_audio["getStaticAudio"] = (Func<string, NscAudioHandle>)(audioName => ClientAs<NscClient>().StaticResources.GetAudio($"audio/{ audioName }"));
             m_tbl_nsc_audio["queueAudioLoad"] = (Func<string, NscAudioHandle>)(audioName => m_resources.QueueAudioLoad($"audio/{ audioName }"));
+            m_tbl_nsc_audio["getAudio"] = (Func<string, NscAudioHandle>)(audioName => m_resources.GetAudio($"audio/{ audioName }"));
 
             m_tbl_nsc["charts"] = m_tbl_nsc_charts = m_script.NewTable();
 
-            m_tbl_nsc_charts["setDatabaseToClean"] = (Action)(() => ClientAs<NscClient>().DatabaseWorker.SetToClean());
             m_tbl_nsc_charts["setDatabaseToIdle"] = (Action)(() => ClientAs<NscClient>().DatabaseWorker.SetToIdle());
-            m_tbl_nsc_charts["setDatabaseToPopulate"] = (Action)(() => ClientAs<NscClient>().DatabaseWorker.SetToPopulate());
             m_tbl_nsc_charts["getDatabaseState"] = (Func<string>)(() => ClientAs<NscClient>().DatabaseWorker.State.ToString());
 
+            m_tbl_nsc_charts["setDatabaseToClean"] = (Action<DynValue>)(arg =>
+            {
+                ClientAs<NscClient>().DatabaseWorker.SetToClean(arg == DynValue.Void ? (Action?)null : () => m_script.Call(arg));
+            });
+
+            m_tbl_nsc_charts["setDatabaseToPopulate"] = NewCallback((ctx, args) =>
+            {
+                Action? callback = args.Count == 0 ? (Action?)null : () => ctx.Call(args[0]);
+                ClientAs<NscClient>().DatabaseWorker.SetToPopulate(callback);
+                return Nil;
+            });
+
             m_tbl_nsc_charts["getChartSets"] = (Func<List<NscChartSetInfoHandle>>)(() => ClientAs<NscClient>().DatabaseWorker.ChartSets.Select(info => new NscChartSetInfoHandle(m_resources, info)).ToList());
-            //m_tbl_nsc_charts["getCharts"] = (Func<List<NscChartInfoHandle>>)(() => ClientAs<NscClient>().DatabaseWorker.Charts.Select(info => (NscChartInfoHandle)info).ToList());
-
-            //m_tbl_nsc_charts["getChartInfo"] = (Func<NscChartInfoHandle, NscChartHandle>)(chartInfo =>
-            m_tbl_nsc_charts["getChartInfo"] = (Func<NscChartHandle>)(() =>
-            {
-                string chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
-
-#if false
-                var setSerializer = new ChartSetSerializer();
-                var chartSetInfo = setSerializer.LoadFromFile(chartsDir, "", ".theori-set");
-#endif
-
-                var chartInfo = getTempChartInfo();
-
-                var serializer = new ChartSerializer(chartsDir, NeuroSonicGameMode.Instance);
-                var chart = serializer.LoadFromFile(chartInfo);
-
-                return chart;
-            });
-
-            //m_tbl_nsc_charts["loadChart"] = (Func<NscChartInfoHandle, NscChartHandle>)(chartInfo =>
-            m_tbl_nsc_charts["loadChart"] = (Func<NscChartHandle>)(() =>
-            {
-                string chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
-
-                var chartInfo = getTempChartInfo();
-
-                var serializer = new ChartSerializer(chartsDir, NeuroSonicGameMode.Instance);
-                var chart = serializer.LoadFromFile(chartInfo);
-
-                return chart;
-            });
 
             m_tbl_nsc["config"] = m_tbl_nsc_config = m_script.NewTable();
 
@@ -460,13 +469,6 @@ namespace NeuroSonic
 
             m_tbl_nsc["game"] = m_tbl_nsc_game = m_script.NewTable();
 
-            ChartInfo getTempChartInfo()
-            {
-                var sets = ClientAs<NscClient>().DatabaseWorker.ChartSets;
-                var chartSetInfo = sets.ElementAt(new Random().Next(sets.Count()));
-                return chartSetInfo.Charts.Aggregate((a, b) => a.DifficultyLevel > b.DifficultyLevel ? a : b);
-            }
-
             m_tbl_nsc_game["exit"] = (Action)(() => Host.Exit());
             m_tbl_nsc_game["pushDebugMenu"] = (Action)(() => Push(new NeuroSonicStandaloneStartup()));
             m_tbl_nsc_game["pushGameplay"] = (Action<NscChartInfoHandle>)(chartInfo => Push(new GameLayer(m_locator, chartInfo, AutoPlay.None)));
@@ -479,8 +481,6 @@ namespace NeuroSonic
             
             m_tbl_nsc_graphics["queueStaticTextureLoad"] = (Func<string, Texture>)(textureName => ClientAs<NscClient>().StaticResources.QueueTextureLoad($"textures/{ textureName }"));
             m_tbl_nsc_graphics["getStaticTexture"] = (Func<string, Texture>)(textureName => ClientAs<NscClient>().StaticResources.GetTexture($"textures/{ textureName }"));
-            m_tbl_nsc_graphics["doStaticTextureLoadsAsync"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.LoadAll());
-            m_tbl_nsc_graphics["finalizeStaticTextureLoads"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.FinalizeLoad());
             m_tbl_nsc_graphics["queueTextureLoad"] = (Func<string, Texture>)(textureName => m_resources.QueueTextureLoad($"textures/{ textureName }"));
             m_tbl_nsc_graphics["getTexture"] = (Func<string, Texture>)(textureName => m_resources.GetTexture($"textures/{ textureName }"));
             m_tbl_nsc_graphics["flush"] = (Action)(() => m_spriteRenderer.Flush());

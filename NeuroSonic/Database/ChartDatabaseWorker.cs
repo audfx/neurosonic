@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -18,7 +19,7 @@ namespace NeuroSonic.Database
             Populating,
             Cleaning,
 
-            PopulateSearching,
+            //PopulateSearching,
             CleanSearching,
         }
 
@@ -28,8 +29,11 @@ namespace NeuroSonic.Database
         public WorkState State { get; private set; } = WorkState.Idle;
 
         private CancellationTokenSource? m_currentTaskCancellation;
-        private Task<Queue<ChartSetInfo>>? m_currentSearchTask;
-        private Queue<ChartSetInfo>? m_populateQueue;
+
+        private Task? m_populateSearchTask, m_populateTask;
+        private readonly ConcurrentQueue<ChartSetInfo> m_populateQueue = new ConcurrentQueue<ChartSetInfo>();
+
+        private Action? m_onSetToIdleCallback = null;
 
         private FileSystemWatcher? m_watcher;
 
@@ -48,33 +52,21 @@ namespace NeuroSonic.Database
         {
             switch (State)
             {
-                case WorkState.PopulateSearching:
-                {
-                    if (!m_currentSearchTask!.IsCompleted) break;
-
-                    m_currentTaskCancellation = null; // no need to cancel, it's completed
-                    if (m_currentSearchTask.IsCompletedSuccessfully)
-                    {
-                        Logger.Log("Setting database worker to Populate");
-                        State = WorkState.Populating;
-
-                        m_populateQueue = m_currentSearchTask.Result;
-                        m_currentSearchTask = null;
-                    }
-                    else SetToIdle();
-                } break;
-
                 case WorkState.Populating:
                 {
-                    int maxWorkCount = 10;
-                    while (maxWorkCount-- > 0 && m_populateQueue!.TryDequeue(out var info))
+                    if (m_populateSearchTask != null && m_populateSearchTask.IsCompleted)
+                        m_populateSearchTask = null;
+
+                    if (m_populateTask != null && m_populateTask.IsCompleted)
+                        m_populateTask = null;
+
+                    if (m_populateQueue.Count > 0 && m_populateTask == null)
                     {
-                        Logger.Log($"Processing { info.FilePath }");
-                        //if (m_database.ContainsSet(info)) continue;
-                        m_database.AddSet(info);
+                        Debug.Assert(m_currentTaskCancellation != null);
+                        m_populateTask = Task.Run(() => RunPopulate(m_currentTaskCancellation!.Token));
                     }
 
-                    if (m_populateQueue!.Count == 0)
+                    if (m_populateSearchTask == null && m_populateQueue.Count == 0)
                         SetToIdle();
                 } break;
 
@@ -110,20 +102,21 @@ namespace NeuroSonic.Database
                 case WorkState.CleanSearching:
                     break;
 
-                case WorkState.PopulateSearching:
+                case WorkState.Populating:
                     m_currentTaskCancellation?.Cancel();
                     m_currentTaskCancellation = null;
 
-                    m_currentSearchTask = null;
-                    m_populateQueue = null;
+                    m_populateTask = m_populateSearchTask = null;
                     break;
 
                 case WorkState.Cleaning:
-                case WorkState.Populating:
                     break;
             }
 
             State = WorkState.Idle;
+
+            m_onSetToIdleCallback?.Invoke();
+            m_onSetToIdleCallback = null;
         }
 
         public void AddRange(IEnumerable<ChartSetInfo> setInfos)
@@ -131,13 +124,18 @@ namespace NeuroSonic.Database
             if (State != WorkState.Idle)
                 throw new InvalidOperationException("Database worker is working on another task.");
 
-            m_populateQueue = new Queue<ChartSetInfo>(setInfos);
+            Debug.Assert(m_populateTask == null);
+
+            m_currentTaskCancellation = new CancellationTokenSource();
+
+            foreach (var info in setInfos)
+                m_populateQueue.Enqueue(info);
             State = WorkState.Populating;
         }
 
-        public void SetToPopulate()
+        public void SetToPopulate(Action? onIdle = null)
         {
-            if (State == WorkState.Populating || State == WorkState.PopulateSearching)
+            if (State == WorkState.Populating)
                 return; // already set to clean
 
             if (State != WorkState.Idle)
@@ -146,20 +144,24 @@ namespace NeuroSonic.Database
             Logger.Log("Setting database worker to Populate (searching)");
 
             //m_database.OpenLocal();
-            State = WorkState.PopulateSearching;
+            m_onSetToIdleCallback = onIdle;
+            State = WorkState.Populating;
 
             m_currentTaskCancellation = new CancellationTokenSource();
-            m_currentSearchTask = Task.Run(() => GetChartSetsInDirectory(m_chartsDir, m_currentTaskCancellation.Token));
+            m_populateSearchTask = Task.Run(() => RunPopulateSearch(m_currentTaskCancellation.Token));
         }
 
-        private static Queue<ChartSetInfo> GetChartSetsInDirectory(string chartsDirectory, CancellationToken ct)
+        private void EnqueuePopulateEntry(ChartSetInfo setInfo)
         {
-            var result = new Queue<ChartSetInfo>();
+            m_populateQueue!.Enqueue(setInfo);
+        }
+
+        private void RunPopulateSearch(CancellationToken ct)
+        {
+            string chartsDirectory = m_chartsDir;
 
             var setSerializer = new ChartSetSerializer();
             SearchDirectory(chartsDirectory, null);
-
-            return result;
 
             void SearchDirectory(string directory, string? currentSubDirectory)
             {
@@ -171,13 +173,30 @@ namespace NeuroSonic.Database
                     string entrySubDirectory = currentSubDirectory == null ? Path.GetFileName(entry) : Path.Combine(currentSubDirectory, Path.GetFileName(entry));
                     // TODO(local): check for anything eith any .theori-set extension
                     if (File.Exists(Path.Combine(entry, ".theori-set")))
-                        result.Enqueue(setSerializer.LoadFromFile(chartsDirectory, entrySubDirectory, ".theori-set"));
+                    {
+                        // TODO(local): see if this can be updated rather than just skipped
+                        if (m_database.ContainsSetAtLocation(Path.Combine(entrySubDirectory, ".theori-set"))) continue;
+                        EnqueuePopulateEntry(setSerializer.LoadFromFile(chartsDirectory, entrySubDirectory, ".theori-set"));
+                    }
                     else SearchDirectory(entry, entrySubDirectory);
                 }
             }
         }
 
-        public void SetToClean()
+        private void RunPopulate(CancellationToken ct)
+        {
+            while (m_populateQueue!.TryDequeue(out var info))
+            {
+                if (ct.IsCancellationRequested)
+                    ct.ThrowIfCancellationRequested();
+
+                Logger.Log($"Adding { info.FilePath } to the database");
+                //if (m_database.ContainsSet(info)) continue;
+                m_database.AddSet(info);
+            }
+        }
+
+        public void SetToClean(Action? onIdle = null)
         {
             if (State == WorkState.Cleaning || State == WorkState.CleanSearching)
                 return; // already set to clean
@@ -188,6 +207,7 @@ namespace NeuroSonic.Database
             Logger.Log("Setting database worker to Clean (searching)");
 
             //m_database.OpenLocal();
+            m_onSetToIdleCallback = onIdle;
             State = WorkState.CleanSearching;
         }
 

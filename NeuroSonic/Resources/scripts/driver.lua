@@ -1,19 +1,32 @@
 
+local titleLoop;
+
 function nsc.layer.doAsyncLoad()
     nsc.graphics.queueStaticTextureLoad("title");
     nsc.graphics.queueStaticTextureLoad("audfx-text-large");
 
-    return nsc.graphics.doStaticTextureLoadsAsync();
+    titleLoop = nsc.audio.queueStaticAudioLoad("launchtower-title-loop");
+
+    return nsc.doStaticLoadsAsync();
 end
 
 function nsc.layer.doAsyncFinalize()
-    return nsc.graphics.finalizeStaticTextureLoads();
+    return nsc.finalizeStaticLoads();
 end
 
 -- on first startup, push the splash screen
 function nsc.layer.init()
-    --nsc.charts.setDatabaseToPopulate();
-    nsc.charts.setDatabaseToClean();
+    local titleLoopBeatDuration = 60.0 / 132;
+    
+    titleLoop.volume = 0.7;
+    titleLoop.setLoopArea(titleLoopBeatDuration * 4, titleLoopBeatDuration * 68);
+
+    --[ [
+    nsc.charts.setDatabaseToClean(function()
+        nsc.charts.setDatabaseToPopulate(function() print("Populate (from driver) finished."); end);
+    end);
+    --]]
+
     nsc.layer.push("splashScreen");
 end
 
