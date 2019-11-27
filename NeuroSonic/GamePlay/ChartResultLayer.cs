@@ -1,40 +1,38 @@
-﻿using MoonSharp.Interpreter;
+﻿using System;
+using System.Numerics;
+
+using MoonSharp.Interpreter;
 
 using theori.Charting;
 using theori.Resources;
 using theori.Scripting;
 
 using NeuroSonic.GamePlay.Scoring;
-using System;
-using System.Numerics;
 
 namespace NeuroSonic.GamePlay
 {
+#if false
     public sealed class ChartResultLayer : NscLayer
     {
         private readonly ClientResourceLocator m_locator;
-        private readonly ClientResourceManager m_resources;
 
         private readonly ChartInfo m_chartInfo;
         private readonly ScoringResult m_result;
 
-        private readonly LuaScript m_script;
         private readonly Table m_layerTable, m_chartInfoTable, m_resultTable;
 
         internal ChartResultLayer(ClientResourceLocator resourceLocator, ChartInfo chartInfo, ScoringResult result)
+            : base(resourceLocator)
         {
             m_locator = resourceLocator;
-            m_resources = new ClientResourceManager(resourceLocator);
 
             m_chartInfo = chartInfo;
             m_result = result;
 
-            m_script = new LuaScript();
             m_script["layer"] = m_layerTable = m_script.NewTable();
             m_layerTable["chartInfo"] = m_chartInfoTable = m_script.NewTable();
             m_layerTable["result"] = m_resultTable = m_script.NewTable();
 
-            m_script.InitResourceLoading(resourceLocator);
             m_script.InitNeuroSonicEnvironment();
         }
 
@@ -43,7 +41,6 @@ namespace NeuroSonic.GamePlay
             base.Destroy();
 
             m_script.DestroyNeuroSonicEnvironment();
-            m_resources.Dispose();
         }
 
         public override bool AsyncLoad()
@@ -100,24 +97,6 @@ namespace NeuroSonic.GamePlay
             CloseCurtain(() => Pop());
         }
 
-        public override bool ControllerButtonPressed(ControllerInput input)
-        {
-            m_script.NeuroSonicControllerPressed(input);
-            return true;
-        }
-
-        public override bool ControllerButtonReleased(ControllerInput input)
-        {
-            m_script.NeuroSonicControllerReleased(input);
-            return true;
-        }
-
-        public override bool ControllerAxisChanged(ControllerInput input, float delta)
-        {
-            m_script.NeuroSonicControllerAxisChanged(input, delta);
-            return true;
-        }
-
         public override void Update(float delta, float total)
         {
             base.Update(delta, total);
@@ -132,4 +111,5 @@ namespace NeuroSonic.GamePlay
             m_script.Draw();
         }
     }
+#endif
 }

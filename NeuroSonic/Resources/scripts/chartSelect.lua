@@ -1,259 +1,328 @@
 
 include "layerLayout";
 
-local rawLoadedChartSets, preprocessedChartSets, chartSets;
-local selectedSetIndex, selectedChartIndex, visualSelectedChartIndex;
+local bgName = "bgHighContrast";
 
-local chartGridColumnCount = 3;
+local timer;
 
+--------------------------------------------------
+-- Chart Data ------------------------------------
+--------------------------------------------------
+-- the collective of charts the player can select from
+-- Whenever the player selects new filters etc., this is what's updated;
+--  a full refresh of the render data (and a resync of the camera position)
+--  is needed when this is updated.
+local charts;
+
+-- which grouping the cursor is currently within
+local groupIndex = 1;
+-- which set the cursor is on within the group
+local setIndex = 1;
+-- which category slot (each of the 5 difficulties) is currently selected
+local slotIndex = 1;
+-- which chart in a slot, if there are multiple, is selected
+-- This value is shared for all slots, so will be clamped (or reset)
+--  between slot index changes.
+local slotChildIndex = 1;
+
+
+--------------------------------------------------
+-- Display Data ----------------------------------
+--------------------------------------------------
+-- the number of columns to display in the grid
+local gridColumnCount = 3;
+-- the amount of stepping to apply to each grid row
+-- Stepping, here, refers to the percentage of the height to step over
+--  the entire row, so 1 row will have each cell vertically offset an
+--  increasing amount up to the given percentage.
+-- This is not this much per column, but a total for every column.
+local gridRowStepping = 0.5;
+
+-- the percentage of the size of a cell that is taken up by the group header
+local gridGroupHeaderSize = 0.25;
+
+-- where the camera is along the y axis
+local gridCameraPos = 0;
+local gridCameraPosTarget = 0;
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Textures --------------------------------------
+--------------------------------------------------
 local startBtnTexture;
-local cellFrame;
+local cellFrame, cellTitlePlate;
+--------------------------------------------------
 
-local targetGridOffsetY, animGridOffsetY = 0, 0;
 
-function nsc.layer.construct()
+--------------------------------------------------
+-- Database Filters ------------------------------
+--------------------------------------------------
+local chartListFilters =
+{
+	all = function(chart) return true; end,
+};
+
+local chartListGroupings =
+{
+	level = function(chart) return chart.difficultyLevel; end,
+};
+
+local chartListSortings =
+{
+	title = function(chart) return chart.songTitle; end,
+};
+
+local cachedFilteredCharts = { };
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Chart Filter Utility --------------------------
+--------------------------------------------------
+local function getFilteredChartsForConfiguration(filter, grouping, sorting)
+	local cacheKey = filter .. '|' .. grouping .. '|' .. sorting;
+	if (cachedFilteredCharts[cacheKey]) then
+		return cachedFilteredCharts[cacheKey];
+	end
+
+	local charts = theori.charts.getChartSetsFiltered(chartListFilters[filter], chartListGroupings[grouping], chartListSortings[sorting]);
+
+	cachedFilteredCharts[cacheKey] = charts;
+	return charts;
+end
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Chart Grid Functions --------------------------
+--------------------------------------------------
+local function getSizeOfGroup(chartGroupIndex)
+	local chartGroup = charts[chartGroupIndex];
+
+	local rowCount = math.floor((#chartGroup - 1) / gridColumnCount) + 1;
+	local steppedColsAtEnd = (#chartGroup - 1) % gridColumnCount;
+
+	return rowCount + gridGroupHeaderSize +
+		(steppedColsAtEnd * gridRowStepping / (gridColumnCount - 1));
 end
 
-function nsc.layer.doAsyncLoad()
-    rawLoadedChartSets = nsc.charts.getChartSets();
-    preprocessedChartSets = { };
+local function getGridCameraPosition()
+	local result = 0;
+	
+	local colIndex = (setIndex - 1) % gridColumnCount;
+	local rowIndex = math.floor((setIndex - 1) / gridColumnCount);
 
-    for k, v in next, rawLoadedChartSets do
-        local newValue = { hidden = {
-            allCharts = { },
-            charts = { { }, { }, { }, { }, { } },
-            categoryIndices = { 0, 0, 0, 0, 0 },
-        } };
+	result = result + rowIndex + 0.5 + gridGroupHeaderSize +
+		(colIndex * gridRowStepping / (gridColumnCount - 1));
+	for i = 1, groupIndex - 1 do
+		result = result + getSizeOfGroup(i);
+	end
+	return result;
+end
 
-        --print(#v.charts, v.filePath);
-        for _, chart in next, v.charts do
-            if (chart ~= nil) then
-                table.insert(newValue.hidden.allCharts, chart);
-            end
-        end
-
-        -- maybe???
-        if (#newValue.hidden.allCharts > 0) then
-            for k, v in next, newValue.hidden.allCharts do
-                table.insert(newValue.hidden.charts[v.difficultyIndex], v);
-            end
-        
-            local minValue, maxValue = 1, 5;
-            for i = 1, 5 do
-                if (#newValue.hidden.charts[i] ~= 0) then
-                    minValue = i;
-                    break;
-                end
-            end
-            for i = 5, 1, -1 do
-                if (#newValue.hidden.charts[i] ~= 0) then
-                    maxValue = i;
-                    break;
-                end
-            end
-
-            newValue.hidden.minChartCategory = minValue;
-            newValue.hidden.maxChartCategory = maxValue;
-    
-            setmetatable(newValue, { __index = function(self, key)
-                if (rawget(self, "hidden")[key]) then
-                    return rawget(self, "hidden")[key]
-                end
-                return v[key];
-            end; });
-            table.insert(preprocessedChartSets, newValue);
-        end
+local function lerpAnimTo(from, to, delta, speed)
+	local absDif = math.abs(from - to);
+    if (absDif > 10 or absDif < 0.01) then
+        return to;
+    else
+        speed = speed or 10;
+        return from + (to - from) * speed * delta;
     end
+end
+--------------------------------------------------
 
-    chartSets = table.shallowCopy(preprocessedChartSets);
 
-    selectedSetIndex = 1;
-    for i = 1, 5 do
-        if (#chartSets[selectedSetIndex].charts[i] ~= 0) then
-            selectedChartIndex = i;
-            break;
-        end
-    end
-    visualSelectedChartIndex = selectedChartIndex;
+local function nearestSlot(set, slotIndex)
+	local slot = slotIndex;
+	while (#set[slot] == 0) do
+		if (slot == 1) then break; end
+		slot = slot - 1;
+	end
+	while (#set[slot] == 0) do
+		if (slot == 5) then break; end -- OH NO
+		slot = slot + 1;
+	end
+	return set[slot];
+end
 
-    startBtnTexture = nsc.graphics.queueTextureLoad("legend/start");
+local function nearestSlotChild(slot, slotChildIndex)
+	return slot[math.min(#slot, slotChildIndex)];
+end
 
-    cellFrame = nsc.graphics.queueTextureLoad("chartSelect/setFrame");
 
-    Layouts.Landscape.Background = nsc.graphics.queueTextureLoad("genericBackground_LS");
-    Layouts.Portrait.Background = nsc.graphics.queueTextureLoad("generigBackground_PR");
+--------------------------------------------------
+-- Theori Layer Functions ------------------------
+--------------------------------------------------
+function theori.layer.construct()
+end
+
+function theori.layer.doAsyncLoad()
+	charts = getFilteredChartsForConfiguration("all", "level", "title");
+
+	-- TODO(local): save the selected chart/slot and gather the indices afterward
+	-- TODO(local): make sure there's slots in the selected set
+
+    startBtnTexture = theori.graphics.queueTextureLoad("legend/start");
+
+    cellFrame = theori.graphics.queueTextureLoad("chartSelect/setFrame");
+    cellTitlePlate = theori.graphics.queueTextureLoad("chartSelect/setTitlePlate");
+
+    Layouts.Landscape.Background = theori.graphics.queueTextureLoad(bgName .. "_LS");
+    Layouts.Portrait.Background = theori.graphics.queueTextureLoad(bgName .. "_PR");
 
     return true;
 end
 
-function nsc.layer.onClientSizeChanged(w, h)
+function theori.layer.onClientSizeChanged(w, h)
     Layout.CalculateLayout();
 end
 
-function nsc.layer.init()
-    nsc.openCurtain();
+function theori.layer.init()
+    theori.graphics.openCurtain();
+	
+	gridCameraPosTarget = getGridCameraPosition();
 
-    nsc.input.controller.axisTicked:connect(function(axis, dir)
-        if (axis == ControllerInput.Laser0Axis) then
-            local set = chartSets[selectedSetIndex];
-            
-            selectedChartIndex = math.max(set.minChartCategory, math.min(set.maxChartCategory, visualSelectedChartIndex + dir));
-
-            -- NOTE(local): there should NEVER be a case where there's no charts at all, as that SHOULD be filtered out in the preprocess
-            while (#set.charts[selectedChartIndex] == 0) do
-                if (selectedChartIndex == #set.charts) then
-                    selectedChartIndex = 0;
-                end
-                selectedChartIndex = selectedChartIndex + dir;
-            end
-
-            visualSelectedChartIndex = selectedChartIndex;
-        elseif (axis == ControllerInput.Laser1Axis) then
-            local nextSetIndex = selectedSetIndex + dir;
-            if (nextSetIndex <= 0) then
-                nextSetIndex = #chartSets;
-            elseif (nextSetIndex > #chartSets) then
-                nextSetIndex = 1;
-            end
-
-            selectedSetIndex = nextSetIndex;
-            
-            local set = chartSets[selectedSetIndex];
-            -- reset the visual chart selection index
-            visualSelectedChartIndex = math.max(set.minChartCategory, math.min(set.maxChartCategory, selectedChartIndex));
-
-            -- NOTE(local): there should NEVER be a case where there's no charts at all, as that SHOULD be filtered out in the preprocess
-            while (#set.charts[visualSelectedChartIndex] == 0) do
-                if (visualSelectedChartIndex == #set.charts) then
-                    visualSelectedChartIndex = 0; -- 0 because we add 1 afterwards
-                end
-                visualSelectedChartIndex = visualSelectedChartIndex + 1;
-            end
+    theori.input.controller.axisTicked:connect(function(controller, axis, dir)
+        if (axis == 0) then
+			-- categories
+        elseif (axis == 1) then
+			setIndex = setIndex + dir;
+			if (setIndex < 1) then
+				groupIndex = groupIndex - 1;
+				if (groupIndex < 1) then
+					groupIndex = #charts;
+				end
+				setIndex = #charts[groupIndex];
+			elseif (setIndex > #charts[groupIndex]) then
+				groupIndex = groupIndex + 1;
+				if (groupIndex > #charts) then
+					groupIndex = 1;
+				end
+				setIndex = 1;
+			end
+			gridCameraPosTarget = getGridCameraPosition();
         end
     end);
 
-    nsc.input.controller.pressed:connect(function(button)
-        if (button == ControllerInput.Back) then
-            nsc.closeCurtain(0.2, nsc.layer.pop);
-        elseif (button == ControllerInput.Start) then
-            local set = chartSets[selectedSetIndex];
-            local chart = set.charts[visualSelectedChartIndex][1];
-            nsc.closeCurtain(0.2, function() nsc.game.pushGameplay(chart); end);
+    theori.input.controller.pressed:connect(function(controller, button)
+        if (button == "back") then
+            theori.graphics.closeCurtain(0.2, theori.layer.pop);
+        elseif (button == "start") then
+			local chart = nearestSlotChild(nearestSlot(charts[groupIndex][setIndex], slotIndex), slotChildIndex);
+            theori.graphics.closeCurtain(0.2, function() nsc.pushGameplay(chart); end);
         end
     end);
 end
 
-function nsc.layer.update(delta, total)
-    if (math.abs(animGridOffsetY - targetGridOffsetY) < 1) then
-        animGridOffsetY = targetGridOffsetY;
-    else
-        local speed = 20;
-        animGridOffsetY = animGridOffsetY + (targetGridOffsetY - animGridOffsetY) * speed * delta;
-    end
-
+function theori.layer.update(delta, total)
+	timer = total;
     Layout.Update(delta, total);
+
+	-- layout agnostic functions
+	gridCameraPos = lerpAnimTo(gridCameraPos, gridCameraPosTarget, delta);
 end
 
-function nsc.layer.render()
+function theori.layer.render()
     Layout.CheckLayout();
     Layout.DoTransform();
 
     Layout.Render();
 end
+--------------------------------------------------
+
 
 -- Shared State Management
 
 -- Shared Rendering
 
-local function renderChartGridPanel(x, y, w, h)
-    local margin, padding = 15, 50;
-    local ncols = chartGridColumnCount;
+local function renderSetCell(set, x, y, w, h)
+	local slot = nearestSlot(set, slotIndex);
+	local chart = nearestSlotChild(slot, slotChildIndex);
 
-    local colWidth = (w - 2 * margin - (ncols - 1) * padding) / ncols;
-    local cellSize = colWidth;
-
-    local stepAmount = 1;
-    local stepY = (padding + cellSize) * stepAmount / ncols;
-
-    local offsetY = -LayoutHeight / 2 + margin + cellSize / 2 + math.floor((selectedSetIndex - 1) / ncols) * (padding + cellSize) + ((selectedSetIndex - 1) % ncols) * stepY;
-    --offsetY = math.max(offsetY, 0);
-
-    targetGridOffsetY = offsetY;
-    if (math.abs(targetGridOffsetY - animGridOffsetY) > LayoutHeight) then
-        animGridOffsetY = targetGridOffsetY;
-    end
-    offsetY = animGridOffsetY;
-
-    local minIndex = math.max(1, selectedSetIndex - ncols * 3);
-    local maxIndex = math.min(#chartSets, selectedSetIndex + ncols * 3);
-
-    for i = minIndex, maxIndex do
-        local chartSet = chartSets[i];
-        local isSelected = i == selectedSetIndex;
-
-        local icol = (i - 1) % ncols;
-        local irow = math.floor((i - 1) / ncols);
-
-        local cellX = x + margin + (cellSize + padding) * icol;
-        local cellY = y + margin + (cellSize + padding) * irow - offsetY + stepY * icol;
-
-        nsc.graphics.draw(chartSet.allCharts[1].getJacketTexture(), cellX + cellSize * 0.02, cellY + cellSize * 0.02, cellSize * 0.7, cellSize * 0.7);
-        if (isSelected) then
-            nsc.graphics.setImageColor(255, 240, 250, 255);
-        else
-            nsc.graphics.setImageColor(100, 100, 100, 255);
-        end
-        nsc.graphics.draw(cellFrame, cellX, cellY, cellSize, cellSize);
-        nsc.graphics.setImageColor(255, 255, 255, 255);
-    end
+	theori.graphics.setColor(255, 255, 255, 255);
+	theori.graphics.draw(chart.getJacketTexture(), x, y, w, h);
 end
 
-local function renderChartInfoPanelLandscape(x, y, w, h)
-    local chartSet = chartSets[selectedSetIndex];
+local function renderChartGridPanel(x, y, w, h)
+	local cellSize = w / gridColumnCount;
+	local hUnits = h / cellSize;
+	local totalGroupsHeight = 0;
+	for i = 1, #charts do
+		totalGroupsHeight = totalGroupsHeight + getSizeOfGroup(i);
+	end
 
-    local chart = chartSet.charts[visualSelectedChartIndex][1];
-    nsc.graphics.draw(chart.getJacketTexture(), x + w * 0.25, y + w * 0.1, w * 0.5, w * 0.5);
+	local camPosUnits = math.max(hUnits / 2, math.min(totalGroupsHeight - hUnits / 2, gridCameraPos));
 
-    -- 5 bubbles
-    local bubbleMargin, bubblePadding = 10, 4;
-    local bubbleSize = (w * 0.5 - 2 * bubbleMargin - 4 * bubblePadding) * 0.2;
+	local minCamera = camPosUnits - hUnits / 2;
+	local maxCamera = camPosUnits + hUnits / 2;
 
-    for i = 1, 5 do
-        local category = chartSet.charts[i];
+	local yOffset = -minCamera * cellSize;
 
-        if (#category == 0) then
-            nsc.graphics.setColor(60, 60, 60, 100);
-            nsc.graphics.fillRect(x + w * 0.25 + bubbleMargin + (i - 1) * (bubblePadding + bubbleSize), y + w * 0.6 + bubbleMargin, bubbleSize, bubbleSize);
-        else
-            local r, g, b = category[1].difficultyColor;
-            nsc.graphics.setColor(r, g, b, 255);
-            nsc.graphics.fillRect(x + w * 0.25 + bubbleMargin + (i - 1) * (bubblePadding + bubbleSize), y + w * 0.6 + bubbleMargin, bubbleSize, bubbleSize);
+	local margin = cellSize * 0.05;
 
-            if (i == visualSelectedChartIndex) then
-                nsc.graphics.setImageColor(255, 255, 255, 255);
-            else
-                nsc.graphics.setImageColor(128, 128, 128, 255);
-            end
-            nsc.graphics.draw(chartSet.charts[i][1].getJacketTexture(), x + 2 + w * 0.25 + bubbleMargin + (i - 1) * (bubblePadding + bubbleSize), y + 2 + w * 0.6 + bubbleMargin, bubbleSize - 4, bubbleSize - 4);
-        end
-    end
-    nsc.graphics.setImageColor(255, 255, 255, 255);
+	local yPosRel = 0;
+	for gi = 1, #charts do
+		if (yPosRel > maxCamera) then break; end
+		local group = charts[gi];
 
-    nsc.graphics.setColor(255, 255, 255, 255);
-    nsc.graphics.setTextAlign(Anchor.TopCenter);
-    nsc.graphics.drawString(chart.songTitle, x + w * 0.5, y + w * 0.6 + 2 * bubbleMargin + bubbleSize);
+		local groupHeight = getSizeOfGroup(gi);
+		-- if the bottom of this group is in view, we start checking cell rendering
+		if (yPosRel + groupHeight > minCamera) then
+			if (yPosRel + gridGroupHeaderSize > minCamera) then
+				theori.graphics.setColor(50, 160, 255, 200);
+				theori.graphics.fillRect(x, yOffset + yPosRel * cellSize, w, gridGroupHeaderSize * cellSize);
+			end
 
-    nsc.graphics.setColor(0, 0, 0, 200);
-    nsc.graphics.fillRect(x + w * 0.25, y + w * 0.55, w * 0.5, w * 0.04);
+			for si = 1, #group do
+				local set = group[si];
+
+				local selected = gi == groupIndex and si == setIndex;
+
+				local rowIndex = math.floor((si - 1) / gridColumnCount);
+				local colIndex = (si - 1) % gridColumnCount;
+
+				local yPosRelSet = yPosRel + gridGroupHeaderSize + rowIndex +
+					(colIndex * gridRowStepping / (gridColumnCount - 1));
+
+				if (yPosRelSet < maxCamera and yPosRelSet + 1 > minCamera) then;
+					local cx, cy = margin + x + colIndex * cellSize, margin + yOffset + yPosRelSet * cellSize;
+					local cs = cellSize - 2 * margin;
+
+					renderSetCell(set, cx, cy, cs, cs);
+
+					if (gi == groupIndex and si == setIndex) then
+						theori.graphics.setColor(255, 60, 20, 255);
+
+						theori.graphics.saveTransform();
+						--theori.graphics.resetTransform();
+						theori.graphics.rotate(timer * 60);
+						theori.graphics.rotate(math.sin(timer * 3) * 0.1 + 1);
+						theori.graphics.translate((cx + cs / 2) * LayoutScale, (cy + cs / 2) * LayoutScale);
+						theori.graphics.fillRect(-cs / 2, -cs / 2, cs, margin * 0.5);
+						theori.graphics.fillRect(-cs / 2, -cs / 2 + cs - margin * 0.5, cs, margin * 0.5);
+						theori.graphics.fillRect(-cs / 2, -cs / 2 + margin * 0.5, margin * 0.5, cs - margin);
+						theori.graphics.fillRect(-cs / 2 + cs - margin * 0.5, -cs / 2 + margin * 0.5, margin * 0.5, cs - margin);
+						theori.graphics.restoreTransform();
+					end
+				end
+			end
+		end
+
+		yPosRel = yPosRel + groupHeight;
+	end
 end
 
 -- Landscape
+
+function Layouts.Landscape.Update(self, delta, total)
+end
 
 function Layouts.Landscape.Render(self)
     Layout.DrawBackgroundFilled(self.Background);
 
     renderChartGridPanel(LayoutWidth - LayoutHeight, 0, LayoutHeight, LayoutHeight);
-    renderChartInfoPanelLandscape(0, 0, LayoutWidth - LayoutHeight, LayoutHeight);
+    --renderChartInfoPanelLandscape(0, 0, LayoutWidth - LayoutHeight, LayoutHeight);
 end
 
 -- Portrait
@@ -261,4 +330,3 @@ end
 function Layouts.Portrait.Render(self)
     Layout.DrawBackgroundFilled(self.Background);
 end
-

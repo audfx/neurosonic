@@ -10,6 +10,7 @@ using NeuroSonic.IO;
 
 namespace NeuroSonic.Startup
 {
+#if false
     public sealed class FileSystemBrowser : NscLayer
     {
         public bool PopOnSelected = false;
@@ -122,12 +123,12 @@ namespace NeuroSonic.Startup
             m_selected = (m_selected + amount + m_directoryChildren.Count) % m_directoryChildren.Count;
         }
 
-        #region Input (which blocks to lower layers ofc)
+#region Input (which blocks to lower layers ofc)
 
         public override bool KeyPressed(KeyInfo info)
         {
             if (m_filterInputs) return true;
-            bool speedy = Keyboard.IsDown(KeyCode.LCTRL) || Keyboard.IsDown(KeyCode.RCTRL);
+            bool speedy = UserInputService.IsKeyDown(KeyCode.LCTRL) || UserInputService.IsKeyDown(KeyCode.RCTRL);
 
             switch (info.KeyCode)
             {
@@ -181,7 +182,7 @@ namespace NeuroSonic.Startup
             return true;
         }
 
-        #endregion
+#endregion
 
         public override void Update(float delta, float total)
         {
@@ -214,4 +215,5 @@ namespace NeuroSonic.Startup
             m_renderer.EndFrame();
         }
     }
+#endif
 }

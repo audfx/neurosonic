@@ -1,17 +1,18 @@
-﻿using theori.Charting;
+﻿using theori;
+using theori.Charting;
 
 namespace NeuroSonic.Charting
 {
     public static class NscLane
     {
-        public static readonly LaneLabel HighwayEvent = nameof(HighwayEvent);
-        public static readonly LaneLabel ButtonEvent = nameof(ButtonEvent);
-        public static readonly LaneLabel LaserEvent = nameof(LaserEvent);
+        public static readonly HybridLabel HighwayEvent = nameof(HighwayEvent);
+        public static readonly HybridLabel ButtonEvent = nameof(ButtonEvent);
+        public static readonly HybridLabel LaserEvent = nameof(LaserEvent);
 
-        public static readonly LaneLabel CameraZoom = nameof(CameraZoom);
-        public static readonly LaneLabel CameraPitch = nameof(CameraPitch);
-        public static readonly LaneLabel CameraOffset = nameof(CameraOffset);
-        public static readonly LaneLabel CameraTilt = nameof(CameraTilt);
+        public static readonly HybridLabel CameraZoom = nameof(CameraZoom);
+        public static readonly HybridLabel CameraPitch = nameof(CameraPitch);
+        public static readonly HybridLabel CameraOffset = nameof(CameraOffset);
+        public static readonly HybridLabel CameraTilt = nameof(CameraTilt);
     }
 
     public enum Damping : byte

@@ -58,13 +58,13 @@ namespace NeuroSonic.Charting.Conversions
             Logger.Log($"ksh.convert effects disabled");
 
             var chart = NeuroSonicChartFactory.Instance.CreateNew();
-            chart.Offset = ksh.Metadata.OffsetMillis / 1_000.0;
+            chart.Offset = (ksh.Metadata.OffsetMillis) / 1_000.0;
 
             chart.Info = new ChartInfo()
             {
                 SongTitle = ksh.Metadata.Title,
                 SongArtist = ksh.Metadata.Artist,
-                SongFileName = ksh.Metadata.MusicFile ?? ksh.Metadata.MusicFileNoFx,
+                SongFileName = ksh.Metadata.MusicFile ?? ksh.Metadata.MusicFileNoFx ?? "??",
                 SongVolume = ksh.Metadata.MusicVolume,
                 ChartOffset = chart.Offset,
                 Charter = ksh.Metadata.EffectedBy,
@@ -406,7 +406,7 @@ namespace NeuroSonic.Charting.Conversions
                         var state = buttonStates[b];
 
                         var startPos = state.StartPosition;
-                        var button = chart[(LaneLabel)b].Add<ButtonEntity>(startPos, endPos - startPos);
+                        var button = chart[(HybridLabel)b].Add<ButtonEntity>(startPos, endPos - startPos);
                     }
 
                     switch (data.State)
@@ -421,7 +421,7 @@ namespace NeuroSonic.Charting.Conversions
                         case KshButtonState.Chip:
                         case KshButtonState.ChipSample:
                         {
-                            var chip = chart[(LaneLabel)b].Add<ButtonEntity>(chartPos);
+                            var chip = chart[(HybridLabel)b].Add<ButtonEntity>(chartPos);
                             chip.Sample = chipHitSounds[b];
                             chip.SampleVolume = chipHitSoundsVolume[b];
                         } break;
@@ -454,7 +454,7 @@ namespace NeuroSonic.Charting.Conversions
                             {
                                 var cDuration = laserStates[l].PreviousSlamDuration;
 
-                                var connector = chart[(LaneLabel)(l + 6)].Add<AnalogEntity>(startPos, cDuration);
+                                var connector = chart[(HybridLabel)(l + 6)].Add<AnalogEntity>(startPos, cDuration);
                                 connector.InitialValue = startAlpha;
                                 connector.FinalValue = startAlpha;
                                 connector.RangeExtended = laserIsExtended[l];
@@ -463,7 +463,7 @@ namespace NeuroSonic.Charting.Conversions
                             }
                         }
 
-                        var analog = chart[(LaneLabel)(l + 6)].Add<AnalogEntity>(startPos, duration);
+                        var analog = chart[(HybridLabel)(l + 6)].Add<AnalogEntity>(startPos, duration);
                         analog.InitialValue = startAlpha;
                         analog.FinalValue = endAlpha;
                         analog.RangeExtended = laserIsExtended[l];

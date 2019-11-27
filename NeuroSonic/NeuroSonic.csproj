@@ -60,6 +60,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Resources\scripts\titleScreen\**" />
+    <EmbeddedResource Remove="Resources\scripts\titleScreen\**" />
+    <None Remove="Resources\scripts\titleScreen\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Resources\audio\launchtower-title-loop.ogg" />
     <None Remove="Resources\scripts\bindingMenu.lua" />
     <None Remove="Resources\scripts\chartSelect.lua" />
@@ -74,13 +80,14 @@
     <None Remove="Resources\scripts\splashScreen.lua" />
     <None Remove="Resources\scripts\testPrinter.lua" />
     <None Remove="Resources\scripts\titleScreen.lua" />
-    <None Remove="Resources\scripts\titleScreen\main.lua" />
+    <None Remove="Resources\textures\bgHighContrast_LS.png" />
+    <None Remove="Resources\textures\bgHighContrast_PR.png" />
     <None Remove="Resources\textures\chartSelect\setFrame.png" />
     <None Remove="Resources\textures\chartSelect\setTitlePlate.png" />
     <None Remove="Resources\textures\genericBackground_LS.png" />
+    <None Remove="Resources\textures\genericBackground_PR.png" />
     <None Remove="Resources\textures\generic_bg_landscape.png" />
     <None Remove="Resources\textures\generic_bg_portrait.png" />
-    <None Remove="Resources\textures\generigBackground_PR.png" />
     <None Remove="Resources\textures\legend\bt\a.png" />
     <None Remove="Resources\textures\legend\bt\ab.png" />
     <None Remove="Resources\textures\legend\bt\abc.png" />
@@ -122,7 +129,6 @@
     <EmbeddedResource Include="Resources\materials\laser_entry.fs" />
     <EmbeddedResource Include="Resources\scripts\bindingMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\chartSelect.lua" />
-    <EmbeddedResource Include="Resources\scripts\chart_select\main.lua" />
     <EmbeddedResource Include="Resources\scripts\configMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\driver.lua" />
     <EmbeddedResource Include="Resources\scripts\game.lua" />
@@ -135,6 +141,8 @@
     <EmbeddedResource Include="Resources\scripts\settingsMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\splashScreen.lua" />
     <EmbeddedResource Include="Resources\scripts\titleScreen.lua" />
+    <EmbeddedResource Include="Resources\textures\bgHighContrast_LS.png" />
+    <EmbeddedResource Include="Resources\textures\bgHighContrast_PR.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\setFrame.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\setTitlePlate.png" />
     <EmbeddedResource Include="Resources\textures\combo\0.png" />
@@ -171,9 +179,7 @@
     <EmbeddedResource Include="Resources\textures\game_bg\particle1.png" />
     <EmbeddedResource Include="Resources\textures\game_bg\particle2.png" />
     <EmbeddedResource Include="Resources\textures\genericBackground_LS.png" />
-    <EmbeddedResource Include="Resources\textures\generic_bg_landscape.png" />
-    <EmbeddedResource Include="Resources\textures\generic_bg_portrait.png" />
-    <EmbeddedResource Include="Resources\textures\generigBackground_PR.png" />
+    <EmbeddedResource Include="Resources\textures\genericBackground_PR.png" />
     <EmbeddedResource Include="Resources\textures\legend\bt\a.png" />
     <EmbeddedResource Include="Resources\textures\legend\bt\ab.png" />
     <EmbeddedResource Include="Resources\textures\legend\bt\abc.png" />
@@ -224,10 +230,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Strings.ja-JP.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Resources\scripts\titleScreen\" />
   </ItemGroup>
 
 </Project>

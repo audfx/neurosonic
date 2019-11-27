@@ -16,6 +16,7 @@ using NeuroSonic.Platform;
 
 namespace NeuroSonic.ChartSelect
 {
+#if false
     internal class ChartManagerLayer : BaseMenuLayer
     {
         protected override string Title => "Chart Manager";
@@ -40,7 +41,7 @@ namespace NeuroSonic.ChartSelect
             AddSpacing();
             AddMenuItem(new MenuItem(NextOffset, "Convert KSH Charts and Open Selected", () =>
             {
-                AutoPlay autoPlay = Keyboard.IsDown(KeyCode.LCTRL) || Keyboard.IsDown(KeyCode.RCTRL) ? AutoPlay.ButtonsAndLasers : AutoPlay.None;
+                AutoPlay autoPlay = UserInputService.IsKeyDown(KeyCode.LCTRL) || UserInputService.IsKeyDown(KeyCode.RCTRL) ? AutoPlay.ButtonsAndLasers : AutoPlay.None;
 
                 Push(new FileSystemBrowser(false, paths =>
                 {
@@ -170,4 +171,5 @@ namespace NeuroSonic.ChartSelect
             return chartSetInfo;
         }
     }
+#endif
 }

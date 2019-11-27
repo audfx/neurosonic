@@ -9,6 +9,7 @@ using theori.IO;
 
 namespace NeuroSonic.Startup
 {
+#if false
     public class CalibrationLayer : NscLayer
     {
         class ClickTrack : AudioSource
@@ -365,4 +366,5 @@ namespace NeuroSonic.Startup
             m_renderer.EndFrame();
         }
     }
+#endif
 }

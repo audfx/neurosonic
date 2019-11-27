@@ -15,9 +15,8 @@ namespace NeuroSonic.Startup
             AddMenuItem(new MenuItem(NextOffset, Strings.SecretMenu_InputKeyboardOnly, () => SelectKeyboard(false)));
             AddMenuItem(new MenuItem(NextOffset, Strings.SecretMenu_InputKeyboardMouse, () => SelectKeyboard(true)));
 
-            foreach (var gamepad in Gamepad.Connected)
+            foreach (var gamepad in UserInputService.ConnectedGamepads)
             {
-                Logger.Log($"Connected Controller { gamepad.DeviceIndex }: { gamepad.Name }");
                 AddMenuItem(new MenuItem(NextOffset, gamepad.Name ?? "Unknown Gamepad", () => SelectGamepad(gamepad.DeviceIndex)));
             }
         }

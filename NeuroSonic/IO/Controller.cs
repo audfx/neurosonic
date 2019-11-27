@@ -7,15 +7,16 @@ using theori.IO;
 
 namespace NeuroSonic.IO
 {
-    public abstract class Controller : Disposable
+#if false
+    public abstract class NscBadController : Disposable
     {
-        public static Controller Create()
+        public static NscBadController Create()
         {
             var btInputMode = Plugin.Config.GetEnum<InputDevice>(NscConfigKey.ButtonInputDevice);
             var volInputMode = Plugin.Config.GetEnum<InputDevice>(NscConfigKey.LaserInputDevice);
 
             // TODO(local): This makes lots of assumptions about the mouse
-            Mouse.Relative = false;
+            UserInputService.MouseRelative = false;
 
             if (btInputMode == InputDevice.Controller && volInputMode == InputDevice.Controller)
                 return new GamepadController(Plugin.Gamepad);
@@ -25,7 +26,7 @@ namespace NeuroSonic.IO
                     return new KeyboardController();
                 else if (volInputMode == InputDevice.Mouse)
                 {
-                    Mouse.Relative = true;
+                    UserInputService.MouseRelative = true;
                     return new KeyboardMouseController();
                 }
             }
@@ -33,13 +34,13 @@ namespace NeuroSonic.IO
             throw new InvalidOperationException($"No controller implementation supports Buttons using { btInputMode } and Lasers using { volInputMode }");
         }
 
-        public Action<ControllerInput>? ButtonPressed;
-        public Action<ControllerInput>? ButtonReleased;
+        public Action<ControllerInput>? Pressed;
+        public Action<ControllerInput>? Released;
         public Action<ControllerInput, float>? AxisChanged;
 
         private readonly float[][] m_axisDeltas;
 
-        protected Controller()
+        protected NscBadController()
         {
             int smoothing = Plugin.Config.GetInt(NscConfigKey.LaserInputSmoothing);
             m_axisDeltas = new float[2][].Fill(() => new float[smoothing]);
@@ -75,7 +76,7 @@ namespace NeuroSonic.IO
         protected void InvokeAxisChanged(ControllerInput input) => AxisChanged?.Invoke(input, AxisDelta(input));
     }
 
-    public sealed class GamepadController : Controller
+    public sealed class GamepadController : NscBadController
     {
         private Gamepad m_gamepad;
 
@@ -93,12 +94,9 @@ namespace NeuroSonic.IO
         {
             m_gamepad = gamepad;
 
-            if (gamepad != null)
-            {
-                m_gamepad.ButtonPressed += OnButtonPressed;
-                m_gamepad.ButtonReleased += OnButtonReleased;
-                m_gamepad.AxisChanged += OnAxisChanged;
-            }
+            UserInputService.GamepadButtonPressed += OnButtonPressed;
+            UserInputService.GamepadButtonReleased += OnButtonReleased;
+            UserInputService.GamepadAxisChanged += OnAxisChanged;
 
             SetButtonCode(ControllerInput.Start, NscConfigKey.Controller_Start);
             SetButtonCode(ControllerInput.Back, NscConfigKey.Controller_Back);
@@ -139,17 +137,15 @@ namespace NeuroSonic.IO
 
         protected override void DisposeManaged()
         {
-            if (m_gamepad == null) return;
-
-            m_gamepad.ButtonPressed -= OnButtonPressed;
-            m_gamepad.ButtonReleased -= OnButtonReleased;
-            m_gamepad.AxisChanged -= OnAxisChanged;
-
-            m_gamepad = null;
+            UserInputService.GamepadButtonPressed -= OnButtonPressed;
+            UserInputService.GamepadButtonReleased -= OnButtonReleased;
+            UserInputService.GamepadAxisChanged -= OnAxisChanged;
         }
 
-        private void OnButtonPressed(ButtonInfo info)
+        private void OnButtonPressed(GamepadButtonInfo info)
         {
+            if (info.Gamepad != m_gamepad) return;
+
             uint index = info.Button;
             if (m_buttonToControllerInput.TryGetValue((int)index, out ControllerInput input))
             {
@@ -159,12 +155,14 @@ namespace NeuroSonic.IO
                     list.Add(index);
 
                 if (!wasDown && list.Count > 0)
-                    ButtonPressed?.Invoke(input);
+                    Pressed?.Invoke(input);
             }
         }
 
-        private void OnButtonReleased(ButtonInfo info)
+        private void OnButtonReleased(GamepadButtonInfo info)
         {
+            if (info.Gamepad != m_gamepad) return;
+
             uint index = info.Button;
             if (m_buttonToControllerInput.TryGetValue((int)index, out ControllerInput input))
             {
@@ -173,12 +171,14 @@ namespace NeuroSonic.IO
 
                 list.Remove(index);
                 if (wasDown && list.Count == 0)
-                    ButtonReleased?.Invoke(input);
+                    Released?.Invoke(input);
             }
         }
 
-        private void OnAxisChanged(AnalogInfo info)
+        private void OnAxisChanged(GamepadAxisInfo info)
         {
+            if (info.Gamepad != m_gamepad) return;
+            
             uint index = info.Axis;
             float value = info.Value;
 
@@ -205,7 +205,7 @@ namespace NeuroSonic.IO
     }
 
     // TODO(local): handle alt buttons as well bc that's important
-    public abstract class KeyboardControllerButtonOnly : Controller
+    public abstract class KeyboardControllerButtonOnly : NscBadController
     {
         private readonly Dictionary<KeyCode, ControllerInput> m_keyToControllerInput = new Dictionary<KeyCode, ControllerInput>();
 
@@ -213,8 +213,8 @@ namespace NeuroSonic.IO
 
         protected KeyboardControllerButtonOnly()
         {
-            Keyboard.KeyPress += Keyboard_KeyPress;
-            Keyboard.KeyRelease += Keyboard_KeyRelease;
+            UserInputService.KeyPressed += Keyboard_KeyPress;
+            UserInputService.RawKeyReleased += Keyboard_KeyRelease;
 
             SetKeyCode(ControllerInput.Start, NscConfigKey.Key_Start, NscConfigKey.Key_StartAlt);
             SetKeyCode(ControllerInput.Back, NscConfigKey.Key_Back, NscConfigKey.Key_BackAlt);
@@ -241,8 +241,8 @@ namespace NeuroSonic.IO
 
         protected override void DisposeManaged()
         {
-            Keyboard.KeyPress -= Keyboard_KeyPress;
-            Keyboard.KeyRelease -= Keyboard_KeyRelease;
+            UserInputService.KeyPressed -= Keyboard_KeyPress;
+            UserInputService.KeyReleased -= Keyboard_KeyRelease;
         }
 
         private void Keyboard_KeyPress(KeyInfo info) => OnKeyPressed(info.KeyCode);
@@ -259,7 +259,7 @@ namespace NeuroSonic.IO
                     list.Add(key);
 
                 if (!wasDown && list.Count > 0)
-                    ButtonPressed?.Invoke(input);
+                    Pressed?.Invoke(input);
             }
         }
 
@@ -272,7 +272,7 @@ namespace NeuroSonic.IO
 
                 list.Remove(key);
                 if (wasDown && list.Count == 0)
-                    ButtonReleased?.Invoke(input);
+                    Released?.Invoke(input);
             }
         }
     }
@@ -370,7 +370,7 @@ namespace NeuroSonic.IO
 
         public KeyboardMouseController()
         {
-            Mouse.Move += Mouse_Move;
+            UserInputService.MouseMoved += Mouse_Move;
 
             m_sensitivity = Plugin.Config.GetFloat(NscConfigKey.Mouse_Sensitivity);
 
@@ -390,7 +390,7 @@ namespace NeuroSonic.IO
         protected override void DisposeManaged()
         {
             base.DisposeManaged();
-            Mouse.Move -= Mouse_Move;
+            UserInputService.MouseMoved -= Mouse_Move;
         }
 
         private void Mouse_Move(int x, int y, int xDelta, int yDelta)
@@ -418,4 +418,5 @@ namespace NeuroSonic.IO
             }
         }
     }
+#endif
 }

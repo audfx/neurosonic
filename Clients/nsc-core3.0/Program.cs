@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 
 using theori;
+using theori.Charting;
 using theori.Platform.Windows;
 
 using NeuroSonic.Platform;
-using theori.Charting;
 
 namespace NeuroSonic.Core30
 {
@@ -59,26 +59,38 @@ namespace NeuroSonic.Core30
         }
     }
 
-
     static class Program
     {
         [STAThread]
         static void Main(string[] args)
         {
-            Logger.AddLogger(new ConsoleLoggerImpl());
-            Logger.AddLogger(new FileLoggerImpl("nsc-log.txt"));
+            Profiler.BeginSession("Program Entry");
+
+            using (var _ = Profiler.Scope("Initialize Logger Implementations"))
+            {
+                Logger.AddLogger(new ConsoleLoggerImpl());
+                Logger.AddLogger(new FileLoggerImpl("nsc-log.txt"));
+            }
 
             if (RuntimeInfo.IsWindows)
             {
+                using var _ = Profiler.Scope("Initialize Platform Layer");
                 new WindowsPlatform().LoadLibrary("x64/SDL2.dll");
             }
 
-            using var host = Host.GetSuitableHost();
+            using var host = Host.GetSuitableHost(ClientSkinService.CurrentlySelectedSkin);
             host.Initialize();
 
-            Entity.RegisterTypesFromGameMode(NeuroSonicGameMode.Instance);
+            using (var _ = Profiler.Scope("Chart Entity Type Registration"))
+            {
+                Entity.RegisterTypesFromGameMode(NeuroSonicGameMode.Instance);
+            }
 
-            host.Run(new NscClient());
+            var client = new NscClient();
+
+            Profiler.EndSession();
+
+            host.Run(client);
         }
     }
 }

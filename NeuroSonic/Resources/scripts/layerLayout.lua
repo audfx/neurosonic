@@ -20,7 +20,7 @@ Layouts = {
 };
 
 function Layout.CalculateLayout()
-	ViewportWidth, ViewportHeight = nsc.graphics.getViewportSize();
+	ViewportWidth, ViewportHeight = theori.graphics.getViewportSize();
 	LayoutKind = ViewportWidth > ViewportHeight and "Landscape" or "Portrait";
 
 	if (LayoutKind == "Landscape") then
@@ -45,18 +45,18 @@ function Layout.CalculateLayout()
 end
 
 function Layout.DoTransform()
-	nsc.graphics.scale(LayoutScale, LayoutScale);
+	theori.graphics.scale(LayoutScale, LayoutScale);
 end
 
 function Layout.DrawBackgroundFilled(bgTex)
 	local bgTexW, bgTexH = bgTex.Width, bgTex.Height;
 	local scale = math.max(LayoutWidth / bgTexW, LayoutHeight / bgTexH);
-	nsc.graphics.draw(bgTex, (LayoutWidth - bgTexW * scale) / 2, (LayoutHeight - bgTexH * scale) / 2, bgTexW * scale, bgTexH * scale);
+	theori.graphics.draw(bgTex, (LayoutWidth - bgTexW * scale) / 2, (LayoutHeight - bgTexH * scale) / 2, bgTexW * scale, bgTexH * scale);
 end
 
 function Layout.CheckLayout()
 	do -- check if layout needs to be refreshed
-		local cvw, cvh = nsc.graphics.getViewportSize();
+		local cvw, cvh = theori.graphics.getViewportSize();
 		if (ViewportWidth != cvw or ViewportHeight != cvh) then
 			Layout.CalculateLayout();
 		end

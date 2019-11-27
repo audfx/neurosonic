@@ -15,11 +15,12 @@ namespace NeuroSonic.GamePlay
         public float SpinTimer { get; set; }
         public float SwingTimer { get; set; }
 
-        private LuaScript m_script = new LuaScript();
+        private readonly ScriptProgram m_script;
 
         public ScriptableBackground(ClientResourceLocator locator)
         {
             m_locator = locator;
+            m_script = new ScriptProgram(m_locator);
         }
 
         protected override void DisposeManaged()
@@ -30,7 +31,6 @@ namespace NeuroSonic.GamePlay
         public bool AsyncLoad()
         {
             m_script.LoadFile(ClientSkinService.CurrentlySelectedSkin.OpenFileStream("scripts/game/bg-stars.lua"));
-            m_script.InitResourceLoading(m_locator);
 
             if (!m_script.LuaAsyncLoad())
                 return false;
@@ -43,7 +43,7 @@ namespace NeuroSonic.GamePlay
             if (!m_script.LuaAsyncFinalize())
                 return false;
 
-            m_script.InitSpriteRenderer(m_locator);
+            m_script.InitSpriteRenderer();
 
             return true;
         }

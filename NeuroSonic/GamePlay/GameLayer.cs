@@ -50,9 +50,8 @@ namespace NeuroSonic.GamePlay
         private bool AutoLasers => (m_autoPlay & AutoPlay.Lasers) != 0;
 
         private readonly ClientResourceLocator m_locator;
-        private readonly ClientResourceManager m_resources;
 
-        private LuaScript m_guiScript;
+        private theori.Scripting.ScriptProgram m_guiScript;
         private Table m_gameTable, m_metaTable, m_scoringTable;
 
         private HighwayControl m_highwayControl;
@@ -94,9 +93,9 @@ namespace NeuroSonic.GamePlay
         private float m_tempHiSpeedMult = 1.0f;
 
         internal GameLayer(ClientResourceLocator resourceLocator, ChartInfo chartInfo, AutoPlay autoPlay = AutoPlay.None)
+            : base(resourceLocator)
         {
             m_locator = resourceLocator;
-            m_resources = new ClientResourceManager(resourceLocator);
 
             m_chartInfo = chartInfo;
             m_autoPlay = autoPlay;
@@ -105,9 +104,9 @@ namespace NeuroSonic.GamePlay
         }
 
         internal GameLayer(ClientResourceLocator resourceLocator, Chart chart, AudioTrack audio, AutoPlay autoPlay = AutoPlay.None)
+            : base(resourceLocator)
         {
             m_locator = resourceLocator;
-            m_resources = new ClientResourceManager(resourceLocator);
 
             m_chartInfo = chart.Info;
             m_chart = chart;
@@ -150,9 +149,7 @@ namespace NeuroSonic.GamePlay
             m_visualPlayback = new SlidingChartPlayback(m_chart, true);
 
             m_highwayView = new HighwayView(m_locator, m_visualPlayback);
-
-            m_guiScript = new LuaScript();
-            m_guiScript.InitResourceLoading(m_locator);
+            m_guiScript = new ScriptProgram(m_locator);
 
             m_gameTable = m_guiScript.NewTable();
             m_guiScript["game"] = m_gameTable;
@@ -246,7 +243,7 @@ namespace NeuroSonic.GamePlay
         {
             if (!m_guiScript.LuaAsyncFinalize())
                 return false;
-            m_guiScript.InitSpriteRenderer(m_locator);
+            m_guiScript.InitSpriteRenderer();
 
             if (!m_highwayView.AsyncFinalize())
                 return false;
@@ -452,7 +449,7 @@ namespace NeuroSonic.GamePlay
                     Gauge = m_judge.Gauge,
                 };
 
-                Push(new ChartResultLayer(m_locator, m_chartInfo, result));
+                //Push(new ChartResultLayer(m_locator, m_chartInfo, result));
                 SetInvalidForResume();
             });
         }
@@ -615,83 +612,66 @@ namespace NeuroSonic.GamePlay
         private float m_lastStartPressTime = 0;
         private bool m_isChangingHiSpeedMult = false;
 
-        public override bool ControllerButtonPressed(ControllerInput input)
+        public override void ControllerButtonPressed(ControllerButtonInfo info)
         {
-            switch (input)
+            if (info.Button == "start")
             {
-                case ControllerInput.BT0: UserInput_BtPress(0); break;
-                case ControllerInput.BT1: UserInput_BtPress(1); break;
-                case ControllerInput.BT2: UserInput_BtPress(2); break;
-                case ControllerInput.BT3: UserInput_BtPress(3); break;
-                case ControllerInput.FX0: UserInput_BtPress(4); break;
-                case ControllerInput.FX1: UserInput_BtPress(5); break;
+                if (Time.Total - m_lastStartPressTime < 0.25f)
+                {
+                    m_tempHiSpeedMult = 1.0f;
+                    SetHiSpeed();
 
-                case ControllerInput.Start:
-                    if (Time.Total - m_lastStartPressTime < 0.25f)
+                    m_lastStartPressTime = 0;
+                }
+
+                m_lastStartPressTime = Time.Total;
+                m_isChangingHiSpeedMult = true;
+            }
+            else if (info.Button == "back")
+                ExitGame();
+            else
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    if (info.Button == i)
                     {
-                        m_tempHiSpeedMult = 1.0f;
-                        SetHiSpeed();
-
-                        m_lastStartPressTime = 0;
+                        UserInput_BtPress(i);
+                        break;
                     }
-
-                    m_lastStartPressTime = Time.Total;
-                    m_isChangingHiSpeedMult = true;
-
-                    break;
-
-                case ControllerInput.Back: ExitGame(); break;
-
-                default: return false;
+                }
             }
-
-            return true;
         }
 
-        public override bool ControllerButtonReleased(ControllerInput input)
+        public override void ControllerButtonReleased(ControllerButtonInfo info)
         {
-            switch (input)
+            if (info.Button == "Start")
+                m_isChangingHiSpeedMult = false;
+            else
             {
-                case ControllerInput.BT0: UserInput_BtRelease(0); break;
-                case ControllerInput.BT1: UserInput_BtRelease(1); break;
-                case ControllerInput.BT2: UserInput_BtRelease(2); break;
-                case ControllerInput.BT3: UserInput_BtRelease(3); break;
-                case ControllerInput.FX0: UserInput_BtRelease(4); break;
-                case ControllerInput.FX1: UserInput_BtRelease(5); break;
-
-                case ControllerInput.Start:
-                    m_isChangingHiSpeedMult = false;
-                    break;
-
-                case ControllerInput.Back:
-                    break;
-
-                default: return false;
+                for (int i = 0; i < 6; i++)
+                {
+                    if (info.Button == i)
+                    {
+                        UserInput_BtRelease(i);
+                        break;
+                    }
+                }
             }
-
-            return true;
         }
 
-        public override bool ControllerAxisChanged(ControllerInput input, float delta)
+        public override void ControllerAxisChanged(ControllerAxisInfo info)
         {
             if (m_isChangingHiSpeedMult)
             {
-                m_tempHiSpeedMult = MathL.Clamp(m_tempHiSpeedMult + delta * 0.1f, 0.1f, 2);
+                m_tempHiSpeedMult = MathL.Clamp(m_tempHiSpeedMult + info.Delta * 0.1f, 0.1f, 2);
                 SetHiSpeed();
             }
 
-            switch (input)
-            {
-                case ControllerInput.Laser0Axis: UserInput_VolPulse(0, delta); break;
-                case ControllerInput.Laser1Axis: UserInput_VolPulse(1, delta); break;
-
-                default: return false;
-            }
-
-            return true;
+                 if (info.Axis == 0) UserInput_VolPulse(0, info.Delta);
+            else if (info.Axis == 1) UserInput_VolPulse(1, info.Delta);
         }
 
-        public override bool KeyPressed(KeyInfo key)
+        public override void KeyPressed(KeyInfo key)
         {
             switch (key.KeyCode)
             {
@@ -704,12 +684,7 @@ namespace NeuroSonic.GamePlay
                 {
                     ExitGame();
                 } break;
-
-                // TODO(local): consume whatever the controller does
-                default: return false;
             }
-
-            return true;
         }
 
         void UserInput_BtPress(int lane)
@@ -733,7 +708,7 @@ namespace NeuroSonic.GamePlay
             ((LaserJudge)m_judge[lane + 6]).UserInput(amount, m_judge.Position);
         }
 
-        private void CreateKeyBeam(LaneLabel label, JudgeKind kind, bool isEarly)
+        private void CreateKeyBeam(HybridLabel label, JudgeKind kind, bool isEarly)
         {
             Vector3 color = Vector3.One;
 
@@ -778,7 +753,7 @@ namespace NeuroSonic.GamePlay
 
             //Logger.Log($"{ m_visualPlayback.ViewDistanceForward } / { m_visualPlayback.ViewDistanceForward }");
 
-            float GetPathValueLerped(time_t pos, LaneLabel stream)
+            float GetPathValueLerped(time_t pos, HybridLabel stream)
             {
                 var s = m_audioPlayback.Chart[stream];
 
@@ -833,17 +808,18 @@ namespace NeuroSonic.GamePlay
                 var currentLaser = m_chart[i + 6].MostRecent<AnalogEntity>(visualPosition);
                 if (currentLaser == null || visualPosition > currentLaser.AbsoluteEndPosition)
                 {
+                    float inputValue = m_laserInputs[i];
                     if (currentLaser is { } slam && slam.IsInstant && visualPosition <= slam.AbsoluteEndPosition + laserSlamSwingDuration)
-                        m_laserInputs[i] = slam.FinalValue;
-                    else
-                    {
-                        var checkAnalog = m_chart[i + 6].MostRecent<AnalogEntity>(laserAnticipateLookAhead)?.Head;
-                        while (checkAnalog != null && checkAnalog.HasPrevious && checkAnalog.Previous is AnalogEntity pAnalog && (pAnalog = pAnalog.Head).AbsolutePosition > visualPosition)
-                            checkAnalog = pAnalog;
+                        inputValue = slam.FinalValue;
 
-                        if (checkAnalog != null && checkAnalog.AbsolutePosition > visualPosition)
-                            m_laserInputs[i] = checkAnalog!.InitialValue;
-                    }
+                    var checkAnalog = m_chart[i + 6].MostRecent<AnalogEntity>(laserAnticipateLookAhead)?.Head;
+                    while (checkAnalog != null && checkAnalog.HasPrevious && checkAnalog.Previous is AnalogEntity pAnalog && (pAnalog = pAnalog.Head).AbsolutePosition > visualPosition)
+                        checkAnalog = pAnalog;
+
+                    if (checkAnalog != null && checkAnalog.AbsolutePosition > visualPosition)
+                        inputValue = MathL.Max(checkAnalog!.InitialValue, inputValue);
+
+                    m_laserInputs[i] = inputValue;
                 }
                 else m_laserInputs[i] = currentLaser.SampleValue(visualPosition);
             }
@@ -995,7 +971,7 @@ namespace NeuroSonic.GamePlay
         private const float BASE_LASER_MIX = 0.8f;
         private float laserGain = 0.5f;
 
-        private float GetTempRollValue(time_t position, LaneLabel label, out float valueMult, bool oneMinus = false)
+        private float GetTempRollValue(time_t position, HybridLabel label, out float valueMult, bool oneMinus = false)
         {
             var s = m_audioPlayback.Chart[label];
             valueMult = 1.0f;
@@ -1016,61 +992,62 @@ namespace NeuroSonic.GamePlay
         {
             if (!AreLasersActive)
             {
+                // mute both channels always if no lasers are active
                 m_audioController.SetEffectMix(6, 0);
-                return;
+                m_audioController.SetEffectMix(7, 0);
+            }
+            else
+            {
+                // Update active laser positions for both lasers if either is active
+                currentActiveLaserAlphas[0] = currentActiveLasers[0] ? LaserAlpha(0) : 0;
+                currentActiveLaserAlphas[1] = currentActiveLasers[1] ? LaserAlpha(1) : 0;
+
+                float alpha;
+                if (currentActiveLasers[0] && currentActiveLasers[1])
+                    alpha = Math.Max(currentActiveLaserAlphas[0], currentActiveLaserAlphas[1]);
+                else if (currentActiveLasers[0])
+                    alpha = currentActiveLaserAlphas[0];
+                else alpha = currentActiveLaserAlphas[1];
+
+                m_audioController.UpdateEffect(6, CurrentQuarterNodeDuration, alpha);
+                m_audioController.SetEffectMix(6, GetEffectMix(currentLaserEffectDef, laserGain, alpha));
             }
 
-            float LaserAlpha(int index)
+            float LaserAlpha(int index) => GetTempRollValue(m_audio.Position, index + 6, out float _, index == 1);
+            static float GetEffectMix(EffectDef effect, float mix, float alpha)
             {
-                return GetTempRollValue(m_audio.Position, index + 6, out float _, index == 1);
-            }
-
-            if (currentActiveLasers[0])
-                currentActiveLaserAlphas[0] = LaserAlpha(0);
-            if (currentActiveLasers[1])
-                currentActiveLaserAlphas[1] = LaserAlpha(1);
-
-            float alpha;
-            if (currentActiveLasers[0] && currentActiveLasers[1])
-                alpha = Math.Max(currentActiveLaserAlphas[0], currentActiveLaserAlphas[1]);
-            else if (currentActiveLasers[0])
-                alpha = currentActiveLaserAlphas[0];
-            else alpha = currentActiveLaserAlphas[1];
-
-            m_audioController.UpdateEffect(6, CurrentQuarterNodeDuration, alpha);
-
-            float mix = laserGain;
-            if (currentLaserEffectDef != null)
-            {
-                if (currentLaserEffectDef is BiQuadFilterDef bqf && bqf.FilterType == FilterType.Peak)
+                if (effect != null)
                 {
-                    mix *= BASE_LASER_MIX;
-                    if (alpha < 0.2f)
-                        mix *= alpha / 0.2f;
-                    else if (alpha > 0.8f)
-                        mix *= 1 - (alpha - 0.8f) / 0.2f;
-                }
-                else
-                {
-                    // TODO(local): a lot of these (all?) don't need to have special mixes. idk why these got here but they're needed for some reason? fix
-                    switch (currentLaserEffectDef)
+                    if (effect is BiQuadFilterDef bqf && bqf.FilterType == FilterType.Peak)
                     {
-                        case BitCrusherDef _:
-                            mix = currentLaserEffectDef.Mix.Sample(alpha);
-                            break;
+                        mix *= BASE_LASER_MIX;
+                        if (alpha < 0.2f)
+                            mix *= alpha / 0.2f;
+                        else if (alpha > 0.8f)
+                            mix *= 1 - (alpha - 0.8f) / 0.2f;
+                    }
+                    else
+                    {
+                        // TODO(local): a lot of these (all?) don't need to have special mixes. idk why these got here but they're needed for some reason? fix
+                        switch (effect)
+                        {
+                            case BitCrusherDef _:
+                                mix = effect.Mix.Sample(alpha);
+                                break;
 
-                        case GateDef _:
-                        case RetriggerDef _:
-                        case TapeStopDef _:
-                            mix = currentLaserEffectDef.Mix.Sample(alpha);
-                            break;
+                            case GateDef _:
+                            case RetriggerDef _:
+                            case TapeStopDef _:
+                                mix = effect.Mix.Sample(alpha);
+                                break;
 
-                        case BiQuadFilterDef _: break;
+                            case BiQuadFilterDef _: break;
+                        }
                     }
                 }
-            }
 
-            m_audioController.SetEffectMix(6, mix);
+                return mix;
+            }
         }
 
         public override void Render()

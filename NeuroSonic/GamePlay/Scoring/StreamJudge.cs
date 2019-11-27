@@ -8,7 +8,7 @@ namespace NeuroSonic.GamePlay.Scoring
     public abstract class StreamJudge
     {
         public Chart Chart { get; }
-        public LaneLabel Label { get; }
+        public HybridLabel Label { get; }
         public Chart.ChartLane Objects => Chart.GetLane(Label);
 
         protected time_t CurrentPosition { get; private set; }
@@ -27,7 +27,7 @@ namespace NeuroSonic.GamePlay.Scoring
 
         public bool AutoPlay = false;
 
-        protected StreamJudge(Chart chart, LaneLabel label)
+        protected StreamJudge(Chart chart, HybridLabel label)
         {
             Chart = chart;
             Label = label;

@@ -5,6 +5,7 @@ using theori.IO;
 
 namespace NeuroSonic
 {
+#if false
     public enum ControllerInput
     {
         Start,
@@ -15,6 +16,7 @@ namespace NeuroSonic
         Laser0Negative, Laser0Positive,
         Laser1Negative, Laser1Positive
     }
+#endif
 
     public enum NscConfigKey
     {

@@ -6,6 +6,7 @@ using NeuroSonic.Platform;
 
 namespace NeuroSonic.Startup
 {
+#if false
     public class NeuroSonicStandaloneStartup : BaseMenuLayer
     {
         protected override string Title => Strings.SecretMenu_MainTitle;
@@ -47,4 +48,5 @@ namespace NeuroSonic.Startup
             Pop();
         }
     }
+#endif
 }

@@ -11,6 +11,7 @@ using theori.IO;
 
 namespace NeuroSonic.Startup
 {
+#if false
     public sealed class ControllerConfigurationLayer : BaseMenuLayer//, IGamepadListener
     {
         class Bindable : Panel
@@ -151,16 +152,16 @@ namespace NeuroSonic.Startup
         {
             base.Destroy();
 
-            Plugin.Gamepad!.ButtonPressed -= GamepadButtonPressed;
-            Plugin.Gamepad!.AxisChanged -= GamepadAxisChanged;
+            UserInputService.GamepadButtonPressed -= GamepadButtonPressed;
+            UserInputService.GamepadAxisChanged -= GamepadAxisChanged;
         }
 
         public override void Initialize()
         {
             base.Initialize();
 
-            Plugin.Gamepad!.ButtonPressed += GamepadButtonPressed;
-            Plugin.Gamepad!.AxisChanged += GamepadAxisChanged;
+            UserInputService.GamepadButtonPressed += GamepadButtonPressed;
+            UserInputService.GamepadAxisChanged += GamepadAxisChanged;
 
             Bindable start, back, bt0, bt1, bt2, bt3, fx0, fx1;
 
@@ -376,164 +377,161 @@ namespace NeuroSonic.Startup
             });
         }
 
-        public override bool KeyPressed(KeyInfo key)
+        public override void KeyPressed(KeyInfo key)
         {
             // when NOT editing a config, do the base menu layer inputs
-            if (!m_isEditing) return base.KeyPressed(key);
-
-            if (m_codeIndex == -1)
-            {
-                switch (key.KeyCode)
-                {
-                    case KeyCode.ESCAPE:
-                        m_isEditing = false;
-                        m_bindables[m_bindableIndex].FillColor = Vector4.One;
-                        break;
-
-                    case KeyCode.RETURN:
-                        if ((key.Mods & KeyMod.CTRL) != 0)
-                            m_codeIndex = 1;
-                        else m_codeIndex = 0;
-                        break;
-
-                    case KeyCode.UP:
-                    case KeyCode.LEFT:
-                        m_bindables[m_bindableIndex].FillColor = Vector4.One;
-                        m_bindableIndex = MathL.Max(0, m_bindableIndex - 1);
-                        m_bindables[m_bindableIndex].FillColor = m_selectedColor;
-                        break;
-
-                    case KeyCode.DOWN:
-                    case KeyCode.RIGHT:
-                        m_bindables[m_bindableIndex].FillColor = Vector4.One;
-                        m_bindableIndex = MathL.Min(m_bindables.Count - 1, m_bindableIndex + 1);
-                        m_bindables[m_bindableIndex].FillColor = m_selectedColor;
-                        break;
-
-                    default: return false;
-                }
-            }
+            if (!m_isEditing)
+                base.KeyPressed(key);
             else
             {
-                switch (key.KeyCode)
+                if (m_codeIndex == -1)
                 {
-                    case KeyCode.ESCAPE:
+                    switch (key.KeyCode)
                     {
-                        var binding = m_bindables[m_bindableIndex];
-                        bool buttonBinding = (int)binding.Which < (int)ControllerInput.Laser0Axis;
+                        case KeyCode.ESCAPE:
+                            m_isEditing = false;
+                            m_bindables[m_bindableIndex].FillColor = Vector4.One;
+                            break;
 
-                        var configKeys = m_bindingIndices[binding.Which];
-                        var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
-                        m_codeIndex = -1;
+                        case KeyCode.RETURN:
+                            if ((key.Mods & KeyMod.CTRL) != 0)
+                                m_codeIndex = 1;
+                            else m_codeIndex = 0;
+                            break;
 
-                        if (buttonBinding)
-                        {
-                            if (m_buttonInputDevice == InputDevice.Keyboard)
-                                Plugin.Config.Set(configKey, KeyCode.UNKNOWN);
-                            else // if (m_buttonInputDevice == InputDevice.Controller)
-                                Plugin.Config.Set(configKey, -1);
-                            Plugin.SaveConfig();
+                        case KeyCode.UP:
+                        case KeyCode.LEFT:
+                            m_bindables[m_bindableIndex].FillColor = Vector4.One;
+                            m_bindableIndex = MathL.Max(0, m_bindableIndex - 1);
+                            m_bindables[m_bindableIndex].FillColor = m_selectedColor;
+                            break;
 
-                            Logger.Log($"Unbound { configKey } (from { binding.Which })");
-                            UpdateBindableText(binding, configKeys);
-                        }
-                        else
-                        {
-                            if (m_laserInputDevice == InputDevice.Keyboard)
-                                Plugin.Config.Set(configKey, KeyCode.UNKNOWN);
-                            else if (m_laserInputDevice == InputDevice.Mouse)
-                                Plugin.Config.Set(configKey, Axes.None);
-                            else // if (m_buttonInputDevice == InputDevice.Controller)
-                                Plugin.Config.Set(configKey, -1);
-                            Plugin.SaveConfig();
-
-                            Logger.Log($"Unbound { configKey } (from { binding.Which })");
-                            UpdateBindableText(binding, configKeys);
-                        }
-                    } break;
-
-                    default:
+                        case KeyCode.DOWN:
+                        case KeyCode.RIGHT:
+                            m_bindables[m_bindableIndex].FillColor = Vector4.One;
+                            m_bindableIndex = MathL.Min(m_bindables.Count - 1, m_bindableIndex + 1);
+                            m_bindables[m_bindableIndex].FillColor = m_selectedColor;
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (key.KeyCode)
                     {
-                        // check if the key is INVALID for use as a binding for keyboards, and ignore keys otherwise if setting for gamepad
-                        var binding = m_bindables[m_bindableIndex];
-                        bool buttonBinding = (int)binding.Which < (int)ControllerInput.Laser0Axis;
+                        case KeyCode.ESCAPE:
+                        {
+                            var binding = m_bindables[m_bindableIndex];
+                            bool buttonBinding = (int)binding.Which < (int)ControllerInput.Laser0Axis;
 
-                        if (buttonBinding)
-                        {
-                            // consume buttons regardless
-                            if (m_buttonInputDevice != InputDevice.Keyboard) return true;
-                            SetKeyboardBinding();
-                        }
-                        else
-                        {
-                            if (m_laserInputDevice == InputDevice.Keyboard)
+                            var configKeys = m_bindingIndices[binding.Which];
+                            var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
+                            m_codeIndex = -1;
+
+                            if (buttonBinding)
                             {
-                                Debug.Assert(binding.Which != ControllerInput.Laser0Axis && binding.Which != ControllerInput.Laser1Axis, "Axes not supported for keys bro");
-                                SetKeyboardBinding();
+                                if (m_buttonInputDevice == InputDevice.Keyboard)
+                                    Plugin.Config.Set(configKey, KeyCode.UNKNOWN);
+                                else // if (m_buttonInputDevice == InputDevice.Controller)
+                                    Plugin.Config.Set(configKey, -1);
+                                Plugin.SaveConfig();
+
+                                Logger.Log($"Unbound { configKey } (from { binding.Which })");
+                                UpdateBindableText(binding, configKeys);
                             }
-                            else if (m_laserInputDevice == InputDevice.Mouse)
+                            else
                             {
-                                switch (key.KeyCode)
+                                if (m_laserInputDevice == InputDevice.Keyboard)
+                                    Plugin.Config.Set(configKey, KeyCode.UNKNOWN);
+                                else if (m_laserInputDevice == InputDevice.Mouse)
+                                    Plugin.Config.Set(configKey, Axes.None);
+                                else // if (m_buttonInputDevice == InputDevice.Controller)
+                                    Plugin.Config.Set(configKey, -1);
+                                Plugin.SaveConfig();
+
+                                Logger.Log($"Unbound { configKey } (from { binding.Which })");
+                                UpdateBindableText(binding, configKeys);
+                            }
+                        }
+                        break;
+
+                        default:
+                        {
+                            // check if the key is INVALID for use as a binding for keyboards, and ignore keys otherwise if setting for gamepad
+                            var binding = m_bindables[m_bindableIndex];
+                            bool buttonBinding = (int)binding.Which < (int)ControllerInput.Laser0Axis;
+
+                            if (buttonBinding)
+                            {
+                                // consume buttons regardless
+                                if (m_buttonInputDevice == InputDevice.Keyboard)
+                                    SetKeyboardBinding();
+                            }
+                            else
+                            {
+                                if (m_laserInputDevice == InputDevice.Keyboard)
                                 {
-                                    case KeyCode.X:
-                                    case KeyCode.D0:
-                                    case KeyCode.KP_0:
-                                    case KeyCode.H:
-                                        SetMouseAxisBinding(Axes.X);
-                                        break;
+                                    Debug.Assert(binding.Which != ControllerInput.Laser0Axis && binding.Which != ControllerInput.Laser1Axis, "Axes not supported for keys bro");
+                                    SetKeyboardBinding();
+                                }
+                                else if (m_laserInputDevice == InputDevice.Mouse)
+                                {
+                                    switch (key.KeyCode)
+                                    {
+                                        case KeyCode.X:
+                                        case KeyCode.D0:
+                                        case KeyCode.KP_0:
+                                        case KeyCode.H:
+                                            SetMouseAxisBinding(Axes.X);
+                                            break;
 
-                                    case KeyCode.Y:
-                                    case KeyCode.D1:
-                                    case KeyCode.KP_1:
-                                    case KeyCode.V:
-                                        SetMouseAxisBinding(Axes.Y);
-                                        break;
+                                        case KeyCode.Y:
+                                        case KeyCode.D1:
+                                        case KeyCode.KP_1:
+                                        case KeyCode.V:
+                                            SetMouseAxisBinding(Axes.Y);
+                                            break;
 
-                                    default: break;
+                                        default: break;
+                                    }
                                 }
                             }
+
+                            // both will do the same thing, but require different checks. this is fine for now.
+                            void SetKeyboardBinding()
+                            {
+                                var configKeys = m_bindingIndices[binding.Which];
+                                var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
+
+                                Plugin.Config.Set(configKey, key.KeyCode);
+                                Plugin.SaveConfig();
+
+                                Logger.Log($"Set Key for { configKey } (from { binding.Which }) to { key.KeyCode }");
+                                UpdateBindableText(binding, configKeys);
+
+                                m_codeIndex = -1; // when we set the binding, exit binding config
+                            }
+
+                            void SetMouseAxisBinding(Axes axis)
+                            {
+                                var configKeys = m_bindingIndices[binding.Which];
+                                var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
+
+                                Plugin.Config.Set(configKey, axis);
+                                Plugin.SaveConfig();
+
+                                Logger.Log($"Set Mouse Axis for { configKey } (from { binding.Which }) to Axis { axis }");
+                                UpdateBindableText(binding, configKeys);
+
+                                m_codeIndex = -1; // when we set the binding, exit binding config
+                            }
                         }
-
-                        // both will do the same thing, but require different checks. this is fine for now.
-                        void SetKeyboardBinding()
-                        {
-                            var configKeys = m_bindingIndices[binding.Which];
-                            var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
-
-                            Plugin.Config.Set(configKey, key.KeyCode);
-                            Plugin.SaveConfig();
-
-                            Logger.Log($"Set Key for { configKey } (from { binding.Which }) to { key.KeyCode }");
-                            UpdateBindableText(binding, configKeys);
-
-                            m_codeIndex = -1; // when we set the binding, exit binding config
-                        }
-
-                        void SetMouseAxisBinding(Axes axis)
-                        {
-                            var configKeys = m_bindingIndices[binding.Which];
-                            var configKey = (NscConfigKey)(m_codeIndex == 0 ? configKeys.Item1 : configKeys.Item2);
-
-                            Plugin.Config.Set(configKey, axis);
-                            Plugin.SaveConfig();
-
-                            Logger.Log($"Set Mouse Axis for { configKey } (from { binding.Which }) to Axis { axis }");
-                            UpdateBindableText(binding, configKeys);
-
-                            m_codeIndex = -1; // when we set the binding, exit binding config
-                        }
-                    } break; // consume anyway
+                        break; // consume anyway
+                    }
                 }
             }
-
-            return true;
         }
 
-        public override bool ControllerButtonPressed(ControllerInput input) => true;
-        public override bool ControllerButtonReleased(ControllerInput input) => true;
-        public override bool ControllerAxisChanged(ControllerInput input, float delta) => true;
-
-        public void GamepadButtonPressed(ButtonInfo info)
+        public void GamepadButtonPressed(GamepadButtonInfo info)
         {
             // TODO(local): relic?
             if (info.Gamepad.DeviceIndex != Plugin.Gamepad.DeviceIndex) return;
@@ -567,7 +565,7 @@ namespace NeuroSonic.Startup
             }
         }
 
-        public void GamepadAxisChanged(AnalogInfo info)
+        public void GamepadAxisChanged(GamepadAxisInfo info)
         {
             if (!m_isEditing) return;
 
@@ -615,4 +613,5 @@ namespace NeuroSonic.Startup
             m_graphicPanel.Position = new Vector2((Window.Width - size) / 2, Window.Height - size * 0.75f);
         }
     }
+#endif
 }

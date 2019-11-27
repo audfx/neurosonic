@@ -1,37 +1,35 @@
 
 local titleLoop;
 
-function nsc.layer.doAsyncLoad()
-    nsc.graphics.queueStaticTextureLoad("title");
-    nsc.graphics.queueStaticTextureLoad("audfx-text-large");
+function theori.layer.doAsyncLoad()
+    theori.graphics.queueStaticTextureLoad("title");
+    theori.graphics.queueStaticTextureLoad("audfx-text-large");
 
-    titleLoop = nsc.audio.queueStaticAudioLoad("launchtower-title-loop");
+    titleLoop = theori.audio.queueStaticAudioLoad("launchtower-title-loop");
 
-    return nsc.doStaticLoadsAsync();
+    return theori.doStaticLoadsAsync();
 end
 
-function nsc.layer.doAsyncFinalize()
-    return nsc.finalizeStaticLoads();
+function theori.layer.doAsyncFinalize()
+    return theori.finalizeStaticLoads();
 end
 
 -- on first startup, push the splash screen
-function nsc.layer.init()
+function theori.layer.init()
     local titleLoopBeatDuration = 60.0 / 132;
     
-    titleLoop.volume = 0.7;
+    titleLoop.volume = 0.3;
     titleLoop.setLoopArea(titleLoopBeatDuration * 4, titleLoopBeatDuration * 68);
 
-    --[ [
-    nsc.charts.setDatabaseToClean(function()
-        nsc.charts.setDatabaseToPopulate(function() print("Populate (from driver) finished."); end);
+    theori.charts.setDatabaseToClean(function()
+        theori.charts.setDatabaseToPopulate(function() print("Populate (from driver) finished."); end);
     end);
-    --]]
 
-    nsc.layer.push("splashScreen");
+    theori.layer.push("splashScreen");
 end
 
 -- any time someone gets back down to the driver, push a new splash screen
-function nsc.layer.resumed()
-    nsc.openCurtain();
-    nsc.layer.push("splashScreen");
+function theori.layer.resumed()
+    theori.graphics.openCurtain();
+    theori.layer.push("splashScreen");
 end

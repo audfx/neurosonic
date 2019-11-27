@@ -1,89 +1,81 @@
-﻿using System.Collections.Generic;
+﻿using System;
+
 using theori;
+using theori.Configuration;
+using theori.IO;
 
 namespace NeuroSonic.IO
 {
     public static class Input
     {
-        private static Controller Controller { get; set; }
-
-        private static readonly List<IControllerInputLayer> layers = new List<IControllerInputLayer>();
+        private static Controller? m_controller;
+        public static Controller Controller => m_controller ?? throw new InvalidOperationException("Controller has not been initialized yet!");
 
         public static void CreateController()
         {
-            DestroyController();
-            Controller = Controller.Create();
+            var btInputMode = Plugin.Config.GetEnum<InputDevice>(NscConfigKey.ButtonInputDevice);
+            var volInputMode = Plugin.Config.GetEnum<InputDevice>(NscConfigKey.LaserInputDevice);
 
-            if (Controller != null)
+            if (m_controller != null)
             {
-                Controller.ButtonPressed = Controller_ButtonPressed;
-                Controller.ButtonReleased = Controller_ButtonReleased;
-                Controller.AxisChanged = Controller_AxisChanged;
-            }
-        }
-
-        public static void DestroyController()
-        {
-            if (Controller != null)
-            {
-                Controller.ButtonPressed = null;
-                Controller.ButtonReleased = null;
-                Controller.AxisChanged = null;
-
-                Controller.Dispose();
-            }
-        }
-
-        public static void Controller_ButtonPressed(ControllerInput input)
-        {
-            bool allow3BtStartBack = Plugin.Config.GetBool(NscConfigKey.Allow3BtStart);
-            if (allow3BtStartBack && input == ControllerInput.Start)
-            {
-                bool a = IsButtonDown(ControllerInput.BT0);
-                bool b = IsButtonDown(ControllerInput.BT1);
-                bool c = IsButtonDown(ControllerInput.BT2);
-                bool d = IsButtonDown(ControllerInput.BT3);
-
-                if ((a && b && c) || (a && b && d) || (a && c && d) || (b && c && d))
-                    input = ControllerInput.Back;
+                UserInputService.RemoveController(m_controller);
+                m_controller = null;
             }
 
-            for (int i = layers.Count - 1; i >= 0; i--)
+            m_controller = new Controller("NeuroSonic Controller");
+            UserInputService.RegisterController(m_controller);
+
+            if (btInputMode == InputDevice.Controller && volInputMode == InputDevice.Controller)
             {
-                if (layers[i].ControllerButtonPressed(input))
-                    break;
-            }
-        }
+                int deviceId = Plugin.Host.Config.GetInt(TheoriConfigKey.Controller_DeviceID);
+                if (UserInputService.TryGetGamepadFromDeviceIndex(deviceId) is { } gamepad)
+                {
+                    float sens = Plugin.Config.GetFloat(NscConfigKey.Controller_Sensitivity);
+                    int smooth = Plugin.Config.GetInt(NscConfigKey.LaserInputSmoothing);
 
-        public static void Controller_ButtonReleased(ControllerInput input)
-        {
-            for (int i = layers.Count - 1; i >= 0; i--)
+                    void SetButton(HybridLabel name, NscConfigKey key)
+                    {
+                        m_controller!.SetButtonToGamepadButton(name, gamepad, (uint)Plugin.Config.GetInt(key));
+                    }
+
+                    void SetAxis(HybridLabel name, NscConfigKey key)
+                    {
+                        m_controller!.SetAxisToGamepadAxis(name, gamepad, (uint)Plugin.Config.GetInt(key), ControllerAxisStyle.Radial, sens, smooth);
+                    }
+
+                    SetButton("start", NscConfigKey.Controller_Start);
+                    SetButton("back", NscConfigKey.Controller_Back);
+
+                    SetButton(0, NscConfigKey.Controller_BT0);
+                    SetButton(1, NscConfigKey.Controller_BT1);
+                    SetButton(2, NscConfigKey.Controller_BT2);
+                    SetButton(3, NscConfigKey.Controller_BT3);
+
+                    SetButton(4, NscConfigKey.Controller_FX0);
+                    SetButton(5, NscConfigKey.Controller_FX1);
+
+                    SetAxis(0, NscConfigKey.Controller_Laser0Axis);
+                    SetAxis(1, NscConfigKey.Controller_Laser1Axis);
+
+                    return;
+                }
+                else
+                {
+                }
+            }
+            else if (btInputMode == InputDevice.Keyboard)
             {
-                if (layers[i].ControllerButtonReleased(input))
-                    break;
+                if (volInputMode == InputDevice.Keyboard)
+                {
+                }
+                else if (volInputMode == InputDevice.Mouse)
+                {
+                }
             }
+
+            throw new InvalidOperationException($"No controller implementation supports Buttons using { btInputMode } and Lasers using { volInputMode }");
         }
 
-        public static void Controller_AxisChanged(ControllerInput input, float delta)
-        {
-            for (int i = layers.Count - 1; i >= 0; i--)
-            {
-                if (layers[i].ControllerAxisChanged(input, delta))
-                    break;
-            }
-        }
-
-        public static void Register(IControllerInputLayer layer)
-        {
-            if (layers.Contains(layer)) return;
-            layers.Add(layer);
-        }
-
-        public static void UnRegister(IControllerInputLayer layer) => layers.Remove(layer);
-        public static void Update() => Controller?.Update();
-
-        public static bool IsButtonDown(ControllerInput input) => Controller?.IsButtonDown(input) ?? false;
-        //public static float AxisDelta(ControllerInput input) => Controller?.AxisDelta(input) ?? 0.0f;
-        //public static float RawAxisValue(ControllerInput input) => Controller?.RawAxisValue(input) ?? 0.0f;
+        public static bool IsButtonDown(HybridLabel label) => false;
     }
 }

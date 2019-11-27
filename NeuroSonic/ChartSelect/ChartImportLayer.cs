@@ -66,7 +66,7 @@ namespace NeuroSonic.ChartSelect
             foreach (string directory in Directory.EnumerateDirectories(inputRootDir))
                 WalkDirectory(directory, Path.GetFileName(directory));
 
-            ClientAs<NscClient>().DatabaseWorker.AddRange(setInfos);
+            Client.DatabaseWorker.AddRange(setInfos);
             //ClientAs<NscClient>().DatabaseWorker.SetToPopulate();
 
             void WalkDirectory(string directory, string currentSetName)

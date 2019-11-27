@@ -11,6 +11,7 @@ using theori.IO;
 
 namespace NeuroSonic.Startup
 {
+#if false
     public class UserConfigLayer : BaseMenuLayer
     {
         class Nav
@@ -494,4 +495,5 @@ namespace NeuroSonic.Startup
             UpdateRightLaserHue();
         }
     }
+#endif
 }

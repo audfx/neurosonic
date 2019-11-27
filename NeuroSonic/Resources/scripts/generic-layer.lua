@@ -59,8 +59,8 @@ function LoadGenericDigitTextures()
 end
 
 function LoadGenericBackgrounds()
-	local bgLandscape = res.QueueTextureLoad("textures/generic_bg_landscape");
-	local bgPortrait = res.QueueTextureLoad("textures/generic_bg_portrait");
+	local bgLandscape = res.QueueTextureLoad("textures/bgHighContrast_LS");
+	local bgPortrait = res.QueueTextureLoad("textures/bgHighContrast_PR");
 
 	return bgLandscape, bgPortrait;
 end

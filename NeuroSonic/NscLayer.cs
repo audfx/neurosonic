@@ -1,48 +1,37 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 using theori;
 using theori.Graphics;
 using theori.Gui;
+using theori.Resources;
+using theori.Scripting;
 
-using NeuroSonic.IO;
-using NeuroSonic.Platform;
-using System;
+using NeuroSonic.GamePlay;
+
+using MoonSharp.Interpreter;
 
 namespace NeuroSonic
 {
-    public interface IControllerInputLayer
-    {
-        bool ControllerButtonPressed(ControllerInput input);
-        bool ControllerButtonReleased(ControllerInput input);
-        bool ControllerAxisChanged(ControllerInput input, float delta);
-    }
-
-    public abstract class NscLayer : Layer, IControllerInputLayer
+    public class NscLayer : Layer
     {
         protected Panel? ForegroundGui;
 
-        protected void CloseCurtain(float holdTime, Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(holdTime, onClosed);
-        protected void CloseCurtain(Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(onClosed);
-        protected void OpenCurtain() => ClientAs<NscClient>().OpenCurtain();
+        public readonly Table tblNsc;
 
-        public override void Initialize()
+        public NscLayer(ClientResourceLocator? resourceLocator = null, string? layerPath = null, params DynValue[] args)
+            : base(resourceLocator ?? ClientSkinService.CurrentlySelectedSkin, layerPath, args)
         {
-            Input.Register(this);
+            m_script["nsc"] = tblNsc = m_script.NewTable();
+
+            tblNsc["pushGameplay"] = (Action<ChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlay.None)));
         }
 
-        public override void Destroy()
-        {
-            Input.UnRegister(this);
-        }
-
-        public virtual bool ControllerButtonPressed(ControllerInput input) => false;
-        public virtual bool ControllerButtonReleased(ControllerInput input) => false;
-        public virtual bool ControllerAxisChanged(ControllerInput input, float delta) => false;
+        protected override Layer CreateNewLuaLayer(string layerPath, DynValue[] args) => new NscLayer(ResourceLocator, layerPath, args);
 
         public override void LateUpdate()
         {
             base.LateUpdate();
-
             ForegroundGui?.Update();
         }
 

@@ -1,9 +1,11 @@
 
 include "layerLayout";
 
+local bgName = "bgHighContrast";
+
 function nsc.layer.doAsyncLoad()
-    Layouts.Landscape.Background = nsc.graphics.queueTextureLoad("genericBackground_LS");
-    Layouts.Portrait.Background = nsc.graphics.queueTextureLoad("generigBackground_PR");
+    Layouts.Landscape.Background = nsc.graphics.queueTextureLoad(bgName .. "_LS");
+    Layouts.Portrait.Background = nsc.graphics.queueTextureLoad(bgName .. "_PR");
     
     return true;
 end

@@ -8,25 +8,22 @@ local alpha = 0;
 local timer = 0;
 
 local transitionFunction = function()
-    nsc.layer.push("titleScreen");
+    theori.layer.push("titleScreen");
 end;
 
-function nsc.layer.init()
-    nsc.input.controller.pressed:connect(function(button)
-        if (button == ControllerInput.Start) then
+function theori.layer.init()
+    theori.input.controller.pressed:connect(function(controller, button)
+        if (button == "start") then
             timer = TOTAL_TIME;
-            if (nsc.input.controller.isDown(ControllerInput.BT0)) then
-                transitionFunction = nsc.game.pushDebugMenu;
-            end
         end
     end);
 end
 
-function nsc.layer.update(delta, total)
+function theori.layer.update(delta, total)
     timer = timer + delta;
     if (timer > TOTAL_TIME) then
-        nsc.layer.setInvalidForResume();
-        nsc.closeCurtain(0.25, transitionFunction);
+        theori.layer.setInvalidForResume();
+        theori.graphics.closeCurtain(0.25, transitionFunction);
     else
         local temp = timer;
         if (temp >= WAIT_TIME) then
@@ -45,14 +42,14 @@ function nsc.layer.update(delta, total)
     end
 end
 
-function nsc.layer.render()
-    local text = nsc.graphics.getStaticTexture("audfx-text-large");
+function theori.layer.render()
+    local text = theori.graphics.getStaticTexture("audfx-text-large");
     
-    local w, h = nsc.graphics.getViewportSize();
+    local w, h = theori.graphics.getViewportSize();
 
     local width = w * 0.7;
     local height = width * text.Height / text.Width;
     
-    nsc.graphics.setImageColor(0, 169, 255, 255 * alpha);
-    nsc.graphics.draw(text, (w - width) / 2, (h - height) / 2, width, height);
+    theori.graphics.setImageColor(0, 169, 255, 255 * alpha);
+    theori.graphics.draw(text, (w - width) / 2, (h - height) / 2, width, height);
 end

@@ -8,6 +8,7 @@ using theori.Scripting;
 
 using NeuroSonic.IO;
 using NeuroSonic.Properties;
+using System;
 
 namespace NeuroSonic
 {
@@ -18,6 +19,8 @@ namespace NeuroSonic
         private static ClientHost? host;
 
         public static readonly NscConfig Config = new NscConfig();
+
+        public static ClientHost Host => host ?? throw new InvalidOperationException("Host not initialized");
 
         public static Gamepad? Gamepad { get; private set; }
 
@@ -43,15 +46,13 @@ namespace NeuroSonic
 
         public static void SwitchActiveGamepad(int newDeviceIndex)
         {
-            if (Gamepad != null && newDeviceIndex == Gamepad.DeviceIndex) return;
+            if (!(Gamepad is null) && newDeviceIndex == Gamepad.DeviceIndex) return;
             Gamepad?.Close();
 
             host!.Config.Set(TheoriConfigKey.Controller_DeviceID, newDeviceIndex);
-            if (Gamepad.TryGet(newDeviceIndex) is { } gamepad)
-            {
+            if (UserInputService.TryGetGamepadFromDeviceIndex(newDeviceIndex) is { } gamepad)
                 Gamepad = gamepad;
-                gamepad.Open();
-            }
+
             Input.CreateController();
 
             SaveNscConfig();

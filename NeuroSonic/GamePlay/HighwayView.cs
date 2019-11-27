@@ -61,16 +61,16 @@ namespace NeuroSonic.GamePlay
         private Material laserMaterial, laserEntryMaterial;
 
         private Drawable3D m_highwayDrawable;
-        private Dictionary<LaneLabel, Drawable3D?> m_keyBeamDrawables = new Dictionary<LaneLabel, Drawable3D?>();
+        private Dictionary<HybridLabel, Drawable3D?> m_keyBeamDrawables = new Dictionary<HybridLabel, Drawable3D?>();
         private Drawable3D m_lVolEntryDrawable, m_lVolExitDrawable;
         private Drawable3D m_rVolEntryDrawable, m_rVolExitDrawable;
 
         private Vector3 m_lVolColor, m_rVolColor;
 
-        private Dictionary<LaneLabel, EntityMap> m_renderables = new Dictionary<LaneLabel, EntityMap>();
-        private readonly Dictionary<LaneLabel, KeyBeamInfo> m_keyBeamInfos = new Dictionary<LaneLabel, KeyBeamInfo>();
-        private readonly Dictionary<LaneLabel, GlowInfo> m_glowInfos = new Dictionary<LaneLabel, GlowInfo>();
-        private readonly Dictionary<LaneLabel, bool> m_streamsActive = new Dictionary<LaneLabel, bool>();
+        private Dictionary<HybridLabel, EntityMap> m_renderables = new Dictionary<HybridLabel, EntityMap>();
+        private readonly Dictionary<HybridLabel, KeyBeamInfo> m_keyBeamInfos = new Dictionary<HybridLabel, KeyBeamInfo>();
+        private readonly Dictionary<HybridLabel, GlowInfo> m_glowInfos = new Dictionary<HybridLabel, GlowInfo>();
+        private readonly Dictionary<HybridLabel, bool> m_streamsActive = new Dictionary<HybridLabel, bool>();
 
         public SlidingChartPlayback Playback { get; }
 
@@ -283,7 +283,7 @@ namespace NeuroSonic.GamePlay
             m_renderables[obj.Lane].Remove(obj);
         }
 
-        public void CreateKeyBeam(LaneLabel lane, Vector3 color)
+        public void CreateKeyBeam(HybridLabel lane, Vector3 color)
         {
             m_keyBeamInfos[(int)lane].Alpha = 1.0f;
             m_keyBeamInfos[(int)lane].Color = color;

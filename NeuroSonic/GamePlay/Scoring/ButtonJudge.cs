@@ -9,8 +9,8 @@ using NeuroSonic.Charting;
 
 namespace NeuroSonic.GamePlay.Scoring
 {
-    public delegate void SpawnKeyBeam(LaneLabel label, JudgeKind kind, bool isEarly);
-    public delegate void DespawnKeyBeam(LaneLabel label);
+    public delegate void SpawnKeyBeam(HybridLabel label, JudgeKind kind, bool isEarly);
+    public delegate void DespawnKeyBeam(HybridLabel label);
 
     public sealed class ButtonJudge : StreamJudge
     {
@@ -93,7 +93,7 @@ namespace NeuroSonic.GamePlay.Scoring
         public SpawnKeyBeam? SpawnKeyBeam;
         public DespawnKeyBeam? DespawnKeyBeam;
 
-        public ButtonJudge(Chart chart, LaneLabel label)
+        public ButtonJudge(Chart chart, HybridLabel label)
             : base(chart, label)
         {
             tick_t tickStep = (Chart.MaxBpm >= 255 ? 2.0 : 1.0) / (4 * 4);

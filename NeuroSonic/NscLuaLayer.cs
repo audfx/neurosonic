@@ -24,9 +24,13 @@ using System.Numerics;
 
 using static MoonSharp.Interpreter.DynValue;
 using System.Collections.Generic;
+using System.Text;
+using System.Diagnostics;
+using theori.Database;
 
 namespace NeuroSonic
 {
+#if false
     class GameSystem
     {
         public readonly ClientResourceLocator ResourceLocator;
@@ -81,14 +85,18 @@ namespace NeuroSonic
     {
         //public static implicit operator NscChartSetInfoHandle(ChartSetInfo audio) => new NscChartSetInfoHandle(audio);
 
-        private readonly ClientResourceManager m_resources;
+        internal readonly ClientResourceManager Resources;
+        internal readonly theori.Scripting.ScriptProgram Script;
+        internal readonly ChartDatabaseWorker Worker;
 
         private List<NscChartInfoHandle>? m_charts;
 
-        public NscChartSetInfoHandle(ClientResourceManager resources, ChartSetInfo info)
+        public NscChartSetInfoHandle(ClientResourceManager resources, theori.Scripting.ScriptProgram script, ChartDatabaseWorker worker, ChartSetInfo info)
             : base(info)
         {
-            m_resources = resources;
+            Resources = resources;
+            Script = script;
+            Worker = worker;
         }
 
         /// <summary>
@@ -115,23 +123,21 @@ namespace NeuroSonic
             .ThenBy(info => info.DifficultyLevel)
             .ThenBy(info => info.DifficultyName)
             //.OrderBy(info => info.SongTitle)
-            .Select(info => new NscChartInfoHandle(m_resources, this, info)).ToList());
+            .Select(info => new NscChartInfoHandle(this, info)).ToList());
     }
 
     class NscChartInfoHandle : NscLuaObjectHandle<ChartInfo>
     {
-        //public static implicit operator NscChartInfoHandle(ChartInfo audio) => new NscChartInfoHandle(audio);
-
-        private readonly ClientResourceManager m_resources;
-        private readonly NscChartSetInfoHandle m_setInfo;
+        internal ClientResourceManager Resources => Set.Resources;
+        internal ScriptProgram Script => Set.Script;
+        internal ChartDatabaseWorker Worker => Set.Worker;
 
         private Texture? m_jacketTexture;
 
-        public NscChartInfoHandle(ClientResourceManager resources, NscChartSetInfoHandle setInfo, ChartInfo info)
+        public NscChartInfoHandle(NscChartSetInfoHandle setInfo, ChartInfo info)
             : base(info)
         {
-            m_resources = resources;
-            m_setInfo = setInfo;
+            Set = setInfo;
         }
 
         /// <summary>
@@ -142,7 +148,7 @@ namespace NeuroSonic
         public long LastWriteTime => Object.LastWriteTime;
 
         public long SetID => Object.SetID;
-        public NscChartSetInfoHandle Set => m_setInfo;
+        public NscChartSetInfoHandle Set { get; private set; }
 
         /// <summary>
         /// The name of the chart file inside of the Set directory.
@@ -189,15 +195,103 @@ namespace NeuroSonic
                 string texturePath = Path.Combine(chartsDir, Object.Set.FilePath, Object.JacketFileName);
 
                 Texture? actualTexture = null;
-                actualTexture = m_resources.LoadTexture(File.OpenRead(texturePath), Path.GetExtension(Object.JacketFileName), () =>
+                actualTexture = Resources.LoadTexture(File.OpenRead(texturePath), Path.GetExtension(Object.JacketFileName), () =>
                 {
                     m_jacketTexture = actualTexture!;
-                    m_resources.Manage(actualTexture!);
+                    Resources.Manage(actualTexture!);
                 });
             }
             catch (Exception) { }
 
             return m_jacketTexture;
+        }
+
+        public DynValue GetConfig()
+        {
+            string configString = ChartDatabaseService.GetLocalConfigForChart(Object);
+
+            string[] entries = configString.Split(';');
+            var config = Script.NewTable();
+
+            foreach (string entry in entries)
+            {
+                static DynValue Parse(string v)
+                {
+                    if (v.StartsWith('"'))
+                    {
+                        Debug.Assert(v.EndsWith('"'));
+                        return NewString(v[1..^1]);
+                    }
+                    else switch (v)
+                    {
+                        case "true": return True;
+                        case "false": return False;
+                        case "nil": return Nil;
+
+                        default:
+                        {
+                            if (double.TryParse(v, out double vNumber))
+                                return NewNumber(vNumber);
+                            else goto case "nil";
+                        }
+                    }
+                }
+
+                if (entry.TrySplit('=', out string key, out string value))
+                    config[key] = Parse(value);
+                else config.Append(Parse(value));
+            }
+
+            return NewTable(config);
+        }
+
+        public void SetConfig(DynValue configValue)
+        {
+            if (configValue.Type != MoonSharp.Interpreter.DataType.Table)
+                return;
+
+            var config = configValue.Table;
+
+            var configString = new StringBuilder();
+            for (int i = 0; i < config.Length; i++)
+            {
+                if (configString.Length > 0)
+                    configString.Append(';');
+                configString.Append(config.Get(i));
+            }
+            foreach (var pair in config.Pairs)
+            {
+                if (configString.Length > 0)
+                    configString.Append(';');
+
+                switch (pair.Value.Type)
+                {
+                    case MoonSharp.Interpreter.DataType.Tuple:
+                    case MoonSharp.Interpreter.DataType.ClrFunction:
+                    case MoonSharp.Interpreter.DataType.Function:
+                    case MoonSharp.Interpreter.DataType.Table:
+                    case MoonSharp.Interpreter.DataType.TailCallRequest:
+                    case MoonSharp.Interpreter.DataType.Thread:
+                    case MoonSharp.Interpreter.DataType.UserData:
+                    case MoonSharp.Interpreter.DataType.Void:
+                    case MoonSharp.Interpreter.DataType.YieldRequest:
+                        continue;
+                }
+
+                // accepts nil, number, string, bool
+                string valueString = pair.Value.Type switch
+                {
+                    MoonSharp.Interpreter.DataType.String => $"\"{ pair.Value.String }\"",
+                    MoonSharp.Interpreter.DataType.Boolean => pair.Value.Boolean ? "true" : "false",
+                    MoonSharp.Interpreter.DataType.Nil => "nil",
+                    MoonSharp.Interpreter.DataType.Number => pair.Value.Number.ToString(),
+                    _ => throw new NotImplementedException(pair.Value.Type.ToString()),
+                };
+
+                configString.Append($"{ pair.Key.ToPrintString() }={ valueString }");
+            }
+
+            ChartDatabaseService.SaveLocalConfigForChart(Object, configString.ToString());
         }
     }
 
@@ -328,25 +422,21 @@ namespace NeuroSonic
 
     }
 
-    public sealed class NscLuaLayer : Layer, IControllerInputLayer
+    public sealed class NscLuaLayer : Layer
     {
         static NscLuaLayer()
         {
-            LuaScript.RegisterType<NscAudioHandle>();
-            LuaScript.RegisterType<NscChartSetInfoHandle>();
-            LuaScript.RegisterType<NscChartInfoHandle>();
-            LuaScript.RegisterType<NscChartHandle>();
-            LuaScript.RegisterType<NscGameSystemHandle>();
-            LuaScript.RegisterType<NscHighwayHandle>();
+            theori.Scripting.ScriptProgram.RegisterType<NscAudioHandle>();
+            theori.Scripting.ScriptProgram.RegisterType<NscChartSetInfoHandle>();
+            theori.Scripting.ScriptProgram.RegisterType<NscChartInfoHandle>();
+            theori.Scripting.ScriptProgram.RegisterType<NscChartHandle>();
+            theori.Scripting.ScriptProgram.RegisterType<NscGameSystemHandle>();
+            theori.Scripting.ScriptProgram.RegisterType<NscHighwayHandle>();
         }
-
-        private readonly ClientResourceLocator m_locator;
-        private readonly ClientResourceManager m_resources;
 
         private readonly BasicSpriteRenderer m_spriteRenderer;
 
         private readonly string m_scriptFileName;
-        private readonly LuaScript m_script;
         private readonly DynValue[] m_scriptArgs;
 
         private readonly Table m_tbl_nsc;
@@ -391,40 +481,18 @@ namespace NeuroSonic
         }
 
         public NscLuaLayer(string scriptFileName, params DynValue[] args)
+            : base(ClientSkinService.CurrentlySelectedSkin)
         {
-            m_locator = ClientSkinService.CurrentlySelectedSkin;
-            m_resources = new ClientResourceManager(m_locator);
-
-            m_spriteRenderer = new BasicSpriteRenderer(m_locator);
+            m_spriteRenderer = new BasicSpriteRenderer(ResourceLocator);
 
             m_scriptFileName = scriptFileName;
-            m_script = new LuaScript();
             m_scriptArgs = args;
-
-            ((Table)m_script["table"])["shallowCopy"] = (Func<DynValue, DynValue>)(table =>
-            {
-                var result = m_script.NewTable();
-                foreach (var pair in table.Table.Pairs)
-                    result[pair.Key] = pair.Value;
-                return NewTable(result);
-            });
 
             m_script["KeyCode"] = typeof(KeyCode);
             m_script["MouseButton"] = typeof(MouseButton);
-            m_script["ControllerInput"] = typeof(ControllerInput);
-
-            m_script["include"] = (Func<string, DynValue>)Include_LuaFile;
+            //m_script["ControllerInput"] = typeof(ControllerInput);
 
             m_script["nsc"] = m_tbl_nsc = m_script.NewTable();
-
-            m_tbl_nsc["openCurtain"] = (Action)OpenCurtain;
-            m_tbl_nsc["closeCurtain"] = (Action<float, DynValue?>)((duration, callback) =>
-            {
-                Action? onClosed = (callback == null || callback == DynValue.Nil) ? (Action?)null : () => m_script.Call(callback!);
-                if (duration <= 0)
-                    CloseCurtain(onClosed);
-                else CloseCurtain(duration, onClosed);
-            });
 
             m_tbl_nsc["doStaticLoadsAsync"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.LoadAll());
             m_tbl_nsc["finalizeStaticLoads"] = (Func<bool>)(() => ClientAs<NscClient>().StaticResources.FinalizeLoad());
@@ -437,23 +505,6 @@ namespace NeuroSonic
             m_tbl_nsc_audio["getAudio"] = (Func<string, NscAudioHandle>)(audioName => m_resources.GetAudio($"audio/{ audioName }"));
 
             m_tbl_nsc["charts"] = m_tbl_nsc_charts = m_script.NewTable();
-
-            m_tbl_nsc_charts["setDatabaseToIdle"] = (Action)(() => ClientAs<NscClient>().DatabaseWorker.SetToIdle());
-            m_tbl_nsc_charts["getDatabaseState"] = (Func<string>)(() => ClientAs<NscClient>().DatabaseWorker.State.ToString());
-
-            m_tbl_nsc_charts["setDatabaseToClean"] = (Action<DynValue>)(arg =>
-            {
-                ClientAs<NscClient>().DatabaseWorker.SetToClean(arg == DynValue.Void ? (Action?)null : () => m_script.Call(arg));
-            });
-
-            m_tbl_nsc_charts["setDatabaseToPopulate"] = NewCallback((ctx, args) =>
-            {
-                Action? callback = args.Count == 0 ? (Action?)null : () => ctx.Call(args[0]);
-                ClientAs<NscClient>().DatabaseWorker.SetToPopulate(callback);
-                return Nil;
-            });
-
-            m_tbl_nsc_charts["getChartSets"] = (Func<List<NscChartSetInfoHandle>>)(() => ClientAs<NscClient>().DatabaseWorker.ChartSets.Select(info => new NscChartSetInfoHandle(m_resources, info)).ToList());
 
             m_tbl_nsc["config"] = m_tbl_nsc_config = m_script.NewTable();
 
@@ -470,11 +521,11 @@ namespace NeuroSonic
             m_tbl_nsc["game"] = m_tbl_nsc_game = m_script.NewTable();
 
             m_tbl_nsc_game["exit"] = (Action)(() => Host.Exit());
-            m_tbl_nsc_game["pushDebugMenu"] = (Action)(() => Push(new NeuroSonicStandaloneStartup()));
-            m_tbl_nsc_game["pushGameplay"] = (Action<NscChartInfoHandle>)(chartInfo => Push(new GameLayer(m_locator, chartInfo, AutoPlay.None)));
+            //m_tbl_nsc_game["pushDebugMenu"] = (Action)(() => Push(new NeuroSonicStandaloneStartup()));
+            m_tbl_nsc_game["pushGameplay"] = (Action<NscChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlay.None)));
             m_tbl_nsc_game["newGameSystem"] = (Func<NscChartHandle, NscGameSystemHandle>)(chart =>
             {
-                return new GameSystem(m_locator, chart);
+                return new GameSystem(ResourceLocator, chart);
             });
 
             m_tbl_nsc["graphics"] = m_tbl_nsc_graphics = m_script.NewTable();
@@ -502,7 +553,7 @@ namespace NeuroSonic
 
             m_tbl_nsc_graphics["newHighway"] = (Func<NscHighwayHandle>)(() =>
             {
-                var highway = new HighwayView(m_locator, null);
+                var highway = new HighwayView(ResourceLocator, null);
                 m_resources.Manage(highway);
                 return highway;
             });
@@ -526,14 +577,14 @@ namespace NeuroSonic
             m_tbl_nsc_input["controller"] = m_tbl_nsc_input_controller = m_script.NewTable();
 
             m_tbl_nsc_input_controller["axisPartialTick"] = m_tbl_nsc_input_controller_axisPartialTick = m_script.NewTable(); ;
-            m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser0Axis] = 0.0f;
-            m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser1Axis] = 0.0f;
+            //m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser0Axis] = 0.0f;
+            //m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser1Axis] = 0.0f;
 
             m_tbl_nsc_input_controller["pressed"] = m_evt_controller_pressed = m_script.NewEvent();
             m_tbl_nsc_input_controller["released"] = m_evt_controller_released = m_script.NewEvent();
             m_tbl_nsc_input_controller["axisChanged"] = m_evt_controller_axisChanged = m_script.NewEvent();
             m_tbl_nsc_input_controller["axisTicked"] = m_evt_controller_axisTicked = m_script.NewEvent();
-            m_tbl_nsc_input_controller["isDown"] = (Func<ControllerInput, bool>)Input.IsButtonDown;
+            //m_tbl_nsc_input_controller["isDown"] = (Func<ControllerInput, bool>)Input.IsButtonDown;
 
             m_tbl_nsc["layer"] = m_tbl_nsc_layer = m_script.NewTable();
 
@@ -562,210 +613,9 @@ namespace NeuroSonic
             m_tbl_nsc_layer["render"] = (Action)(() => { });
         }
 
-        private void CloseCurtain(float holdTime, Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(holdTime, onClosed);
-        private void CloseCurtain(Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(onClosed);
-        private void OpenCurtain() => ClientAs<NscClient>().OpenCurtain();
-
-        private DynValue Include_LuaFile(string fileName)
-        {
-            return m_script.LoadFile(m_locator.OpenFileStream($"scripts/{ fileName }.lua"));
-        }
-
-        public override bool AsyncLoad()
-        {
-            Include_LuaFile(m_scriptFileName);
-            m_script.Call(m_tbl_nsc_layer["construct"], m_scriptArgs);
-
-            var result = m_script.Call(m_tbl_nsc_layer["doAsyncLoad"]);
-
-            if (result == null) return true; // guard against function missing
-            if (!result.CastToBool()) return false;
-
-            if (!m_resources.LoadAll()) return false;
-            return true;
-        }
-
-        public override bool AsyncFinalize()
-        {
-            var result = m_script.Call(m_tbl_nsc_layer["doAsyncFinalize"]);
-
-            if (result == null) return true; // guard against function missing
-            if (!result.CastToBool()) return false;
-
-            if (!m_resources.FinalizeLoad()) return false;
-            return true;
-        }
-
-        public override void Initialize()
-        {
-            Input.Register(this);
-
-            m_script.Call(m_tbl_nsc_layer["init"]);
-        }
-
-        public override void Destroy()
-        {
-            Input.UnRegister(this);
-
-            m_script.Call(m_tbl_nsc_layer["destroy"]);
-        }
-
-        public override void Suspended(Layer nextLayer)
-        {
-            base.Suspended(nextLayer);
-
-            m_script.Call(m_tbl_nsc_layer["suspended"]);
-        }
-
-        public override void Resumed(Layer previousLayer)
-        {
-            base.Resumed(previousLayer);
-
-            m_script.Call(m_tbl_nsc_layer["resumed"]);
-        }
-
-        public override bool OnExiting(Layer? source)
-        {
-            var result = m_script.Call(m_tbl_nsc_layer["onExiting"]);
-            if (result == null) return false;
-
-            return result.CastToBool();
-        }
-
-        public override void ClientSizeChanged(int width, int height)
-        {
-            base.ClientSizeChanged(width, height);
-
-            m_script.Call(m_tbl_nsc_layer["onClientSizeChanged"], width, height);
-        }
-
-        public override bool KeyPressed(KeyInfo info)
-        {
-            if (m_hasControllerPriority) return false;
-
-            m_evt_keyboard_pressed.Fire(info.KeyCode);
-            return true;
-        }
-
-        public override bool KeyReleased(KeyInfo info)
-        {
-            if (m_hasControllerPriority) return false;
-
-            m_evt_keyboard_released.Fire(info.KeyCode);
-            return true;
-        }
-
-        public override bool MouseButtonPressed(MouseButtonInfo info)
-        {
-            if (m_hasControllerPriority) return false;
-
-            m_evt_mouse_pressed.Fire(info.Button);
-            return true;
-        }
-
-        public override bool MouseButtonReleased(MouseButtonInfo info)
-        {
-            if (m_hasControllerPriority) return false;
-
-            m_evt_mouse_released.Fire(info.Button);
-            return true;
-        }
-
-        public override bool MouseMoved(int x, int y, int dx, int dy)
-        {
-            if (m_hasControllerPriority) return false;
-
-            m_evt_mouse_moved.Fire(x, y, dx, dy);
-            return true;
-        }
-
-        public override bool MouseWheelScrolled(int x, int y)
-        {
-            if (m_hasControllerPriority) return false;
-
-            m_evt_mouse_scrolled.Fire(x, y);
-            return true;
-        }
-
-        public bool ControllerButtonPressed(ControllerInput input)
-        {
-            if (!m_hasControllerPriority) return false;
-
-            m_evt_controller_pressed.Fire(input);
-            return true;
-        }
-
-        public bool ControllerButtonReleased(ControllerInput input)
-        {
-            if (!m_hasControllerPriority) return false;
-
-            m_evt_controller_released.Fire(input);
-            return true;
-        }
-
-        public bool ControllerAxisChanged(ControllerInput input, float delta)
-        {
-            if (!m_hasControllerPriority) return false;
-
-            m_controllerAxisMotion[input - ControllerInput.Laser0Axis] += delta * ControllerAxisMotionMultiplier;
-            ref float value = ref m_controllerAxisMotion[input - ControllerInput.Laser0Axis];
-
-            while (value <= -1)
-            {
-                m_evt_controller_axisTicked.Fire(input, -1);
-                value += 1;
-            }
-            while (value >= 1)
-            {
-                m_evt_controller_axisTicked.Fire(input, 1);
-                value -= 1;
-            }
-
-            m_tbl_nsc_input_controller_axisPartialTick[input] = value;
-            m_evt_controller_axisChanged.Fire(input, delta);
-            return true;
-        }
-
-        public override void Update(float delta, float total)
-        {
-            base.Update(delta, total);
-
-            m_resources.Update();
-
-            for (int i = 0; i < 2; i++)
-            {
-                ref float value = ref m_controllerAxisMotion[i];
-                if (value < 0)
-                    value = MathL.Min(value + delta * 2, 0);
-                else value = MathL.Max(value - delta * 2, 0);
-                m_tbl_nsc_input_controller_axisPartialTick[ControllerInput.Laser0Axis + i] = value;
-            }
-
-            m_script.Call(m_tbl_nsc_layer["update"], delta, total);
-        }
-
-        public override void FixedUpdate(float delta, float total)
-        {
-            base.FixedUpdate(delta, total);
-        }
-
-        public override void LateUpdate()
-        {
-            base.LateUpdate();
-        }
-
-        public override void Render()
-        {
-            base.Render();
-
-            m_spriteRenderer.BeginFrame();
-            m_script.Call(m_tbl_nsc_layer["render"]);
-            m_spriteRenderer.EndFrame();
-        }
-
-        public override void LateRender()
-        {
-            base.LateRender();
-        }
+        protected override void CloseCurtain(float holdTime, Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(holdTime, onClosed);
+        protected override void CloseCurtain(Action? onClosed = null) => ClientAs<NscClient>().CloseCurtain(onClosed);
+        protected override void OpenCurtain() => ClientAs<NscClient>().OpenCurtain();
     }
+#endif
 }

@@ -114,7 +114,7 @@ namespace NeuroSonic.GamePlay.Scoring
         public event Action OnShowCursor;
         public event Action OnHideCursor;
 
-        public LaserJudge(Chart chart, LaneLabel label)
+        public LaserJudge(Chart chart, HybridLabel label)
             : base(chart, label)
         {
             tick_t tickStep = (Chart.MaxBpm >= 255 ? 2.0 : 1.0) / (4 * 4);

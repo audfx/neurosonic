@@ -136,9 +136,9 @@ namespace NeuroSonic.Startup
             m_items[ItemIndex].Hilited = true;
         }
 
-        public override bool KeyPressed(KeyInfo key)
+        public override void KeyPressed(KeyInfo key)
         {
-            if (IsSuspended) return false;
+            if (IsSuspended) return;
 
             switch (key.KeyCode)
             {
@@ -151,52 +151,27 @@ namespace NeuroSonic.Startup
 
                 // stick our false thing here, returning true is the default for handled keys
                 default:
-                    if (Plugin.Config.GetEnum<InputDevice>(NscConfigKey.ButtonInputDevice) != InputDevice.Keyboard) return false;
+                    if (Plugin.Config.GetEnum<InputDevice>(NscConfigKey.ButtonInputDevice) != InputDevice.Keyboard) return;
 
                     if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_Back))
-                    {
                         OnExit();
-                        return true;
-                    }
-
-                    if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_BT0))
-                    {
+                    else if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_BT0))
                         NavigateUp();
-                        return true;
-                    }
-
-                    if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_BT1))
-                    {
+                    else if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_BT1))
                         NavigateDown();
-                        return true;
-                    }
-
-                    if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_Start))
-                    {
+                    else if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_Start))
                         m_items[ItemIndex].Action?.Invoke();
-                        return true;
-                    }
 
-                    return false;
+                    break;
             }
-
-            return true;
         }
 
-        public override bool ControllerButtonPressed(ControllerInput input)
+        public override void ControllerButtonPressed(ControllerButtonInfo info)
         {
-            switch (input)
-            {
-                case ControllerInput.Start: m_items[ItemIndex].Action?.Invoke(); break;
-                case ControllerInput.Back: OnExit(); break;
-
-                case ControllerInput.BT0: NavigateUp(); break;
-                case ControllerInput.BT1: NavigateDown(); break;
-
-                default: return false;
-            }
-
-            return true;
+                 if (info.Button == "Start") m_items[ItemIndex].Action?.Invoke();
+            else if (info.Button == "Back") OnExit();
+            else if (info.Button == 0) NavigateUp();
+            else if (info.Button == 1) NavigateDown();
         }
 
         protected virtual void OnExit() => Pop();
