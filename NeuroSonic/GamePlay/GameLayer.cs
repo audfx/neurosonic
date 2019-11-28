@@ -451,6 +451,7 @@ namespace NeuroSonic.GamePlay
 
                 //Push(new ChartResultLayer(m_locator, m_chartInfo, result));
                 SetInvalidForResume();
+                Pop();
             });
         }
 
@@ -644,7 +645,7 @@ namespace NeuroSonic.GamePlay
 
         public override void ControllerButtonReleased(ControllerButtonInfo info)
         {
-            if (info.Button == "Start")
+            if (info.Button == "start")
                 m_isChangingHiSpeedMult = false;
             else
             {
@@ -817,7 +818,11 @@ namespace NeuroSonic.GamePlay
                         checkAnalog = pAnalog;
 
                     if (checkAnalog != null && checkAnalog.AbsolutePosition > visualPosition)
-                        inputValue = MathL.Max(checkAnalog!.InitialValue, inputValue);
+                    {
+                        if (i == 0)
+                            inputValue = MathL.Max(checkAnalog!.InitialValue, inputValue);
+                        else inputValue = MathL.Min(checkAnalog!.InitialValue, inputValue);
+                    }
 
                     m_laserInputs[i] = inputValue;
                 }
