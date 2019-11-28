@@ -18,12 +18,10 @@ local chartsCache;
 -- which grouping the cursor is currently within
 local groupIndex = 1;
 -- which set the cursor is on within the group
-local setIndex = 1;
+local cellIndex = 1;
 -- which category slot (each of the 5 difficulties) is currently selected
 local slotIndex = 1;
 -- which chart in a slot, if there are multiple, is selected
--- This value is shared for all slots, so will be clamped (or reset)
---  between slot index changes.
 local slotChildIndex = 1;
 
 
@@ -135,7 +133,7 @@ local function getGridCellPosition(gi, si)
 end
 
 local function getGridCameraPosition()
-	local x, y = getGridCellPosition(groupIndex, setIndex);
+	local x, y = getGridCellPosition(groupIndex, cellIndex);
 	return y;
 end
 
@@ -151,36 +149,11 @@ end
 --------------------------------------------------
 
 
-local function nearestSlotIndex(set, slotIndex)
-	local slot = slotIndex;
-	while (#set[slot] == 0) do
-		if (slot == 1) then break; end
-		slot = slot - 1;
-	end
-	while (#set[slot] == 0) do
-		if (slot == 5) then break; end -- OH NO
-		slot = slot + 1;
-	end
-	return slot;
-end
-
-local function nearestSlot(set, slotIndex)
-	return set[nearestSlotIndex(set, slotIndex)];
-end
-
-local function nearestSlotChildIndex(slot, slotChildIndex)
-	return math.min(#slot, slotChildIndex);
-end
-
-local function nearestSlotChild(slot, slotChildIndex)
-	return slot[nearestSlotChildIndex(slot, slotChildIndex)];
-end
-
-local function getAllRelatedSets(primarySetId)
-	local cached = chartsCache[primarySetId];
+local function getSetChartRefs(setId)
+	local cached = chartsCache[setId];
 	if (not cached) then
-		chartsCache[primarySetId] = { };
-		cached = chartsCache[primarySetId];
+		chartsCache[setId] = { };
+		cached = chartsCache[setId];
 	end
 
 	if (cached.relatedSets) then
@@ -189,15 +162,75 @@ local function getAllRelatedSets(primarySetId)
 
 	local related = { primary };
 	for gi, group in next, charts do
-		for si, set in next, group do
-			if (set.set.ID == primarySetId) then
-				table.insert(related, { groupIndex = gi, setIndex = si, set = set });
+		for ci, chart in next, group do
+			if (chart.setID == setId) then
+				table.insert(related, { groupIndex = gi, cellIndex = ci, chart = chart });
 			end
 		end
 	end
 
 	cached.relatedSets = related;
 	return related;
+end
+
+local function ref(chart)
+	local setChartRefs = getSetChartRefs(chart.setID);
+	for _, c in next, setChartRefs do
+		if (c.chart.ID == chart.ID) then
+			return c;
+		end
+	end
+	-- ono bad
+end
+
+local function getSetSlots(set)
+	local cached = chartsCache[set.ID];
+	if (not cached) then
+		chartsCache[set.ID] = { };
+		cached = chartsCache[set.ID];
+	end
+
+	if (cached.slots) then
+		return cached.slots;
+	end
+
+	local slots = { };
+	for i = 1, 5 do slots[i] = { }; end;
+
+	for _, chart in next, set.charts do
+		table.insert(slots[chart.difficultyIndex], ref(chart));
+	end
+
+	cached.slots = slots;
+	return slots;
+end
+
+local function nearestSlotIndex(set, slotIndex)
+	local slot = slotIndex;
+	local setSlots = getSetSlots(set);
+
+	while (#setSlots[slot] == 0) do
+		if (slot == 1) then break; end
+		slot = slot - 1;
+	end
+	while (#setSlots[slot] == 0) do
+		if (slot == 5) then break; end -- OH NO
+		slot = slot + 1;
+	end
+
+	return slot;
+end
+
+local function nearestSlot(set, slotIndex)
+	return getSetSlots(set)[nearestSlotIndex(set, slotIndex)];
+end
+
+local function nearestSlotChildIndex(slot, slotChildIndex)
+	return math.min(#slot, slotChildIndex);
+end
+
+local function nearestSlotChild(slot, slotChildIndex)
+	return slot[nearestSlotChildIndex(slot, slotChildIndex)];
 end
 
 
@@ -226,6 +259,9 @@ function theori.layer.doAsyncLoad()
     textures.cursorOuter = theori.graphics.queueTextureLoad("chartSelect/cursorOuter");
     textures.levelBadge = theori.graphics.queueTextureLoad("chartSelect/levelBadge");
     textures.levelBadgeBorder = theori.graphics.queueTextureLoad("chartSelect/levelBadgeBorder");
+    textures.levelBar = theori.graphics.queueTextureLoad("chartSelect/levelBar");
+    textures.levelBarBorder = theori.graphics.queueTextureLoad("chartSelect/levelBarBorder");
+    textures.levelText = theori.graphics.queueTextureLoad("chartSelect/levelText");
 
 	local frameTextures = { "background", "border", "cornerPanel", "cornerPanelBorder", "fill", "infoBorders", "jacketBottomRight", "jacketTopLeft", "storageDevice", "trackDataLabel" };
 	for _, texName in next, frameTextures do
@@ -256,60 +292,48 @@ function theori.layer.init()
 
     theori.input.controller.axisTicked:connect(function(controller, axis, dir)
         if (axis == 0) then
-			local set = charts[groupIndex][setIndex];
+			local chart = charts[groupIndex][cellIndex];
+			local set = chart.set;
+
 			local cSlotIndex = nearestSlotIndex(set, slotIndex);
-			local cSlotChildIndex = nearestSlotChildIndex(set[cSlotIndex], slotChildIndex);
+			local cSlotChildIndex = nearestSlotChildIndex(getSetSlots(set)[cSlotIndex], slotChildIndex);
 
-			local completeSet = set.set;
-			local relatedSets = getAllRelatedSets(completeSet.ID);
-
+			local setSlots = getSetSlots(set);
 			local newSlotIndex = cSlotIndex;
-			local matchingSets = { };
+
 			while (true) do
 				newSlotIndex = newSlotIndex + dir;
 				if (newSlotIndex < 1 or newSlotIndex > 5) then break; end
-
-				for rsi, rSet in next, relatedSets do
-					if (#rSet.set[newSlotIndex] > 0) then
-						table.insert(matchingSets, rSet);
-					end
+				
+				if (#setSlots[newSlotIndex] > 0) then
+					break;
 				end
-
-				if (#matchingSets > 0) then break; end;
 			end
 
-			if (newSlotIndex < 1 or newSlotIndex > 5 or #matchingSets == 0) then return; end
+			if (newSlotIndex == cSlotIndex or newSlotIndex < 1 or newSlotIndex > 5) then return; end
+			
+			slotIndex = newSlotIndex;
+			slotChildIndex = nearestSlotChildIndex(setSlots[slotIndex], cSlotChildIndex);
 
-			if (#matchingSets == 1) then
-				print("got one");
-				local rSet = matchingSets[1];
-				groupIndex = rSet.groupIndex;
-				setIndex = rSet.setIndex;
-				slotIndex = newSlotIndex;
-				slotChildIndex = 1;
-			elseif (#matchingSets > 1) then
-				print("skipping this one chief:", #matchingSets .. "/" .. #relatedSets);
-				-- check for the best option
-			else
-				print("skipping this one chief:", #matchingSets .. "/" .. #relatedSets);
-				return;
-			end
+			local nextChartRef = setSlots[slotIndex][slotChildIndex];
+			groupIndex = nextChartRef.groupIndex;
+			cellIndex = nextChartRef.cellIndex;
 				
 			gridCameraPosTarget = getGridCameraPosition();
         elseif (axis == 1) then
-			setIndex = setIndex + dir;
-			if (setIndex < 1) then
+			cellIndex = cellIndex + dir;
+			if (cellIndex < 1) then
 				groupIndex = groupIndex - 1;
 				if (groupIndex < 1) then
 					groupIndex = #charts;
 				end
-				setIndex = #charts[groupIndex];
-			elseif (setIndex > #charts[groupIndex]) then
+				cellIndex = #charts[groupIndex];
+			elseif (cellIndex > #charts[groupIndex]) then
 				groupIndex = groupIndex + 1;
 				if (groupIndex > #charts) then
 					groupIndex = 1;
 				end
-				setIndex = 1;
+				cellIndex = 1;
 			end
 			gridCameraPosTarget = getGridCameraPosition();
         end
@@ -319,7 +343,7 @@ function theori.layer.init()
         if (button == "back") then
             theori.graphics.closeCurtain(0.2, theori.layer.pop);
         elseif (button == "start") then
-			local chart = nearestSlotChild(nearestSlot(charts[groupIndex][setIndex], slotIndex), slotChildIndex);
+			local chart = charts[groupIndex][cellIndex];
             theori.graphics.closeCurtain(0.2, function() nsc.pushGameplay(chart); end);
         end
     end);
@@ -369,12 +393,9 @@ local function renderSpriteNumCenteredNumDigits(num, dig, x, y, h)
 	end
 end
 
-local function renderSetCell(set, x, y, w, h)
-	local isSelected = charts[groupIndex][setIndex] == set;
+local function renderCell(chart, x, y, w, h)
+	local isSelected = charts[groupIndex][cellIndex] == chart;
 
-	local slot = nearestSlot(set, slotIndex);
-	local chart = nearestSlotChild(slot, slotChildIndex);
-	
 	local r, g, b = chart.difficultyColor;
 	local diffLvl = chart.difficultyLevel;
 	
@@ -463,13 +484,12 @@ local function renderChartGridPanel(x, y, w, h)
 				theori.graphics.fillRect(x, yOffset + yPosRel * cellSize, w, gridGroupHeaderSize * cellSize);
 			end
 
-			for si = 1, #group do
-				local set = group[si];
+			for ci = 1, #group do
+				local chart = group[ci];
+				local selected = gi == groupIndex and ci == cellIndex;
 
-				local selected = gi == groupIndex and si == setIndex;
-
-				local rowIndex = math.floor((si - 1) / gridColumnCount);
-				local colIndex = (si - 1) % gridColumnCount;
+				local rowIndex = math.floor((ci - 1) / gridColumnCount);
+				local colIndex = (ci - 1) % gridColumnCount;
 
 				local yPosRelSet = yPosRel + gridGroupHeaderSize + rowIndex +
 					(colIndex * gridRowStepping / (gridColumnCount - 1));
@@ -478,7 +498,7 @@ local function renderChartGridPanel(x, y, w, h)
 					local cx, cy = margin + x + colIndex * cellSize, margin + yOffset + yPosRelSet * cellSize;
 					local cs = cellSize - 2 * margin;
 
-					renderSetCell(set, cx, cy, cs, cs);
+					renderCell(chart, cx, cy, cs, cs);
 				end
 			end
 		end
@@ -486,7 +506,7 @@ local function renderChartGridPanel(x, y, w, h)
 		yPosRel = yPosRel + groupHeight;
 	end
 
-	local cursorCenterX, cursorCenterY = getGridCellPosition(groupIndex, setIndex);
+	local cursorCenterX, cursorCenterY = getGridCellPosition(groupIndex, cellIndex);
 	local s0 = cellSize * (1 + 0.05 * (math.abs(math.sin(timer * 6))));
 	local s1 = cellSize * (1 + 0.12 * (math.abs(math.sin(timer * 6))));
 
@@ -494,6 +514,9 @@ local function renderChartGridPanel(x, y, w, h)
 	--theori.graphics.setImageColor(255, 60, 20, 200);
 	theori.graphics.draw(textures.cursor, x + cellSize * cursorCenterX - s0 / 2, y + yOffset + cellSize * cursorCenterY - s0 / 2, s0, s0);
 	theori.graphics.draw(textures.cursorOuter, x + cellSize * cursorCenterX - s1 / 2, y + yOffset + cellSize * cursorCenterY - s1 / 2, s1, s1);
+end
+
+local function renderChartLevelBar(set)
 end
 
 -- Landscape

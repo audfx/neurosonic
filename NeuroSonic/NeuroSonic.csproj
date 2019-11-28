@@ -97,6 +97,9 @@
     <None Remove="Resources\textures\chartSelect\cursorOuter.png" />
     <None Remove="Resources\textures\chartSelect\levelBadge.png" />
     <None Remove="Resources\textures\chartSelect\levelBadgeBorder.png" />
+    <None Remove="Resources\textures\chartSelect\levelBar.png" />
+    <None Remove="Resources\textures\chartSelect\levelBarBorder.png" />
+    <None Remove="Resources\textures\chartSelect\levelText.png" />
     <None Remove="Resources\textures\chartSelect\noJacket.png" />
     <None Remove="Resources\textures\chartSelect\noJacketOverlay.png" />
     <None Remove="Resources\textures\chartSelect\setFrame.png" />
@@ -195,6 +198,9 @@
     <EmbeddedResource Include="Resources\textures\chartSelect\cursorOuter.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\levelBadge.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\levelBadgeBorder.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\levelBar.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\levelBarBorder.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\levelText.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\noJacket.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\noJacketOverlay.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\setFrame.png" />
