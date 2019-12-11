@@ -47,23 +47,11 @@ namespace NeuroSonic.Platform
             Plugin.SaveNscConfig();
         }
 
-        protected override void EndInputStep()
-        {
-            base.EndInputStep();
-
-            DatabaseWorker.Update();
-        }
-
         protected override void Update(float varyingDelta, float totalTime)
         {
             base.Update(varyingDelta, totalTime);
 
             Curtain?.Update(varyingDelta, totalTime);
-        }
-
-        protected override void FixedUpdate(float fixedDelta, float totalTime)
-        {
-            base.FixedUpdate(fixedDelta, totalTime);
         }
 
         protected override void EndRenderStep()
