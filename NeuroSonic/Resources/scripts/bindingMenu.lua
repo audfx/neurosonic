@@ -3,36 +3,36 @@ include "layerLayout";
 
 local bgName = "bgHighContrast";
 
-function nsc.layer.doAsyncLoad()
-    Layouts.Landscape.Background = nsc.graphics.queueTextureLoad(bgName .. "_LS");
-    Layouts.Portrait.Background = nsc.graphics.queueTextureLoad(bgName .. "_PR");
+function theori.layer.doAsyncLoad()
+    Layouts.Landscape.Background = theori.graphics.queueTextureLoad(bgName .. "_LS");
+    Layouts.Portrait.Background = theori.graphics.queueTextureLoad(bgName .. "_PR");
     
     return true;
 end
 
-function nsc.layer.construct()
+function theori.layer.construct()
 end
 
-function nsc.layer.onClientSizeChanged(w, h)
+function theori.layer.onClientSizeChanged(w, h)
     Layout.CalculateLayout();
 end
 
-function nsc.layer.init()
-    nsc.openCurtain();
+function theori.layer.init()
+    theori.graphics.openCurtain();
 
-    nsc.input.controller.pressed:connect(function(button)
-        if (button == ControllerInput.Back) then
-            nsc.closeCurtain(0.2, nsc.layer.pop);
-        elseif (button == ControllerInput.Start) then
+    theori.input.controller.pressed:connect(function(controller, button)
+        if (button == "back") then
+            theori.graphics.closeCurtain(0.2, theori.layer.pop);
+        elseif (button == "start") then
         end
     end);
 end
 
-function nsc.layer.update(delta, total)
+function theori.layer.update(delta, total)
     Layout.Update(delta, total);
 end
 
-function nsc.layer.render()
+function theori.layer.render()
     Layout.CheckLayout();
     Layout.DoTransform();
 

@@ -65,8 +65,10 @@ function theori.layer.init()
                 theori.graphics.closeCurtain(0.2, function() theori.layer.push("settingsMenu"); end);
             elseif (controller:isDown(1)) then
                 theori.graphics.closeCurtain(0.2, function() theori.layer.push("bindingMenu"); end);
+            elseif (controller:isDown(2)) then
             elseif (controller:isDown(3)) then
-                theori.graphics.closeCurtain(0.2, function() theori.layer.push("configMenu"); end);
+            elseif (controller:isDown(4)) then
+            elseif (controller:isDown(5)) then
             else
                 -- go to login scren stuff and then chart selection
                 titleLoop.stop();

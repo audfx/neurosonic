@@ -6,6 +6,17 @@ local bgName = "bgHighContrast";
 local timer;
 
 --------------------------------------------------
+-- Layer Data ------------------------------------
+--------------------------------------------------
+-- Can be 0 for the default state, 1 thru 4 for each of the BT sub menus,
+--  5 or 6 for the FX sub menus, and 7 for the double-tapped-FX sub menu.
+local currentState = 0;
+
+local stateData = { };
+--------------------------------------------------
+
+
+--------------------------------------------------
 -- Chart Data ------------------------------------
 --------------------------------------------------
 -- the collective of charts the player can select from
@@ -23,6 +34,7 @@ local cellIndex = 1;
 local slotIndex = 1;
 -- which chart in a slot, if there are multiple, is selected
 local slotChildIndex = 1;
+--------------------------------------------------
 
 
 --------------------------------------------------
@@ -43,6 +55,8 @@ local gridGroupHeaderSize = 0.25;
 -- where the camera is along the y axis
 local gridCameraPos = 0;
 local gridCameraPosTarget = 0;
+
+local infoBounceTimer = 0;
 --------------------------------------------------
 
 
@@ -55,6 +69,23 @@ local textures =
 	numbers = { },
 	legend = { },
 	chartFrame = { },
+	infoPanel =
+	{
+		landscape = { },
+		portrait = { },
+	},
+};
+
+local currentNoiseTexture;
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Audio -----------------------------------------
+--------------------------------------------------
+local audio =
+{
+	clicks = { },
 };
 
 local currentNoiseTexture;
@@ -64,6 +95,9 @@ local currentNoiseTexture;
 --------------------------------------------------
 -- Database Filters ------------------------------
 --------------------------------------------------
+local currentChartCollectionName = nil;
+local filterName, groupName, sortName = "all", "level", "title";
+
 local chartListFilters =
 {
 	all = function(chart) return true; end,
@@ -84,31 +118,11 @@ local cachedFilteredCharts = { };
 
 
 --------------------------------------------------
--- Chart Filter Utility --------------------------
---------------------------------------------------
-local function getFilteredChartsForConfiguration(filter, grouping, sorting)
-	local cacheKey = filter .. '|' .. grouping .. '|' .. sorting;
-	if (cachedFilteredCharts[cacheKey]) then
-		return cachedFilteredCharts[cacheKey].charts;
-	end
-
-	local charts = theori.charts.getChartSetsFiltered(chartListFilters[filter], chartListGroupings[grouping], chartListSortings[sorting]);
-	local chartsCache = { };
-
-	cachedFilteredCharts[cacheKey] =
-	{
-		charts = charts,
-		chartsCache = chartsCache,
-	};
-	return charts, chartsCache;
-end
---------------------------------------------------
-
-
---------------------------------------------------
 -- Chart Grid Functions --------------------------
 --------------------------------------------------
 local function getSizeOfGroup(chartGroupIndex)
+	if (#charts == 0) then return 0; end
+
 	local chartGroup = charts[chartGroupIndex];
 
 	local rowCount = math.floor((#chartGroup - 1) / gridColumnCount) + 1;
@@ -146,8 +160,6 @@ local function lerpAnimTo(from, to, delta, speed)
         return from + (to - from) * speed * delta;
     end
 end
---------------------------------------------------
-
 
 local function getSetChartRefs(setId)
 	local cached = chartsCache[setId];
@@ -205,9 +217,8 @@ local function getSetSlots(set)
 	return slots;
 end
 
-local function nearestSlotIndex(set, slotIndex)
+local function nearestSlotIndex(setSlots, slotIndex)
 	local slot = slotIndex;
-	local setSlots = getSetSlots(set);
 
 	while (#setSlots[slot] == 0) do
 		if (slot == 1) then break; end
@@ -221,8 +232,8 @@ local function nearestSlotIndex(set, slotIndex)
 	return slot;
 end
 
-local function nearestSlot(set, slotIndex)
-	return getSetSlots(set)[nearestSlotIndex(set, slotIndex)];
+local function nearestSlot(setSlots, slotIndex)
+	return setSlots[nearestSlotIndex(setSlots, slotIndex)];
 end
 
 local function nearestSlotChildIndex(slot, slotChildIndex)
@@ -232,6 +243,108 @@ end
 local function nearestSlotChild(slot, slotChildIndex)
 	return slot[nearestSlotChildIndex(slot, slotChildIndex)];
 end
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Chart Filter Utility --------------------------
+--------------------------------------------------
+local function getFilteredChartsForConfiguration(filter, grouping, sorting)
+	local collectionId = currentChartCollectionName or "";
+	local cacheKey = collectionId .. '|' .. filter .. '|' .. grouping .. '|' .. sorting;
+
+	print("Asking for charts with key \"" .. cacheKey .. "\"");
+	if (cachedFilteredCharts[cacheKey]) then
+		print("  Found");
+		local cache = cachedFilteredCharts[cacheKey];
+		return cache.charts, cache.chartsCache;
+	end
+	
+	print("  Not Found");
+
+	local charts = theori.charts.getChartSetsFiltered(currentChartCollectionName, chartListFilters[filter], chartListGroupings[grouping], chartListSortings[sorting]);
+	local chartsCache = { };
+
+	cachedFilteredCharts[cacheKey] =
+	{
+		charts = charts,
+		chartsCache = chartsCache,
+	};
+	return charts, chartsCache;
+end
+
+local function jumpToChartIfExists(setId, chartId)
+	if (#charts == 0) then return false; end
+
+	local chartRefs = getSetChartRefs(setId);
+	if (not chartRefs or #chartRefs == 0) then return false; end
+
+	for _, cref in next, chartRefs do
+		if (cref.chart.ID == chartID) then
+			groupIndex = cref.groupIndex;
+			cellIndex = cref.cellIndex;
+
+			gridCameraPosTarget = getGridCameraPosition();
+
+			return true;
+		end
+	end
+
+	return false;
+end
+
+local function updateChartConfiguration()
+	local lastChart;
+	if (charts and #charts > 0) then
+		lastChart = charts[groupIndex][cellIndex];
+	end
+
+	charts, chartsCache = getFilteredChartsForConfiguration(filterName, groupName, sortName);
+
+	if (lastChart and not jumpToChartIfExists(lastChart.set.ID, lastChart.ID)) then
+		groupIndex = 1;
+		cellIndex = 1;
+
+		gridCameraPosTarget = getGridCameraPosition();
+	end
+end
+
+local function createFolderFilterFunctions()
+	--
+end
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Sub Menu State Functions ----------------------
+--------------------------------------------------
+local function setState(nextState)
+	currentState = nextState;
+end
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Delegate Functions ----------------------------
+--------------------------------------------------
+local function onAxisTicked(controller, axis, dir)
+	if (stateData[currentState].axisTicked) then
+		stateData[currentState]:axisTicked(controller, axis, dir);
+	end
+end
+
+local function onButtonPressed(controller, button)
+	if (stateData[currentState].buttonPressed) then
+		stateData[currentState]:buttonPressed(controller, button);
+	end
+end
+
+local function onButtonReleased(controller, button)
+	if (stateData[currentState].buttonReleased) then
+		stateData[currentState]:buttonReleased(controller, button);
+	end
+end
+--------------------------------------------------
 
 
 --------------------------------------------------
@@ -241,7 +354,7 @@ function theori.layer.construct()
 end
 
 function theori.layer.doAsyncLoad()
-	charts, chartsCache = getFilteredChartsForConfiguration("all", "level", "title");
+	updateChartConfiguration();
 
 	-- TODO(local): save the selected chart/slot and gather the indices afterward
 	-- TODO(local): make sure there's slots in the selected set
@@ -267,9 +380,20 @@ function theori.layer.doAsyncLoad()
 	for _, texName in next, frameTextures do
 		textures.chartFrame[texName] = theori.graphics.queueTextureLoad("chartSelect/chartFrame/" .. texName);
 	end
+	
+	local infoPanelPortrait = { "border", "fill", "jacketBorder" };
+	for _, texName in next, infoPanelPortrait do
+		textures.infoPanel.portrait[texName] = theori.graphics.queueTextureLoad("chartSelect/infoPanel/portrait/" .. texName);
+	end
 
     textures.noJacket = theori.graphics.queueTextureLoad("chartSelect/noJacket");
     textures.noJacketOverlay = theori.graphics.queueTextureLoad("chartSelect/noJacketOverlay");
+
+    textures.infoPanel.landscape.background = theori.graphics.queueTextureLoad("chartSelect/landscapeInfoPanelBackground");
+
+    textures.infoPanel.portrait.tempBackground = theori.graphics.queueTextureLoad("chartSelect/tempPortraitInfoPanelBackground");
+
+	audio.clicks.primary = theori.audio.queueAudioLoad("chartSelect/click0");
 
     Layouts.Landscape.Background = theori.graphics.queueTextureLoad(bgName .. "_LS");
     Layouts.Portrait.Background = theori.graphics.queueTextureLoad(bgName .. "_PR");
@@ -286,67 +410,14 @@ function theori.layer.resumed()
 end
 
 function theori.layer.init()
-    theori.graphics.openCurtain();
-	
+	audio.clicks.primary.volume = 0.5;
 	gridCameraPosTarget = getGridCameraPosition();
 
-    theori.input.controller.axisTicked:connect(function(controller, axis, dir)
-        if (axis == 0) then
-			local chart = charts[groupIndex][cellIndex];
-			local set = chart.set;
+    theori.graphics.openCurtain();
 
-			local cSlotIndex = nearestSlotIndex(set, slotIndex);
-			local cSlotChildIndex = nearestSlotChildIndex(getSetSlots(set)[cSlotIndex], slotChildIndex);
-
-			local setSlots = getSetSlots(set);
-			local newSlotIndex = cSlotIndex;
-
-			while (true) do
-				newSlotIndex = newSlotIndex + dir;
-				if (newSlotIndex < 1 or newSlotIndex > 5) then break; end
-				
-				if (#setSlots[newSlotIndex] > 0) then
-					break;
-				end
-			end
-
-			if (newSlotIndex == cSlotIndex or newSlotIndex < 1 or newSlotIndex > 5) then return; end
-			
-			slotIndex = newSlotIndex;
-			slotChildIndex = nearestSlotChildIndex(setSlots[slotIndex], cSlotChildIndex);
-
-			local nextChartRef = setSlots[slotIndex][slotChildIndex];
-			groupIndex = nextChartRef.groupIndex;
-			cellIndex = nextChartRef.cellIndex;
-				
-			gridCameraPosTarget = getGridCameraPosition();
-        elseif (axis == 1) then
-			cellIndex = cellIndex + dir;
-			if (cellIndex < 1) then
-				groupIndex = groupIndex - 1;
-				if (groupIndex < 1) then
-					groupIndex = #charts;
-				end
-				cellIndex = #charts[groupIndex];
-			elseif (cellIndex > #charts[groupIndex]) then
-				groupIndex = groupIndex + 1;
-				if (groupIndex > #charts) then
-					groupIndex = 1;
-				end
-				cellIndex = 1;
-			end
-			gridCameraPosTarget = getGridCameraPosition();
-        end
-    end);
-
-    theori.input.controller.pressed:connect(function(controller, button)
-        if (button == "back") then
-            theori.graphics.closeCurtain(0.2, theori.layer.pop);
-        elseif (button == "start") then
-			local chart = charts[groupIndex][cellIndex];
-            theori.graphics.closeCurtain(0.2, function() nsc.pushGameplay(chart); end);
-        end
-    end);
+    theori.input.controller.pressed:connect(onButtonPressed);
+    theori.input.controller.released:connect(onButtonReleased);
+    theori.input.controller.axisTicked:connect(onAxisTicked);
 end
 
 function theori.layer.update(delta, total)
@@ -355,6 +426,11 @@ function theori.layer.update(delta, total)
 	currentNoiseTexture = textures.noise[math.floor((timer * 24) % 10)];
 
     Layout.Update(delta, total);
+	for _, v in next, stateData do
+		if (v.update) then
+			v:update(delta, total);
+		end
+	end
 
 	-- layout agnostic functions
 	gridCameraPos = lerpAnimTo(gridCameraPos, gridCameraPosTarget, delta);
@@ -369,10 +445,9 @@ end
 --------------------------------------------------
 
 
--- Shared State Management
-
--- Shared Rendering
-
+--------------------------------------------------
+-- Layout Rendering Functions --------------------
+--------------------------------------------------
 local function renderSpriteNumCenteredNumDigits(num, dig, x, y, h)
 	local digInfos = { };
 	local w = 0;
@@ -393,15 +468,30 @@ local function renderSpriteNumCenteredNumDigits(num, dig, x, y, h)
 	end
 end
 
-local function renderCell(chart, x, y, w, h)
-	local isSelected = charts[groupIndex][cellIndex] == chart;
+local function renderCursor(x, y, size)
+	local s0 = size * (1 + 0.05 * (math.abs(math.sin(timer * 6))));
+	local s1 = size * (1 + 0.12 * (math.abs(math.sin(timer * 6))));
 
-	local r, g, b = chart.difficultyColor;
-	local diffLvl = chart.difficultyLevel;
+	theori.graphics.setImageColor(0, 255, 255, 170 + 60 * (math.abs(math.sin(timer * 3))));
+	theori.graphics.draw(textures.cursor, x - s0 / 2, y - s0 / 2, s0, s0);
+	theori.graphics.draw(textures.cursorOuter, x - s1 / 2, y - s1 / 2, s1, s1);
+end
+
+local function renderCell(chart, x, y, w, h)
+	--if (not chart) then return; end
+
+	local isSelected = chart and (charts[groupIndex][cellIndex] == chart) or false;
+
+	local r, g, b = 180, 180, 180;
+	if (chart) then
+		r, g, b = chart.difficultyColor;
+	end
+	local diffLvl = chart and chart.difficultyLevel or 0;
 	
 	theori.graphics.setImageColor(50, 50, 50, 255);
 	theori.graphics.draw(textures.chartFrame.background, x, y, w, h);
 	theori.graphics.setImageColor(r, g, b, 255);
+	theori.graphics.draw(textures.chartFrame.cornerPanelBorder, x, y, w, h);
 	theori.graphics.draw(textures.chartFrame.border, x, y, w, h);
 	theori.graphics.setImageColor(50, 50, 50, 255);
 	theori.graphics.draw(textures.chartFrame.cornerPanel, x, y, w, h);
@@ -414,7 +504,7 @@ local function renderCell(chart, x, y, w, h)
 	theori.graphics.setImageColor(r, g, b, 255);
 	theori.graphics.draw(textures.chartFrame.infoBorders, x, y, w, h);
 	local jx, jy, jw, jh = x + 0.1 * w, y + 0.155 * h, w * 0.6, h * 0.6;
-	if (not chart.hasJacketTexture) then
+	if (not chart or not chart.hasJacketTexture) then
 		theori.graphics.setImageColor(255, 255, 255, 255);
 		theori.graphics.draw(textures.noJacket, jx, jy, jw, jh);
 		theori.graphics.setImageColor(255, 255, 255, 70);
@@ -456,6 +546,8 @@ local function renderCell(chart, x, y, w, h)
 end
 
 local function renderChartGridPanel(x, y, w, h)
+	if (#charts == 0) then return; end
+
 	local cellSize = w / gridColumnCount;
 	local hUnits = h / cellSize;
 	local totalGroupsHeight = 0;
@@ -468,7 +560,7 @@ local function renderChartGridPanel(x, y, w, h)
 	local minCamera = camPosUnits - hUnits / 2;
 	local maxCamera = camPosUnits + hUnits / 2;
 
-	local yOffset = -minCamera * cellSize;
+	local yOffset = y - minCamera * cellSize;
 	local margin = cellSize * 0.05;
 
 	local yPosRel = 0;
@@ -507,32 +599,376 @@ local function renderChartGridPanel(x, y, w, h)
 	end
 
 	local cursorCenterX, cursorCenterY = getGridCellPosition(groupIndex, cellIndex);
-	local s0 = cellSize * (1 + 0.05 * (math.abs(math.sin(timer * 6))));
-	local s1 = cellSize * (1 + 0.12 * (math.abs(math.sin(timer * 6))));
-
-	theori.graphics.setImageColor(0, 255, 255, 170 + 60 * (math.abs(math.sin(timer * 3))));
-	--theori.graphics.setImageColor(255, 60, 20, 200);
-	theori.graphics.draw(textures.cursor, x + cellSize * cursorCenterX - s0 / 2, y + yOffset + cellSize * cursorCenterY - s0 / 2, s0, s0);
-	theori.graphics.draw(textures.cursorOuter, x + cellSize * cursorCenterX - s1 / 2, y + yOffset + cellSize * cursorCenterY - s1 / 2, s1, s1);
+	renderCursor(x + cellSize * cursorCenterX, yOffset + cellSize * cursorCenterY, cellSize);
 end
 
-local function renderChartLevelBar(set)
+local function renderChartLevelBar(set, x, y, w, h)
+	local setSlots = set and getSetSlots(set) or { { }, { }, { }, { }, { } };
+	local cSlotIndex = set and nearestSlotIndex(setSlots, slotIndex);
+
+	local chart = set and nearestSlotChild(setSlots[cSlotIndex], slotChildIndex).chart;
+	local r, g, b = 180, 180, 180;
+	if (chart) then
+		r, g, b = chart.difficultyColor;
+	end
+	
+	theori.graphics.setImageColor(r, g, b, 255);
+	theori.graphics.draw(textures.levelBarBorder, x, y, w, h);
+	theori.graphics.setImageColor(50, 50, 50, 170);
+	theori.graphics.draw(textures.levelBar, x, y, w, h);
+
+	theori.graphics.setImageColor(255, 255, 255, 255);
+	theori.graphics.draw(textures.levelText, x, y, h, h);
+
+	for i = 1, 5 do
+		local slot = setSlots[i];
+
+		local r, g, b = 100, 100, 100;
+		local childIndex;
+
+		if (#slot > 0) then
+			childIndex = nearestSlotChildIndex(slot, slotChildIndex);
+			r, g, b = slot[childIndex].chart.difficultyColor;
+		end
+
+		local s = h * 0.7;
+		local o = (h - s) / 2;
+
+		theori.graphics.setImageColor(r, g, b, 255);
+		theori.graphics.draw(textures.levelBadgeBorder, x + h * i + o, y + o, s, s);
+		theori.graphics.setImageColor(50, 50, 50, 255);
+		theori.graphics.draw(textures.levelBadge, x + h * i + o, y + o, s, s);
+		
+		if (#slot > 0) then
+			local diffLvl = slot[childIndex].chart.difficultyLevel;
+			theori.graphics.setImageColor(0, 0, 0, 255);
+			renderSpriteNumCenteredNumDigits(diffLvl, 2, x + h * i + h / 2 - 2, y + h / 2 + 2, s * 0.4);
+			theori.graphics.setImageColor(255, 255, 255, 255);
+			renderSpriteNumCenteredNumDigits(diffLvl, 2, x + h * i + h / 2, y + h / 2, s * 0.4);
+		end
+	end
+
+	if (set) then
+		renderCursor(x + h * cSlotIndex + h / 2, y + h / 2, h);
+	end
 end
 
--- Landscape
+local function renderLandscapeInfoPanel(chart, x, y, w, h)
+	renderCell(chart, x + w * 0.1, y, w * 0.8, h * 0.8);
+
+	theori.graphics.setImageColor(50, 50, 50, 255);
+	theori.graphics.draw(textures.infoPanel.landscape.background, x, y, w, h);
+
+	renderChartLevelBar(chart and chart.set, x + w * 0.25, y + h * 0.875, w * 0.75, h * 0.125);
+end
+
+function renderPortraitInfoPanel(chart, x, y, w, h)
+	theori.graphics.setImageColor(255, 255, 255, 255);
+	theori.graphics.draw(textures.infoPanel.portrait.border, x, y, w, h);
+	theori.graphics.setImageColor(50, 50, 50, 170);
+	theori.graphics.draw(textures.infoPanel.portrait.fill, x, y, w, h);
+	theori.graphics.setImageColor(255, 255, 255, 255);
+	theori.graphics.draw(textures.infoPanel.portrait.jacketBorder, x, y, w, h);
+
+	local chartLevelBarWidth = w * (1006 / 1440);
+	local chartLevelBarHeight = chartLevelBarWidth / 6;
+	renderChartLevelBar(chart.set, w - chartLevelBarWidth, 7 + h - chartLevelBarHeight, chartLevelBarWidth, chartLevelBarHeight);
+end
 
 function Layouts.Landscape.Update(self, delta, total)
+	infoBounceTimer = math.max(0, infoBounceTimer - delta * 5);
 end
 
 function Layouts.Landscape.Render(self)
     Layout.DrawBackgroundFilled(self.Background);
 
-    renderChartGridPanel(LayoutWidth - LayoutHeight, 0, LayoutHeight, LayoutHeight);
-    --renderChartInfoPanelLandscape(0, 0, LayoutWidth - LayoutHeight, LayoutHeight);
-end
+	gridColumnCount = 3;
+	local chartGridPanelWidth = math.min(LayoutWidth * 0.5, LayoutHeight);
+	local infoPanelWidth = math.min(LayoutHeight, LayoutWidth - chartGridPanelWidth);
 
--- Portrait
+	while (LayoutWidth - (chartGridPanelWidth + infoPanelWidth) > (chartGridPanelWidth / (gridColumnCount - 1))) do
+		chartGridPanelWidth = chartGridPanelWidth + chartGridPanelWidth / (gridColumnCount - 1);
+		gridColumnCount = gridColumnCount + 1;
+
+		infoPanelWidth = math.min(LayoutHeight, LayoutWidth - chartGridPanelWidth);
+	end
+
+	local infoPanelX = (infoBounceTimer * infoPanelWidth * 0.01) + ((LayoutWidth - chartGridPanelWidth) - infoPanelWidth) / 2;
+	local infoPanelY = (infoBounceTimer * infoPanelWidth * 0.01) + (LayoutHeight - infoPanelWidth) / 2;
+
+    renderChartGridPanel(LayoutWidth - chartGridPanelWidth, 0, chartGridPanelWidth, LayoutHeight);
+	
+	local chart = #charts > 0 and charts[groupIndex][cellIndex] or nil;
+	renderLandscapeInfoPanel(chart, infoPanelX, infoPanelY, infoPanelWidth, infoPanelWidth);
+
+	for k, v in next, stateData do
+		if (k ~= 0 and stateData[k].renderLandscape) then
+			stateData[k]:renderLandscape();
+		end
+	end
+end
 
 function Layouts.Portrait.Render(self)
     Layout.DrawBackgroundFilled(self.Background);
+
+	gridColumnCount = 3;
+
+	local infoPanelHeight = LayoutWidth * (275 / 720);
+	local consolePanelHeight = LayoutWidth * 0.285;
+
+	local chartGridPanelHeight = LayoutHeight - infoPanelHeight - consolePanelHeight;
+	
+	local chart = #charts > 0 and charts[groupIndex][cellIndex] or nil;
+	renderPortraitInfoPanel(chart, 0, 0, LayoutWidth, infoPanelHeight);
+
+	theori.graphics.scissor(0, infoPanelHeight * LayoutScale, LayoutWidth * LayoutScale, chartGridPanelHeight * LayoutScale);
+    renderChartGridPanel(0, infoPanelHeight, LayoutWidth, chartGridPanelHeight);
+	theori.graphics.resetScissor();
+
+	for k, v in next, stateData do
+		if (k ~= 0 and stateData[k].renderPortrait) then
+			stateData[k]:renderPortrait();
+		end
+	end
 end
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Default State Functions -----------------------
+--------------------------------------------------
+local defaultState = { };
+stateData[0] = defaultState;
+
+function defaultState.update(self, delta, total)
+	-- updates specific to this state
+end
+
+function defaultState.buttonPressed(self, controller, button)
+    if (button == "back") then
+        theori.graphics.closeCurtain(0.2, theori.layer.pop);
+    elseif (button == "start") then
+		if (#charts == 0) then return; end
+
+		local chart = charts[groupIndex][cellIndex];
+        theori.graphics.closeCurtain(0.2, function() nsc.pushGameplay(chart); end);
+	elseif (button == 3) then -- TEMP TEMP TEMP
+		if (charts and #charts > 0) then
+			local chart = charts[groupIndex][cellIndex];
+			theori.charts.addChartToCollection("Favorites", chart);
+		end
+	elseif (button >= 0 and button <= 3 and stateData[button + 1]) then
+		setState(button + 1);
+	elseif (button == 4 or button == 5) then
+		if (controller.isDown(4) and controller.isDown(5)) then
+			setState(7);
+		end
+    end
+end
+
+function defaultState.buttonReleased(self, controller, button)
+    if (button == 4 or button == 5) then
+		setState(button + 1);
+    end
+end
+
+function defaultState.axisTicked(self, controller, axis, dir)
+	if (#charts == 0) then return; end
+
+    if (axis == 0) then
+		local chart = charts[groupIndex][cellIndex];
+		local set = chart.set;
+			
+		local setSlots = getSetSlots(set);
+		local cSlotIndex = nearestSlotIndex(setSlots, slotIndex);
+		local cSlotChildIndex = nearestSlotChildIndex(setSlots[cSlotIndex], slotChildIndex);
+
+		local newSlotIndex = cSlotIndex;
+
+		while (true) do
+			newSlotIndex = newSlotIndex + dir;
+			if (newSlotIndex < 1 or newSlotIndex > 5) then break; end
+				
+			if (#setSlots[newSlotIndex] > 0) then
+				break;
+			end
+		end
+
+		if (newSlotIndex == cSlotIndex or newSlotIndex < 1 or newSlotIndex > 5) then return; end
+			
+		slotIndex = newSlotIndex;
+		slotChildIndex = nearestSlotChildIndex(setSlots[slotIndex], cSlotChildIndex);
+
+		local nextChartRef = setSlots[slotIndex][slotChildIndex];
+		groupIndex = nextChartRef.groupIndex;
+		cellIndex = nextChartRef.cellIndex;
+				
+		gridCameraPosTarget = getGridCameraPosition();
+		infoBounceTimer = 1;
+
+		audio.clicks.primary.playFromStart();
+    elseif (axis == 1) then
+		cellIndex = cellIndex + dir;
+		if (cellIndex < 1) then
+			groupIndex = groupIndex - 1;
+			if (groupIndex < 1) then
+				groupIndex = #charts;
+			end
+			cellIndex = #charts[groupIndex];
+		elseif (cellIndex > #charts[groupIndex]) then
+			groupIndex = groupIndex + 1;
+			if (groupIndex > #charts) then
+				groupIndex = 1;
+			end
+			cellIndex = 1;
+		end
+
+		slotIndex = charts[groupIndex][cellIndex].difficultyIndex;
+		slotChildIndex = 1;
+
+		gridCameraPosTarget = getGridCameraPosition();
+		infoBounceTimer = 1;
+			
+		audio.clicks.primary.playFromStart();
+    end
+end
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- FX L State Functions --------------------------
+--------------------------------------------------
+local fxlState =
+{
+	inoutTransition = 0,
+
+	defaultEntries =
+	{
+		{
+			name = "All Charts",
+			onSelected = function(self) currentChartCollectionName = nil; end,
+		},
+
+		{
+			name = "Collections",
+			onSelected = function()
+				local subFolder = { };
+				for _, col in next, theori.charts.getCollectionNames() do
+					table.insert(subFolder, {
+						name = col,
+						onSelected = function(self)
+							currentChartCollectionName = self.name;
+						end,
+					});
+				end
+				return subFolder;
+			end,
+		},
+
+		{
+			name = "Folders",
+			onSelected = function(self) return { } end,
+		},
+	},
+
+	previousEntries = { },
+};
+fxlState.entries = { entryIndex = 1, entries = fxlState.defaultEntries };
+stateData[5] = fxlState;
+
+function fxlState.update(self, delta, total)
+	if (currentState == 5) then
+		self.inoutTransition = math.min(1, self.inoutTransition + delta * 10);
+	else
+		self.inoutTransition = math.max(0, self.inoutTransition - delta * 10);
+	end
+end
+
+function fxlState.navigateUp(self)
+	if (#self.previousEntries == 0) then
+		setState(0);
+	else
+		local previous = self.previousEntries[#self.previousEntries];
+		table.remove(self.previousEntries, #self.previousEntries);
+
+		self.entries = previous;
+	end
+end
+
+function fxlState.buttonPressed(self, controller, button)
+	if (button == "back") then
+		self:navigateUp();
+	elseif (button == "start") then
+		local result = self.entries.entries[self.entries.entryIndex]:onSelected();
+		if (result) then
+			table.insert(self.previousEntries, self.entries);
+			self.entries = { entryIndex = 1, entries = result };
+		else
+			if (#self.previousEntries > 0) then
+				self.entries = self.previousEntries[1];
+			end
+			self.previousEntries = { };
+
+			print(currentChartCollectionName);
+
+			updateChartConfiguration();
+			setState(0);
+		end
+	end
+end
+
+function fxlState.buttonReleased(self, controller, button)
+	if (button == 4) then
+		self:navigateUp();
+	end
+end
+
+function fxlState.axisTicked(self, controller, axis, dir)
+	audio.clicks.primary.playFromStart();
+
+	local entries = self.entries;
+
+	entries.entryIndex = entries.entryIndex + dir;
+	if (entries.entryIndex < 1) then entries.entryIndex = #entries.entries; end
+	if (entries.entryIndex > #entries.entries) then entries.entryIndex = 1; end
+end
+
+function fxlState.renderDim(self)
+	theori.graphics.setColor(0, 0, 0, 127 * self.inoutTransition);
+	theori.graphics.fillRect(0, 0, LayoutWidth, LayoutHeight);
+end
+
+function fxlState.renderEntries(self, x, y, w, h)
+	theori.graphics.setColor(50, 50, 50, 170);
+	theori.graphics.fillRect(x, y, w / 2, h);
+
+	theori.graphics.setTextAlign(Anchor.MiddleCenter);
+	theori.graphics.setFontSize(24);
+
+	for coli, entry in next, self.entries.entries do
+		local col = entry.name;
+		local offs = 30 * (coli - self.entries.entryIndex);
+
+		if (coli == self.entries.entryIndex) then
+			theori.graphics.setColor(255, 255, 0, 255);
+		else
+			theori.graphics.setColor(255, 255, 255, 200);
+		end
+		theori.graphics.drawString(col, x + w * 0.25, offs + y + h * 0.5);
+	end
+end
+
+function fxlState.renderLandscape(self)
+	if (self.inoutTransition == 0) then return; end
+
+	self:renderDim();
+	self:renderEntries(-(1 - self.inoutTransition) * LayoutWidth * 0.25, LayoutHeight * 0.125, LayoutWidth * 0.5, LayoutHeight * 0.75);
+end
+
+function fxlState.renderPortrait(self)
+	if (self.inoutTransition == 0) then return; end
+
+	self:renderDim();
+	self:renderEntries(-(1 - self.inoutTransition) * LayoutWidth * 0.375, LayoutHeight * 0.25, LayoutWidth * 0.75, LayoutHeight * 0.5);
+end
+--------------------------------------------------

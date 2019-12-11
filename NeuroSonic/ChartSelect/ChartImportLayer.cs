@@ -71,7 +71,7 @@ namespace NeuroSonic.ChartSelect
 
             void WalkDirectory(string directory, string currentSetName)
             {
-                if (Directory.EnumerateFiles(directory, "*.ksh").Count() > 0)
+                if (Directory.EnumerateFiles(directory, "*.ksh").Any())
                     setInfos.Add(ConvertKSHSetAndSave(directory, currentSetName, outputRootDir));
                 else foreach (string subDir in Directory.EnumerateDirectories(directory))
                     WalkDirectory(subDir, Path.Combine(currentSetName, Path.GetFileName(subDir)));
@@ -97,7 +97,7 @@ namespace NeuroSonic.ChartSelect
 
                     chartFiles.Add((kshChartFile, chart));
                 }
-                catch (Exception) { Logger.Log($"  Failed for { kshChartFile }"); }
+                catch (Exception e) { Logger.Log($"  Failed for { kshChartFile }: { e.Message }"); }
             }
 
             var chartSetInfo = new ChartSetInfo()

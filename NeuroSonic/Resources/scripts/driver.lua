@@ -16,6 +16,10 @@ end
 
 -- on first startup, push the splash screen
 function theori.layer.init()
+	-- ensure that even if there are 0 charts in the collection, the
+	--  Favorites collection always exists.
+	theori.charts.createCollection("Favorites");
+
     local titleLoopBeatDuration = 60.0 / 132;
     
     titleLoop.volume = 0.3;

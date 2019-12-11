@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Collections.Generic;
 using System.Numerics;
 
 using theori;
@@ -6,26 +8,23 @@ using theori.Audio;
 using theori.Charting;
 using theori.Charting.Effects;
 using theori.Charting.Playback;
+using theori.Charting.Serialization;
 using theori.Graphics;
 using theori.Gui;
 using theori.IO;
 using theori.Resources;
+using theori.Scripting;
+
+using MoonSharp.Interpreter;
 
 using NeuroSonic.Charting;
 using NeuroSonic.GamePlay.Scoring;
-using theori.Charting.Serialization;
-using System.IO;
-using MoonSharp.Interpreter;
-using theori.Scripting;
-using System.Collections.Generic;
-using theori.Configuration;
-using NeuroSonic.Startup;
 using NeuroSonic.Platform;
 
 namespace NeuroSonic.GamePlay
 {
     [Flags]
-    public enum AutoPlay
+    public enum AutoPlayTargets
     {
         None = 0,
 
@@ -44,14 +43,14 @@ namespace NeuroSonic.GamePlay
 
         public override bool BlocksParentLayer => true;
 
-        private readonly AutoPlay m_autoPlay;
+        private readonly AutoPlayTargets m_autoPlay;
 
-        private bool AutoButtons => (m_autoPlay & AutoPlay.Buttons) != 0;
-        private bool AutoLasers => (m_autoPlay & AutoPlay.Lasers) != 0;
+        private bool AutoButtons => (m_autoPlay & AutoPlayTargets.Buttons) != 0;
+        private bool AutoLasers => (m_autoPlay & AutoPlayTargets.Lasers) != 0;
 
         private readonly ClientResourceLocator m_locator;
 
-        private theori.Scripting.ScriptProgram m_guiScript;
+        private ScriptProgram m_guiScript;
         private Table m_gameTable, m_metaTable, m_scoringTable;
 
         private HighwayControl m_highwayControl;
@@ -92,7 +91,7 @@ namespace NeuroSonic.GamePlay
 
         private float m_tempHiSpeedMult = 1.0f;
 
-        internal GameLayer(ClientResourceLocator resourceLocator, ChartInfo chartInfo, AutoPlay autoPlay = AutoPlay.None)
+        internal GameLayer(ClientResourceLocator resourceLocator, ChartInfo chartInfo, AutoPlayTargets autoPlay = AutoPlayTargets.None)
             : base(resourceLocator)
         {
             m_locator = resourceLocator;
@@ -103,7 +102,7 @@ namespace NeuroSonic.GamePlay
             m_background = new ScriptableBackground(m_locator);
         }
 
-        internal GameLayer(ClientResourceLocator resourceLocator, Chart chart, AudioTrack audio, AutoPlay autoPlay = AutoPlay.None)
+        internal GameLayer(ClientResourceLocator resourceLocator, Chart chart, AudioTrack audio, AutoPlayTargets autoPlay = AutoPlayTargets.None)
             : base(resourceLocator)
         {
             m_locator = resourceLocator;

@@ -66,10 +66,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Resources\audio\chartSelect\click0.ogg" />
     <None Remove="Resources\audio\launchtower-title-loop.ogg" />
     <None Remove="Resources\scripts\bindingMenu.lua" />
     <None Remove="Resources\scripts\chartSelect.lua" />
-    <None Remove="Resources\scripts\configMenu.lua" />
     <None Remove="Resources\scripts\driver.lua" />
     <None Remove="Resources\scripts\game.lua" />
     <None Remove="Resources\scripts\game\backgrounds\stars.lua" />
@@ -95,6 +95,10 @@
     <None Remove="Resources\textures\chartSelect\chartFrame\trackDataLabel.png" />
     <None Remove="Resources\textures\chartSelect\cursor.png" />
     <None Remove="Resources\textures\chartSelect\cursorOuter.png" />
+    <None Remove="Resources\textures\chartSelect\infoPanel\portrait\border.png" />
+    <None Remove="Resources\textures\chartSelect\infoPanel\portrait\fill.png" />
+    <None Remove="Resources\textures\chartSelect\infoPanel\portrait\jacketBorder.png" />
+    <None Remove="Resources\textures\chartSelect\landscapeInfoPanelBackground.png" />
     <None Remove="Resources\textures\chartSelect\levelBadge.png" />
     <None Remove="Resources\textures\chartSelect\levelBadgeBorder.png" />
     <None Remove="Resources\textures\chartSelect\levelBar.png" />
@@ -104,6 +108,7 @@
     <None Remove="Resources\textures\chartSelect\noJacketOverlay.png" />
     <None Remove="Resources\textures\chartSelect\setFrame.png" />
     <None Remove="Resources\textures\chartSelect\setTitlePlate.png" />
+    <None Remove="Resources\textures\chartSelect\tempPortraitInfoPanelBackground.png" />
     <None Remove="Resources\textures\genericBackground_LS.png" />
     <None Remove="Resources\textures\genericBackground_PR.png" />
     <None Remove="Resources\textures\generic_bg_landscape.png" />
@@ -155,6 +160,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\audio\chartSelect\click0.ogg" />
     <EmbeddedResource Include="Resources\audio\launchtower-title-loop.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_clap.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_kick.ogg" />
@@ -169,7 +175,6 @@
     <EmbeddedResource Include="Resources\materials\laser_entry.fs" />
     <EmbeddedResource Include="Resources\scripts\bindingMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\chartSelect.lua" />
-    <EmbeddedResource Include="Resources\scripts\configMenu.lua" />
     <EmbeddedResource Include="Resources\scripts\driver.lua" />
     <EmbeddedResource Include="Resources\scripts\game.lua" />
     <EmbeddedResource Include="Resources\scripts\game\backgrounds\stars.lua" />
@@ -196,6 +201,10 @@
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\trackDataLabel.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\cursor.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\cursorOuter.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\infoPanel\portrait\border.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\infoPanel\portrait\fill.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\infoPanel\portrait\jacketBorder.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\landscapeInfoPanelBackground.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\levelBadge.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\levelBadgeBorder.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\levelBar.png" />
@@ -203,8 +212,7 @@
     <EmbeddedResource Include="Resources\textures\chartSelect\levelText.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\noJacket.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\noJacketOverlay.png" />
-    <EmbeddedResource Include="Resources\textures\chartSelect\setFrame.png" />
-    <EmbeddedResource Include="Resources\textures\chartSelect\setTitlePlate.png" />
+    <EmbeddedResource Include="Resources\textures\chartSelect\tempPortraitInfoPanelBackground.png" />
     <EmbeddedResource Include="Resources\textures\combo\0.png" />
     <EmbeddedResource Include="Resources\textures\combo\1.png" />
     <EmbeddedResource Include="Resources\textures\combo\2.png" />
@@ -282,6 +290,13 @@
     <EmbeddedResource Include="Resources\textures\spritenums\slant\8.png" />
     <EmbeddedResource Include="Resources\textures\spritenums\slant\9.png" />
     <EmbeddedResource Include="Resources\textures\title.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

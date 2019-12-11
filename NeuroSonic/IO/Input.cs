@@ -2,6 +2,7 @@
 
 using theori;
 using theori.Configuration;
+using theori.Gui;
 using theori.IO;
 
 namespace NeuroSonic.IO
@@ -56,23 +57,63 @@ namespace NeuroSonic.IO
 
                     SetAxis(0, NscConfigKey.Controller_Laser0Axis);
                     SetAxis(1, NscConfigKey.Controller_Laser1Axis);
-
-                    return;
                 }
                 else
                 {
+                    goto error;
                 }
             }
             else if (btInputMode == InputDevice.Keyboard)
             {
+                float keySens = Plugin.Config.GetFloat(NscConfigKey.Key_Sensitivity);
+                float mouseSens = Plugin.Config.GetFloat(NscConfigKey.Mouse_Sensitivity);
+                int smooth = Plugin.Config.GetInt(NscConfigKey.LaserInputSmoothing);
+
+                Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_BT0);
+
+                void SetButton(HybridLabel name, NscConfigKey key)
+                {
+                    m_controller!.SetButtonToKey(name, Plugin.Config.GetEnum<KeyCode>(key));
+                }
+
+                void SetAxisKeys(HybridLabel name, NscConfigKey keyNeg, NscConfigKey keyPos)
+                {
+                    m_controller!.SetAxisToKeysLinear(name, Plugin.Config.GetEnum<KeyCode>(keyPos), Plugin.Config.GetEnum<KeyCode>(keyNeg));
+                }
+
+                // TODO(local): Get config of the gui axes and onto the standard axis
+                void SetAxisMouse(HybridLabel name, NscConfigKey axis)
+                {
+                    var axesAxis = Plugin.Config.GetEnum<Axes>(axis);
+                    m_controller!.SetAxisToMouseAxis(name, axesAxis == Axes.X ? Axis.X : Axis.Y, mouseSens);
+                }
+
+                SetButton("start", NscConfigKey.Key_Start);
+                SetButton("back", NscConfigKey.Key_Back);
+
+                SetButton(0, NscConfigKey.Key_BT0);
+                SetButton(1, NscConfigKey.Key_BT1);
+                SetButton(2, NscConfigKey.Key_BT2);
+                SetButton(3, NscConfigKey.Key_BT3);
+
+                SetButton(4, NscConfigKey.Key_FX0);
+                SetButton(5, NscConfigKey.Key_FX1);
+
                 if (volInputMode == InputDevice.Keyboard)
                 {
+                    SetAxisKeys(0, NscConfigKey.Key_Laser0Neg, NscConfigKey.Key_Laser0Pos);
+                    SetAxisKeys(1, NscConfigKey.Key_Laser1Neg, NscConfigKey.Key_Laser1Pos);
                 }
                 else if (volInputMode == InputDevice.Mouse)
                 {
+                    SetAxisMouse(0, NscConfigKey.Mouse_Laser0Axis);
+                    SetAxisMouse(1, NscConfigKey.Mouse_Laser1Axis);
                 }
             }
 
+            return;
+
+        error:
             throw new InvalidOperationException($"No controller implementation supports Buttons using { btInputMode } and Lasers using { volInputMode }");
         }
 

@@ -24,7 +24,7 @@ namespace NeuroSonic
         {
             m_script["nsc"] = tblNsc = m_script.NewTable();
 
-            tblNsc["pushGameplay"] = (Action<ChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlay.None)));
+            tblNsc["pushGameplay"] = (Action<ChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlayTargets.None)));
         }
 
         protected override Layer CreateNewLuaLayer(string layerPath, DynValue[] args) => new NscLayer(ResourceLocator, layerPath, args);
