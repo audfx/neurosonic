@@ -15,10 +15,10 @@ namespace NeuroSonic.Charting
 
         [TheoriIgnoreDefault]
         [TheoriProperty("sample")]
-        public string Sample { get; set; }
+        public string? Sample { get; set; }
 
         [TheoriIgnoreDefault]
         [TheoriProperty("sampleVolume")]
-        public float SampleVolume { get; set; }
+        public float SampleVolume { get; set; } = 0.7f;
     }
 }
