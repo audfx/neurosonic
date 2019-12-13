@@ -135,7 +135,7 @@ namespace NeuroSonic.GamePlay
 
             if (m_chart == null)
             {
-                var serializer = new ChartSerializer(chartsDir, NeuroSonicGameMode.Instance);
+                var serializer = new TheoriChartSerializer(chartsDir, NeuroSonicGameMode.Instance);
                 m_chart = serializer.LoadFromFile(m_chartInfo);
 
                 string audioFile = Path.Combine(chartsDir, setInfo.FilePath, m_chart.Info.SongFileName);

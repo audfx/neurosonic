@@ -2,6 +2,8 @@
 using theori.GameModes;
 
 using NeuroSonic.Charting;
+using theori.Charting.Serialization;
+using NeuroSonic.Charting.KShootMania;
 
 namespace NeuroSonic
 {
@@ -22,6 +24,11 @@ namespace NeuroSonic
         public override Layer CreateSharedGameLayer() => new GameLayer(null, null, null, AutoPlay.None);
 #endif
 
-        public override ChartFactory CreateChartFactory() => new NeuroSonicChartFactory();
+        public override ChartFactory GetChartFactory() => new NeuroSonicChartFactory();
+        public override IChartSerializer? CreateChartSerializer(string chartsDirectory, string? fileFormat) => chartsDirectory switch
+        {
+            ".ksh" => new KshChartSerializer(chartsDirectory),
+            _ => null,
+        };
     }
 }

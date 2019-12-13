@@ -50,7 +50,7 @@ namespace NeuroSonic.Charting.Conversions
             }
         }
 
-        public static Chart ToVoltex(this KshChart ksh)
+        public static Chart ToVoltex(this KshChart ksh, ChartInfo? info = null)
         {
             Logger.Log($"ksh.convert start");
 
@@ -60,7 +60,8 @@ namespace NeuroSonic.Charting.Conversions
             var chart = NeuroSonicChartFactory.Instance.CreateNew();
             chart.Offset = (ksh.Metadata.OffsetMillis) / 1_000.0;
 
-            chart.Info = new ChartInfo()
+            // if info is non-null, set information exists as well.
+            chart.Info = info ?? new ChartInfo()
             {
                 SongTitle = ksh.Metadata.Title,
                 SongArtist = ksh.Metadata.Artist,

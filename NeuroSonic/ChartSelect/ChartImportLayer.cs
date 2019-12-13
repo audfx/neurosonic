@@ -163,12 +163,12 @@ namespace NeuroSonic.ChartSelect
                 chartSetInfo.Charts.Add(chart.Info);
             }
 
-            var s = new ChartSerializer(outputRoot, NeuroSonicGameMode.Instance);
+            var s = new TheoriChartSerializer(outputRoot, NeuroSonicGameMode.Instance);
             foreach (var (_, chart) in chartFiles)
                 s.SaveToFile(chart);
 
-            var setSerializer = new ChartSetSerializer();
-            setSerializer.SaveToFile(outputRoot, chartSetInfo);
+            var setSerializer = new ChartSetSerializer(outputRoot);
+            setSerializer.SaveToFile(chartSetInfo);
 
             Logger.Unblock();
 
