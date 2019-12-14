@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -9,26 +10,35 @@ using theori.Database;
 
 using NeuroSonic.Charting.KShootMania;
 using System;
+using System.Threading;
 
 namespace NeuroSonic
 {
     public sealed class CustomChartTypeScanner
     {
-        private Task? m_task;
+        private Task? m_searchTask, m_convertTask;
+        private int m_attempts = 0;
+
+        private readonly ConcurrentQueue<(DirectoryInfo SetDirectory, FileInfo[] Charts)> m_queue = new ConcurrentQueue<(DirectoryInfo, FileInfo[])>();
 
         public void BeginSearching()
         {
-            if (m_task != null) return;
+            if (m_searchTask != null) return;
 
-            m_task = Task.Run(MainAction);
+            m_searchTask = Task.Run(SearchAction);
             //MainAction();
         }
 
-        private void MainAction()
+        public void Update()
+        {
+            if (m_searchTask != null && m_searchTask.IsCompleted) m_searchTask = null;
+            if (m_convertTask != null && m_convertTask.IsCompleted) m_convertTask = null;
+        }
+
+        private void SearchAction()
         {
             string chartsDir = TheoriConfig.ChartsDirectory;
 
-            var setGroups = new List<(DirectoryInfo SetDirectory, FileInfo[] Charts)>();
             void EnumerateSubDirs(string parent)
             {
                 foreach (string dirPath in Directory.EnumerateDirectories(parent))
@@ -37,16 +47,34 @@ namespace NeuroSonic
 
                     var ksh = dir.GetFiles("*.ksh");
                     if (ksh.Length > 0)
-                        setGroups.Add((dir, ksh));
+                        m_queue.Enqueue((dir, ksh));
                     EnumerateSubDirs(dirPath);
                 }
             }
 
             EnumerateSubDirs(chartsDir);
 
+            m_convertTask = Task.Run(ConvertAction);
+        }
+
+        private void ConvertAction()
+        {
+            string chartsDir = TheoriConfig.ChartsDirectory;
+
             var setSer = new ChartSetSerializer(chartsDir);
-            foreach (var (setDir, charts) in setGroups)
+            while (true)
             {
+                while (m_queue.IsEmpty)
+                {
+                    Thread.Sleep(1000);
+                    m_attempts++;
+
+                    if (m_attempts > 5) return;
+                }
+
+                if (!m_queue.TryDequeue(out var entry)) continue;
+                var (setDir, charts) = entry;
+
                 var sets = setDir.GetFiles("*.theori-set");
                 if (sets.Length == 0)
                 {
