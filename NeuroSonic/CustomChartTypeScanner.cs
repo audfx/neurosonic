@@ -20,8 +20,8 @@ namespace NeuroSonic
         {
             if (m_task != null) return;
 
-            //m_task = Task.Run(MainAction);
-            MainAction();
+            m_task = Task.Run(MainAction);
+            //MainAction();
         }
 
         private void MainAction()
