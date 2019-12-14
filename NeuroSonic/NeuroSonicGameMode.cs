@@ -25,7 +25,7 @@ namespace NeuroSonic
 #endif
 
         public override ChartFactory GetChartFactory() => new NeuroSonicChartFactory();
-        public override IChartSerializer? CreateChartSerializer(string chartsDirectory, string? fileFormat) => chartsDirectory switch
+        public override IChartSerializer? CreateChartSerializer(string chartsDirectory, string? fileFormat) => fileFormat switch
         {
             ".ksh" => new KshChartSerializer(chartsDirectory),
             _ => null,

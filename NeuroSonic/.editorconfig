@@ -2,3 +2,6 @@
 
 # CA1051: Do not declare visible instance fields
 dotnet_diagnostic.CA1051.severity = suggestion
+
+# CA1062: Validate arguments of public methods
+dotnet_diagnostic.CA1062.severity = none

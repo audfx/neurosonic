@@ -9,11 +9,14 @@ using theori.Resources;
 
 using NeuroSonic.Graphics;
 using NeuroSonic.GamePlay;
+using theori.Configuration;
 
 namespace NeuroSonic.Platform
 {
     public sealed class NscClient : Client
     {
+        private readonly CustomChartTypeScanner m_scanner;
+
         static NscClient()
         {
         }
@@ -21,6 +24,8 @@ namespace NeuroSonic.Platform
         [Pure] public NscClient()
         {
             ChartDatabaseService.Initialize();
+
+            m_scanner = new CustomChartTypeScanner();
         }
 
         [Const] protected override Layer? CreateInitialLayer() => new NscLayer(ClientSkinService.CurrentlySelectedSkin, "driver");
@@ -39,7 +44,11 @@ namespace NeuroSonic.Platform
             theori.Host.StaticResources.AquireTexture("textures/audfx-text-large");
 
             host.Exited += OnExited;
+
             Plugin.Initialize(host);
+
+            TheoriConfig.ChartsDirectory = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
+            m_scanner.BeginSearching();
         }
 
         private void OnExited()

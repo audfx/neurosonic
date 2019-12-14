@@ -20,6 +20,7 @@ using MoonSharp.Interpreter;
 using NeuroSonic.Charting;
 using NeuroSonic.GamePlay.Scoring;
 using NeuroSonic.Platform;
+using theori.Database;
 
 namespace NeuroSonic.GamePlay
 {
@@ -135,13 +136,22 @@ namespace NeuroSonic.GamePlay
 
             if (m_chart == null)
             {
-                var serializer = new TheoriChartSerializer(chartsDir, NeuroSonicGameMode.Instance);
-                m_chart = serializer.LoadFromFile(m_chartInfo);
+                if (ChartDatabaseService.TryLoadChart(m_chartInfo) is Chart chart)
+                {
+                    m_chart = chart;
 
-                string audioFile = Path.Combine(chartsDir, setInfo.FilePath, m_chart.Info.SongFileName);
-                m_audio = AudioTrack.FromFile(audioFile);
-                m_audio.Channel = Mixer.MasterChannel;
-                m_audio.Volume = m_chart.Info.SongVolume / 100.0f;
+                    string audioFile = Path.Combine(chartsDir, setInfo.FilePath, m_chart.Info.SongFileName);
+                    m_audio = AudioTrack.FromFile(audioFile);
+                    m_audio.Channel = Mixer.MasterChannel;
+                    m_audio.Volume = m_chart.Info.SongVolume / 100.0f;
+                }
+                else
+                {
+                    Logger.Log($"Failed to load chart {m_chartInfo.SongTitle}");
+
+                    Pop();
+                    return false;
+                }
             }
 
             m_audioPlayback = new SlidingChartPlayback(m_chart, false);

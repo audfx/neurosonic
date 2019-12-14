@@ -10,6 +10,9 @@ using theori.Scripting;
 using NeuroSonic.GamePlay;
 
 using MoonSharp.Interpreter;
+using theori.Database;
+using theori.Platform;
+using NeuroSonic.Platform;
 
 namespace NeuroSonic
 {
@@ -18,13 +21,24 @@ namespace NeuroSonic
         protected Panel? ForegroundGui;
 
         public readonly Table tblNsc;
+        
+        public readonly Table tblNscCharts;
+
+        public new NscClient Client => ClientAs<NscClient>();
 
         public NscLayer(ClientResourceLocator? resourceLocator = null, string? layerPath = null, params DynValue[] args)
             : base(resourceLocator ?? ClientSkinService.CurrentlySelectedSkin, layerPath, args)
         {
             m_script["nsc"] = tblNsc = m_script.NewTable();
 
+            tblNsc["charts"] = tblNscCharts = m_script.NewTable();
+
             tblNsc["pushGameplay"] = (Action<ChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlayTargets.None)));
+
+            tblNscCharts["scanForKshCharts"] = (Action)(() =>
+            {
+                Client.DatabaseWorker.SetToPopulate();
+            });
         }
 
         protected override Layer CreateNewLuaLayer(string layerPath, DynValue[] args) => new NscLayer(ResourceLocator, layerPath, args);

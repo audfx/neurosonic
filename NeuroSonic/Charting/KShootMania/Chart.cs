@@ -309,8 +309,8 @@ namespace NeuroSonic.Charting.KShootMania
 
         public static KshChart CreateFromFile(string fileName)
         {
-            using (var reader = File.OpenText(fileName))
-                return Create(fileName, reader);
+            using var reader = File.OpenText(fileName);
+            return Create(fileName, reader);
         }
 
         public static KshChart Create(string fileName, StreamReader reader)
