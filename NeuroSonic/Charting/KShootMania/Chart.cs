@@ -214,9 +214,10 @@ namespace NeuroSonic.Charting.KShootMania
             Param = param;
         }
 
-        public EffectDef CreateEffectDef(Dictionary<string, KshEffectDef> context)
+        public EffectDef? CreateEffectDef(Dictionary<string, KshEffectDef> context)
         {
-            var effectDef = context[Name];
+            if (!context.TryGetValue(Name, out var effectDef))
+                return null;
 
             var effectKind = effectDef.EffectKind;
             var pars = effectDef.EffectParams;
@@ -673,6 +674,7 @@ namespace NeuroSonic.Charting.KShootMania
 
             public bool MoveNext()
             {
+                if (m_chart.BlockCount == 0) return false;
                 if (m_tick == m_chart.m_blocks[m_block].TickCount - 1)
                 {
                     m_block++;
