@@ -25,8 +25,8 @@ namespace NeuroSonic.Graphics
                 renderer.Rotate(bgRotation);
                 renderer.Translate(originx, originy);
 
-                int l0hue = Plugin.Config.GetInt(NscConfigKey.Laser0Color);
-                int l1hue = Plugin.Config.GetInt(NscConfigKey.Laser1Color);
+                int l0hue = NscConfig.Laser0Color;
+                int l1hue = NscConfig.Laser1Color;
 
                 var l0color = Color.HSVtoRGB(new Vector3(l0hue / 360.0f, 0.75f, 1));
                 var l1color = Color.HSVtoRGB(new Vector3(l1hue / 360.0f, 0.75f, 1));

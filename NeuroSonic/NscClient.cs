@@ -10,6 +10,7 @@ using theori.Resources;
 using NeuroSonic.Graphics;
 using NeuroSonic.GamePlay;
 using theori.Configuration;
+using NeuroSonic.IO;
 
 namespace NeuroSonic.Platform
 {
@@ -44,16 +45,13 @@ namespace NeuroSonic.Platform
             theori.Host.StaticResources.AquireTexture("textures/audfx-text-large");
 
             host.Exited += OnExited;
+            Input.Initialize();
 
-            Plugin.Initialize(host);
-
-            TheoriConfig.ChartsDirectory = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
             m_scanner.BeginSearching();
         }
 
         private void OnExited()
         {
-            Plugin.SaveNscConfig();
         }
 
         protected override void Update(float varyingDelta, float totalTime)

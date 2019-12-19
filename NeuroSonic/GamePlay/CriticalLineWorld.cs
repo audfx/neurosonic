@@ -44,8 +44,8 @@ namespace NeuroSonic.GamePlay
 
         public bool AsyncFinalize()
         {
-            var lVolColor = Color.HSVtoRGB(new Vector3(Plugin.Config.GetInt(NscConfigKey.Laser0Color) / 360.0f, 1, 1));
-            var rVolColor = Color.HSVtoRGB(new Vector3(Plugin.Config.GetInt(NscConfigKey.Laser1Color) / 360.0f, 1, 1));
+            var lVolColor = Color.HSVtoRGB(new Vector3(NscConfig.Laser0Color / 360.0f, 1, 1));
+            var rVolColor = Color.HSVtoRGB(new Vector3(NscConfig.Laser1Color / 360.0f, 1, 1));
 
             RelativeSizeAxes = Axes.X;
             Size = new Vector2(0.75f, 0);

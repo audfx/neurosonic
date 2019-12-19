@@ -38,6 +38,7 @@ namespace NeuroSonic
         private void SearchAction()
         {
             string chartsDir = TheoriConfig.ChartsDirectory;
+            if (!Directory.Exists(chartsDir)) return;
 
             void EnumerateSubDirs(string parent)
             {
@@ -60,6 +61,7 @@ namespace NeuroSonic
         private void ConvertAction()
         {
             string chartsDir = TheoriConfig.ChartsDirectory;
+            if (!Directory.Exists(chartsDir)) return;
 
             var setSer = new ChartSetSerializer(chartsDir);
             while (true)

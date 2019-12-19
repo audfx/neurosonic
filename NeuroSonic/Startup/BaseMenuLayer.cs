@@ -10,6 +10,7 @@ using theori.IO;
 
 namespace NeuroSonic.Startup
 {
+#if false
     public class MenuItem : TextLabel
     {
         public const int SPACING = 35;
@@ -151,7 +152,7 @@ namespace NeuroSonic.Startup
 
                 // stick our false thing here, returning true is the default for handled keys
                 default:
-                    if (Plugin.Config.GetEnum<InputDevice>(NscConfigKey.ButtonInputDevice) != InputDevice.Keyboard) return;
+                    if (NscConfig.ButtonInputDevice != InputDevice.Keyboard) return;
 
                     if (key.KeyCode == Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_Back))
                         OnExit();
@@ -176,4 +177,5 @@ namespace NeuroSonic.Startup
 
         protected virtual void OnExit() => Pop();
     }
+#endif
 }

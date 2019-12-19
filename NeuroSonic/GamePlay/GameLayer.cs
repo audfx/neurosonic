@@ -21,6 +21,7 @@ using NeuroSonic.Charting;
 using NeuroSonic.GamePlay.Scoring;
 using NeuroSonic.Platform;
 using theori.Database;
+using theori.Configuration;
 
 namespace NeuroSonic.GamePlay
 {
@@ -131,7 +132,7 @@ namespace NeuroSonic.GamePlay
 
         public override bool AsyncLoad()
         {
-            string chartsDir = Plugin.Config.GetString(NscConfigKey.StandaloneChartsDirectory);
+            string chartsDir = TheoriConfig.ChartsDirectory;
             var setInfo = m_chartInfo.Set;
 
             if (m_chart == null)
@@ -271,7 +272,7 @@ namespace NeuroSonic.GamePlay
                 sample.RemoveFromChannelOnFinish = false;
             }
 
-            m_visualOffset = Plugin.Config.GetInt(NscConfigKey.VideoOffset) / 1000.0;
+            m_visualOffset = NscConfig.VideoOffset / 1000.0;
 
             if (!m_critRootUi.AsyncFinalize())
                 return false;
@@ -360,7 +361,7 @@ namespace NeuroSonic.GamePlay
             for (int i = 0; i < 6; i++)
             {
                 var judge = (ButtonJudge)m_judge[i];
-                judge.JudgementOffset = Plugin.Config.GetInt(NscConfigKey.InputOffset) / 1000.0f;
+                judge.JudgementOffset = NscConfig.InputOffset / 1000.0f;
                 judge.AutoPlay = AutoButtons;
                 judge.OnChipPressed += Judge_OnChipPressed;
                 judge.OnTickProcessed += Judge_OnTickProcessed;
@@ -373,7 +374,7 @@ namespace NeuroSonic.GamePlay
                 int iStack = i;
 
                 var judge = (LaserJudge)m_judge[i + 6];
-                judge.JudgementOffset = Plugin.Config.GetInt(NscConfigKey.InputOffset) / 1000.0f;
+                judge.JudgementOffset = NscConfig.InputOffset / 1000.0f;
                 judge.AutoPlay = AutoLasers;
                 judge.OnShowCursor += () => m_cursorsActive[iStack] = true;
                 judge.OnHideCursor += () => m_cursorsActive[iStack] = false;
@@ -411,39 +412,23 @@ namespace NeuroSonic.GamePlay
 
         private void SetHiSpeed()
         {
-            var hispeedKind = Plugin.Config.GetEnum<HiSpeedMod>(NscConfigKey.HiSpeedModKind);
-            switch (hispeedKind)
+            switch (NscConfig.HiSpeedModKind)
             {
                 case HiSpeedMod.Default:
                 {
-                    double hiSpeed = Plugin.Config.GetFloat(NscConfigKey.HiSpeed);
+                    double hiSpeed = NscConfig.HiSpeed;
                     m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * m_tempHiSpeedMult * hiSpeed);
-                }
-                break;
+                } break;
                 case HiSpeedMod.MMod:
                 {
-                    var modSpeed = Plugin.Config.GetFloat(NscConfigKey.ModSpeed);
+                    var modSpeed = NscConfig.ModSpeed;
                     double hiSpeed = modSpeed / m_chart.ControlPoints.ModeBeatsPerMinute;
                     m_visualPlayback.DefaultViewTime = m_audioPlayback.DefaultViewTime = 8 * 60.0 / (m_chart.ControlPoints.ModeBeatsPerMinute * m_tempHiSpeedMult * hiSpeed);
-                }
-                break;
+                } break;
+
                 case HiSpeedMod.CMod:
-                {
-                }
                 goto case HiSpeedMod.Default; //break;
             }
-        }
-
-        public void Temp_IncreaseTempHiSpeedMult()
-        {
-            m_tempHiSpeedMult = MathL.Round(MathL.Min(5, m_tempHiSpeedMult + 0.05f), 1);
-            SetHiSpeed();
-        }
-
-        public void Temp_DecreaseTempHiSpeedMult()
-        {
-            m_tempHiSpeedMult = MathL.Round(MathL.Max(0.1f, m_tempHiSpeedMult - 0.05f), 1);
-            SetHiSpeed();
         }
 
         private void ExitGame()

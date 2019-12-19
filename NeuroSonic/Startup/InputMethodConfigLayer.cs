@@ -6,6 +6,7 @@ using NeuroSonic.Properties;
 
 namespace NeuroSonic.Startup
 {
+#if false
     public sealed class InputMethodConfigLayer : BaseMenuLayer
     {
         protected override string Title => Strings.SecretMenu_InputMethodTitle;
@@ -39,4 +40,5 @@ namespace NeuroSonic.Startup
             Pop();
         }
     }
+#endif
 }

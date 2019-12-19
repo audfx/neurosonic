@@ -14,6 +14,7 @@ using theori.Charting.Serialization;
 
 namespace NeuroSonic.ChartSelect
 {
+#if false
     class ChartImportLayer : BaseMenuLayer
     {
         private readonly string m_title;
@@ -175,4 +176,5 @@ namespace NeuroSonic.ChartSelect
             return chartSetInfo;
         }
     }
+#endif
 }

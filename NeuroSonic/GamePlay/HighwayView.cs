@@ -103,8 +103,8 @@ namespace NeuroSonic.GamePlay
 
             m_resources = new ClientResourceManager(locator);
 
-            m_lVolColor = Color.HSVtoRGB(new Vector3(Plugin.Config.GetInt(NscConfigKey.Laser0Color) / 360.0f, 1, 1));
-            m_rVolColor = Color.HSVtoRGB(new Vector3(Plugin.Config.GetInt(NscConfigKey.Laser1Color) / 360.0f, 1, 1));
+            m_lVolColor = Color.HSVtoRGB(new Vector3(NscConfig.Laser0Color / 360.0f, 1, 1));
+            m_rVolColor = Color.HSVtoRGB(new Vector3(NscConfig.Laser1Color / 360.0f, 1, 1));
 
             Camera = new BasicCamera();
             Camera.SetPerspectiveFoV(2 * 60, 1.0f, 0.01f, 1000);

@@ -1,8 +1,7 @@
 ﻿using System;
-
-using theori;
+using System.Collections.Generic;
+using System.IO;
 using theori.Configuration;
-using theori.Gui;
 using theori.IO;
 
 namespace NeuroSonic.IO
@@ -12,111 +11,115 @@ namespace NeuroSonic.IO
         private static Controller? m_controller;
         public static Controller Controller => m_controller ?? throw new InvalidOperationException("Controller has not been initialized yet!");
 
-        public static void CreateController()
+        private static Dictionary<string, Func<Controller?>> m_defaultFactories = new Dictionary<string, Func<Controller?>>()
         {
-            var btInputMode = Plugin.Config.GetEnum<InputDevice>(NscConfigKey.ButtonInputDevice);
-            var volInputMode = Plugin.Config.GetEnum<InputDevice>(NscConfigKey.LaserInputDevice);
+            { "NeuroSonic-Keyboard.json", CreateDefaultKeyboardController },
+            { "NeuroSonic-YuanCon.json", CreateYuanConController },
+        };
 
-            if (m_controller != null)
-            {
-                UserInputService.RemoveController(m_controller);
-                m_controller = null;
-            }
+        private static readonly Dictionary<string, Controller> m_controllers = new Dictionary<string, Controller>();
 
-            m_controller = new Controller("NeuroSonic Controller");
-            UserInputService.RegisterController(m_controller);
+        private static Controller? CreateDefaultKeyboardController()
+        {
+            var con = new Controller("NeuroSonic Keyboard Controller");
 
-            if (btInputMode == InputDevice.Controller && volInputMode == InputDevice.Controller)
-            {
-                int deviceId = Plugin.Host.Config.GetInt(TheoriConfigKey.Controller_DeviceID);
-                if (UserInputService.TryGetGamepadFromDeviceIndex(deviceId) is { } gamepad)
-                {
-                    float sens = Plugin.Config.GetFloat(NscConfigKey.Controller_Sensitivity);
-                    int smooth = Plugin.Config.GetInt(NscConfigKey.LaserInputSmoothing);
+            con.SetButtonToKey(0, KeyCode.A);
+            con.SetButtonToKey(0, KeyCode.H);
 
-                    void SetButton(HybridLabel name, NscConfigKey key)
-                    {
-                        m_controller!.SetButtonToGamepadButton(name, gamepad, (uint)Plugin.Config.GetInt(key));
-                    }
+            con.SetButtonToKey(1, KeyCode.S);
+            con.SetButtonToKey(1, KeyCode.J);
 
-                    void SetAxis(HybridLabel name, NscConfigKey key)
-                    {
-                        m_controller!.SetAxisToGamepadAxis(name, gamepad, (uint)Plugin.Config.GetInt(key), ControllerAxisStyle.Radial, sens, smooth);
-                    }
+            con.SetButtonToKey(2, KeyCode.D);
+            con.SetButtonToKey(2, KeyCode.K);
 
-                    SetButton("start", NscConfigKey.Controller_Start);
-                    SetButton("back", NscConfigKey.Controller_Back);
+            con.SetButtonToKey(3, KeyCode.F);
+            con.SetButtonToKey(3, KeyCode.L);
 
-                    SetButton(0, NscConfigKey.Controller_BT0);
-                    SetButton(1, NscConfigKey.Controller_BT1);
-                    SetButton(2, NscConfigKey.Controller_BT2);
-                    SetButton(3, NscConfigKey.Controller_BT3);
+            con.SetButtonToKey(4, KeyCode.Z);
+            con.SetButtonToKey(4, KeyCode.X);
 
-                    SetButton(4, NscConfigKey.Controller_FX0);
-                    SetButton(5, NscConfigKey.Controller_FX1);
+            con.SetButtonToKey(5, KeyCode.COMMA);
+            con.SetButtonToKey(5, KeyCode.PERIOD);
 
-                    SetAxis(0, NscConfigKey.Controller_Laser0Axis);
-                    SetAxis(1, NscConfigKey.Controller_Laser1Axis);
-                }
-                else
-                {
-                    goto error;
-                }
-            }
-            else if (btInputMode == InputDevice.Keyboard)
-            {
-                float keySens = Plugin.Config.GetFloat(NscConfigKey.Key_Sensitivity);
-                float mouseSens = Plugin.Config.GetFloat(NscConfigKey.Mouse_Sensitivity);
-                int smooth = Plugin.Config.GetInt(NscConfigKey.LaserInputSmoothing);
+            con.SetButtonToKey("start", KeyCode.SPACE);
+            con.SetButtonToKey("start", KeyCode.RETURN);
 
-                Plugin.Config.GetEnum<KeyCode>(NscConfigKey.Key_BT0);
+            con.SetButtonToKey("back", KeyCode.ESCAPE);
 
-                void SetButton(HybridLabel name, NscConfigKey key)
-                {
-                    m_controller!.SetButtonToKey(name, Plugin.Config.GetEnum<KeyCode>(key));
-                }
+            con.SetAxisToKeysLinear(0, KeyCode.W, KeyCode.Q);
+            con.SetAxisToKeysLinear(1, KeyCode.O, KeyCode.I);
 
-                void SetAxisKeys(HybridLabel name, NscConfigKey keyNeg, NscConfigKey keyPos)
-                {
-                    m_controller!.SetAxisToKeysLinear(name, Plugin.Config.GetEnum<KeyCode>(keyPos), Plugin.Config.GetEnum<KeyCode>(keyNeg));
-                }
-
-                // TODO(local): Get config of the gui axes and onto the standard axis
-                void SetAxisMouse(HybridLabel name, NscConfigKey axis)
-                {
-                    var axesAxis = Plugin.Config.GetEnum<Axes>(axis);
-                    m_controller!.SetAxisToMouseAxis(name, axesAxis == Axes.X ? Axis.X : Axis.Y, mouseSens);
-                }
-
-                SetButton("start", NscConfigKey.Key_Start);
-                SetButton("back", NscConfigKey.Key_Back);
-
-                SetButton(0, NscConfigKey.Key_BT0);
-                SetButton(1, NscConfigKey.Key_BT1);
-                SetButton(2, NscConfigKey.Key_BT2);
-                SetButton(3, NscConfigKey.Key_BT3);
-
-                SetButton(4, NscConfigKey.Key_FX0);
-                SetButton(5, NscConfigKey.Key_FX1);
-
-                if (volInputMode == InputDevice.Keyboard)
-                {
-                    SetAxisKeys(0, NscConfigKey.Key_Laser0Neg, NscConfigKey.Key_Laser0Pos);
-                    SetAxisKeys(1, NscConfigKey.Key_Laser1Neg, NscConfigKey.Key_Laser1Pos);
-                }
-                else if (volInputMode == InputDevice.Mouse)
-                {
-                    SetAxisMouse(0, NscConfigKey.Mouse_Laser0Axis);
-                    SetAxisMouse(1, NscConfigKey.Mouse_Laser1Axis);
-                }
-            }
-
-            return;
-
-        error:
-            throw new InvalidOperationException($"No controller implementation supports Buttons using { btInputMode } and Lasers using { volInputMode }");
+            return con;
         }
 
-        public static bool IsButtonDown(HybridLabel label) => false;
+        private static Controller? CreateYuanConController()
+        {
+            if (!(UserInputService.TryGetGamepadFromName("YuanCon") is Gamepad gamepad)) return null;
+
+            var con = new Controller("NeuroSonic YuanCon Controller");
+
+            con.SetButtonToGamepadButton(0, gamepad, 1);
+            con.SetButtonToGamepadButton(1, gamepad, 2);
+            con.SetButtonToGamepadButton(2, gamepad, 3);
+            con.SetButtonToGamepadButton(3, gamepad, 7);
+            con.SetButtonToGamepadButton(4, gamepad, 5);
+            con.SetButtonToGamepadButton(5, gamepad, 6);
+
+            con.SetButtonToGamepadButton("start", gamepad, 0);
+            con.SetButtonToGamepadButton("back", gamepad, 9);
+
+            con.SetAxisToGamepadAxis(0, gamepad, 0, ControllerAxisStyle.Radial);
+            con.SetAxisToGamepadAxis(1, gamepad, 1, ControllerAxisStyle.Radial);
+
+            return con;
+        }
+
+        public static void Initialize()
+        {
+            foreach (var (fileName, factory) in m_defaultFactories)
+            {
+                string filePath = Path.Combine("controllers", fileName);
+                if (File.Exists(filePath)) continue;
+
+                if (factory() is Controller con)
+                {
+                    m_controllers[fileName] = con;
+                    con.SaveToFile(filePath);
+                }
+            }
+
+            if (TheoriConfig.SelectedController != null)
+                SelectController(TheoriConfig.SelectedController);
+            else SelectController("NeuroSonic-Keyboard.json");
+        }
+
+        public static void DeselectController()
+        {
+            if (m_controller == null) return;
+
+            UserInputService.RemoveController(m_controller!);
+            m_controller = null;
+        }
+
+        public static void SelectController(string controllerFileName)
+        {
+            Controller? nextController = null;
+            if (m_controllers.TryGetValue(controllerFileName, out var cached))
+                nextController = cached;
+            if (Controller.TryCreateFromFile(Path.Combine("controllers", controllerFileName)) is Controller controller)
+            {
+                m_controllers[controllerFileName] = controller;
+                nextController = controller;
+            }
+            else DeselectController();
+
+            if (nextController != null)
+            {
+                if (m_controller != null)
+                    UserInputService.RegisterController(m_controller);
+                m_controller = nextController;
+                UserInputService.RegisterController(m_controller!);
+            }
+        }
     }
 }

@@ -1,5 +1,4 @@
-﻿using theori;
-using theori.Configuration;
+﻿using theori.Configuration;
 using theori.Gui;
 using theori.IO;
 
@@ -16,7 +15,6 @@ namespace NeuroSonic
         Laser0Negative, Laser0Positive,
         Laser1Negative, Laser1Positive
     }
-#endif
 
     public enum NscConfigKey
     {
@@ -85,6 +83,7 @@ namespace NeuroSonic
         Controller_Deadzone,
         Controller_Sensitivity
     }
+#endif
 
     public enum HiSpeedMod
     {
@@ -92,8 +91,21 @@ namespace NeuroSonic
         MMod, CMod,
     }
 
-    public class NscConfig : Config<NscConfigKey>
+    [ConfigGroup("NeuroSonic")]
+    public static class NscConfig// : Config<NscConfigKey>
     {
+        [Config] public static float HiSpeed { get; set; } = 1;
+        [Config] public static int VideoOffset { get; set; }
+        [Config] public static int InputOffset { get; set; }
+        [Config] public static HiSpeedMod HiSpeedModKind { get; set; }
+        [Config] public static float ModSpeed { get; set; } = 300;
+        [Config] public static int Laser0Color { get; set; } = 200;
+        [Config] public static int Laser1Color { get; set; } = 300;
+        [Config(Name = "3 BT + Start = Back")]
+        public static bool Allow3BtStart { get; set; } = false;
+        [Config] public static int LaserInputSmoothing { get; set; } = 2;
+
+#if false
         protected override void SetDefaults()
         {
             Set(NscConfigKey.HiSpeed, 1.0f);
@@ -161,5 +173,6 @@ namespace NeuroSonic
             Set(NscConfigKey.Mouse_Laser1Axis, Axes.Y);
             Set(NscConfigKey.Mouse_Sensitivity, 1.0f);
         }
+#endif
     }
 }
