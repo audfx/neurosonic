@@ -1,4 +1,4 @@
-
+﻿
 Override = { };
 
 Layout = "Landscape";
@@ -182,4 +182,3 @@ end
 
 function Layouts.TallPortrait.Draw(self)
 end
-

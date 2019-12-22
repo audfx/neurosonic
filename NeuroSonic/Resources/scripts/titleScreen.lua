@@ -62,15 +62,14 @@ function theori.layer.init()
             theori.graphics.closeCurtain(0.1, theori.game.exit);
         elseif (button == "start") then
             if (controller:isDown(0)) then
-                theori.graphics.closeCurtain(0.2, function() theori.layer.push("settingsMenu"); end);
+                theori.graphics.closeCurtain(0.2, function() theori.layer.push("userConfig"); end);
             elseif (controller:isDown(1)) then
-                theori.graphics.closeCurtain(0.2, function() theori.layer.push("bindingMenu"); end);
+                theori.graphics.closeCurtain(0.2, function() theori.layer.push("controllerBinding"); end);
             elseif (controller:isDown(2)) then
             elseif (controller:isDown(3)) then
             elseif (controller:isDown(4)) then
             elseif (controller:isDown(5)) then
             else
-                -- go to login scren stuff and then chart selection
                 titleLoop.stop();
                 theori.graphics.closeCurtain(0.2, function() theori.layer.push("chartSelect"); end);
             end

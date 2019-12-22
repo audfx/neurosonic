@@ -1,4 +1,5 @@
-﻿using theori.Charting;
+﻿using theori;
+using theori.Charting;
 using theori.Charting.Effects;
 
 namespace NeuroSonic.Charting
