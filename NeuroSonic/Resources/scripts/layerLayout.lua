@@ -1,4 +1,6 @@
 
+local livebg = include "livebg";
+
 LayoutKind = "Landscape";
 
 LayoutWidth = 0;
@@ -51,7 +53,17 @@ end
 function Layout.DrawBackgroundFilled(bgTex)
 	local bgTexW, bgTexH = bgTex.Width, bgTex.Height;
 	local scale = math.max(LayoutWidth / bgTexW, LayoutHeight / bgTexH);
-	theori.graphics.draw(bgTex, (LayoutWidth - bgTexW * scale) / 2, (LayoutHeight - bgTexH * scale) / 2, bgTexW * scale, bgTexH * scale);
+
+	theori.graphics.setFillToTexture(bgTex, 255, 255, 255, 255);
+	theori.graphics.fillRect((LayoutWidth - bgTexW * scale) / 2, (LayoutHeight - bgTexH * scale) / 2, bgTexW * scale, bgTexH * scale);
+end
+
+function Layout.UpdateLiveBackground(delta, total)
+	livebg.setScroll(total * 0.05);
+end
+
+function Layout.DrawLiveBackground()
+	livebg.render();
 end
 
 function Layout.CheckLayout()
@@ -66,10 +78,12 @@ end
 -- Layout update might not be FANTASTIC, as it might be better to encourage
 --  that all layout perspectives behave on the same state?
 function Layout.Update(delta, total)
+	Layout.UpdateLiveBackground(delta, total);
 	Layouts[LayoutKind]:Update(delta, total);
 end
 
 function Layout.Render()
+	Layout.DrawLiveBackground();
 	Layouts[LayoutKind]:Render();
 end
 

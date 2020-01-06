@@ -50,6 +50,6 @@ function theori.layer.render()
     local width = w * 0.7;
     local height = width * text.Height / text.Width;
     
-    theori.graphics.setImageColor(0, 169, 255, 255 * alpha);
-    theori.graphics.draw(text, (w - width) / 2, (h - height) / 2, width, height);
+    theori.graphics.setFillToTexture(text, 0, 169, 255, 255 * alpha);
+    theori.graphics.fillRect((w - width) / 2, (h - height) / 2, width, height);
 end

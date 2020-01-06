@@ -109,43 +109,48 @@ function theori.layer.render()
     local w, h = LayoutWidth, LayoutHeight;
 
     if (titleLoopState == "intro") then
-        theori.graphics.setColor(0, 0, 0, 255);
+        theori.graphics.setFillToColor(0, 0, 0, 255);
         theori.graphics.fillRect(0, 0, w, h);
     else
+        local pulsePoint, pulseScaleAmt = 0.04, 0.02;
+        local pulse = (titleLoopBeatTimer < pulsePoint) and
+            titleLoopBeatTimer / pulsePoint or
+            1 - (titleLoopBeatTimer - pulsePoint) / (1 - pulsePoint);
+
         do
-            local pulsePoint, pulseScaleAmt = 0.04, 0.02;
-            local pulseScale = pulseScaleAmt * ((titleLoopBeatTimer < pulsePoint) and
-                titleLoopBeatTimer / pulsePoint or
-                1 - (titleLoopBeatTimer - pulsePoint) / (1 - pulsePoint));
+            local pulseScale = pulseScaleAmt * pulse;
 
             local width = w * 0.8 * (1 - pulseScale);
             local height = width * titleTexture.Height / titleTexture.Width;
-
-            theori.graphics.draw(titleTexture, (w - width) / 2, h / 2 - height - 10, width, height);
+            
+            theori.graphics.setFillToTexture(titleTexture, 255, 255, 255, 255);
+            theori.graphics.fillRect((w - width) / 2, h / 2 - height - 10, width, height);
 
             width = w * 0.8 * (1 + pulseScale * 0.5);
             height = width * titleTexture.Height / titleTexture.Width;
 
-            theori.graphics.setImageColor(255, 255, 255, 70);
-            theori.graphics.draw(titleTexture, (w - width) / 2, h / 2 - height - 10, width, height);
+            theori.graphics.setFillToTexture(titleTexture, 255, 255, 255, 70);
+            theori.graphics.fillRect((w - width) / 2, h / 2 - height - 10, width, height);
         end
         
-        theori.graphics.setImageColor(255, 255, 255, 255);
-        theori.graphics.draw(startBtnTexture, (w - 100) / 2, (h - 50) * 3 / 4, 100, 100);
+        theori.graphics.setFillToTexture(startBtnTexture, 255, 255, 255, 255);
+        theori.graphics.fillRect((w - 100) / 2, (h - 50) * 3 / 4, 100, 100);
 
+        theori.graphics.setFontSize(16);
         theori.graphics.setTextAlign(Anchor.TopCenter);
-        theori.graphics.drawString("PRESS START", w / 2, h * 3 / 4 + 60);
+        theori.graphics.setFillToColor(255, 255, 255, 127 + 128 * pulse);
+        theori.graphics.fillString("PRESS START", w / 2, h * 3 / 4 + 60);
     end
 end
 
 -- Landscape
 
 function Layouts.Landscape.Render(self)
-    Layout.DrawBackgroundFilled(self.Background);
+    --Layout.DrawBackgroundFilled(self.Background);
 end
 
 -- Portrait
 
 function Layouts.Portrait.Render(self)
-    Layout.DrawBackgroundFilled(self.Background);
+    --Layout.DrawBackgroundFilled(self.Background);
 end

@@ -76,6 +76,7 @@
     <None Remove="Resources\scripts\game\chart-result.lua" />
     <None Remove="Resources\scripts\generic-layer.lua" />
     <None Remove="Resources\scripts\layerLayout.lua" />
+    <None Remove="Resources\scripts\livebg.lua" />
     <None Remove="Resources\scripts\splashScreen.lua" />
     <None Remove="Resources\scripts\testPrinter.lua" />
     <None Remove="Resources\scripts\titleScreen.lua" />
@@ -183,6 +184,7 @@
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
     <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />
     <EmbeddedResource Include="Resources\scripts\layerLayout.lua" />
+    <EmbeddedResource Include="Resources\scripts\livebg.lua" />
     <EmbeddedResource Include="Resources\scripts\splashScreen.lua" />
     <EmbeddedResource Include="Resources\scripts\titleScreen.lua" />
     <EmbeddedResource Include="Resources\scripts\userConfig.lua" />
