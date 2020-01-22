@@ -30,7 +30,7 @@ namespace NeuroSonic.GamePlay
 
         public bool AsyncLoad()
         {
-            m_script.LoadFile(ClientSkinService.CurrentlySelectedSkin.OpenFileStream("scripts/game/bg-stars.lua"));
+            //m_script.LoadFile(ClientSkinService.CurrentlySelectedSkin.OpenFileStream("scripts/game/bg-stars.lua"));
 
             if (!m_script.LuaAsyncLoad())
                 return false;

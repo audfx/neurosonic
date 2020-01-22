@@ -376,7 +376,7 @@ function theori.layer.doAsyncLoad()
     textures.levelBarBorder = theori.graphics.queueTextureLoad("chartSelect/levelBarBorder");
     textures.levelText = theori.graphics.queueTextureLoad("chartSelect/levelText");
 
-	local frameTextures = { "background", "border", "cornerPanel", "cornerPanelBorder", "fill", "infoBorders", "jacketBottomRight", "jacketTopLeft", "storageDevice", "trackDataLabel" };
+	local frameTextures = { "background", "border", "fill", "storageDevice", "trackDataLabel" };
 	for _, texName in next, frameTextures do
 		textures.chartFrame[texName] = theori.graphics.queueTextureLoad("chartSelect/chartFrame/" .. texName);
 	end
@@ -448,7 +448,7 @@ end
 --------------------------------------------------
 -- Layout Rendering Functions --------------------
 --------------------------------------------------
-local function renderSpriteNumCenteredNumDigits(num, dig, x, y, h)
+local function renderSpriteNumCenteredNumDigits(num, dig, x, y, h, r, g, b, a)
 	local digInfos = { };
 	local w = 0;
 
@@ -463,7 +463,8 @@ local function renderSpriteNumCenteredNumDigits(num, dig, x, y, h)
 
 	local xPos, yPos = x - w / 2, y - h / 2;
 	for _, info in next, digInfos do
-		theori.graphics.draw(info.texture, xPos, yPos, info.width, h);
+		theori.graphics.setFillToTexture(info.texture, r, g, b, a);
+		theori.graphics.fillRect(xPos, yPos, info.width, h);
 		xPos = xPos + info.width;
 	end
 end
@@ -472,9 +473,11 @@ local function renderCursor(x, y, size)
 	local s0 = size * (1 + 0.05 * (math.abs(math.sin(timer * 6))));
 	local s1 = size * (1 + 0.12 * (math.abs(math.sin(timer * 6))));
 
-	theori.graphics.setImageColor(0, 255, 255, 170 + 60 * (math.abs(math.sin(timer * 3))));
-	theori.graphics.draw(textures.cursor, x - s0 / 2, y - s0 / 2, s0, s0);
-	theori.graphics.draw(textures.cursorOuter, x - s1 / 2, y - s1 / 2, s1, s1);
+	local alpha = 170 + 60 * (math.abs(math.sin(timer * 3)));
+	theori.graphics.setFillToTexture(textures.cursor, 0, 255, 255, alpha);
+	theori.graphics.fillRect(x - s0 / 2, y - s0 / 2, s0, s0);
+	theori.graphics.setFillToTexture(textures.cursorOuter, 0, 255, 255, alpha);
+	theori.graphics.fillRect(x - s1 / 2, y - s1 / 2, s1, s1);
 end
 
 local function renderCell(chart, x, y, w, h)
@@ -488,60 +491,52 @@ local function renderCell(chart, x, y, w, h)
 	end
 	local diffLvl = chart and chart.difficultyLevel or 0;
 	
-	theori.graphics.setImageColor(50, 50, 50, 255);
-	theori.graphics.draw(textures.chartFrame.background, x, y, w, h);
-	theori.graphics.setImageColor(r, g, b, 255);
-	theori.graphics.draw(textures.chartFrame.cornerPanelBorder, x, y, w, h);
-	theori.graphics.draw(textures.chartFrame.border, x, y, w, h);
-	theori.graphics.setImageColor(50, 50, 50, 255);
-	theori.graphics.draw(textures.chartFrame.cornerPanel, x, y, w, h);
-	theori.graphics.setImageColor(255, 255, 255, 255);
-	theori.graphics.draw(textures.chartFrame.trackDataLabel, x, y, w, h);
+	theori.graphics.setFillToTexture(textures.chartFrame.fill, 80, 80, 80, 210);
+	theori.graphics.fillRect(x, y, w, h);
+	theori.graphics.setFillToTexture(textures.chartFrame.background, 50, 50, 50, 255);
+	theori.graphics.fillRect(x, y, w, h);
+	theori.graphics.setFillToTexture(textures.chartFrame.border, r, g, b, 255);
+	theori.graphics.fillRect(x, y, w, h);
+	theori.graphics.setFillToTexture(textures.chartFrame.trackDataLabel, 255, 255, 255, 255);
+	theori.graphics.fillRect(x, y, w, h);
 	
-	theori.graphics.setImageColor(80, 80, 80, 210);
-	theori.graphics.draw(textures.chartFrame.fill, x, y, w, h);
-	
-	theori.graphics.setImageColor(r, g, b, 255);
-	theori.graphics.draw(textures.chartFrame.infoBorders, x, y, w, h);
 	local jx, jy, jw, jh = x + 0.1 * w, y + 0.155 * h, w * 0.6, h * 0.6;
 	if (not chart or not chart.hasJacketTexture) then
-		theori.graphics.setImageColor(255, 255, 255, 255);
-		theori.graphics.draw(textures.noJacket, jx, jy, jw, jh);
-		theori.graphics.setImageColor(255, 255, 255, 70);
-		theori.graphics.draw(currentNoiseTexture, jx, jy, jw, jh);
+		theori.graphics.setFillToTexture(textures.noJacket, 255, 255, 255, 255);
+		theori.graphics.fillRect(jx, jy, jw, jh);
+		theori.graphics.setFillToTexture(currentNoiseTexture, 255, 255, 255, 70);
+		theori.graphics.fillRect(jx, jy, jw, jh);
 		if (isSelected) then
-			theori.graphics.setImageColor(255, 255, 255, 175 + 60 * math.abs(math.sin(timer * 3)));
+			theori.graphics.setFillToTexture(textures.noJacketOverlay, 255, 255, 255, 175 + 60 * math.abs(math.sin(timer * 3)));
 		else
-			theori.graphics.setImageColor(255, 255, 255, 205);
+			theori.graphics.setFillToTexture(textures.noJacketOverlay, 255, 255, 255, 205);
 		end
-		theori.graphics.draw(textures.noJacketOverlay, jx, jy, jw, jh);
+		theori.graphics.fillRect(jx, jy, jw, jh);
 	else
-		theori.graphics.setImageColor(255, 255, 255, 255);
-		theori.graphics.draw(chart.getJacketTexture(), jx, jy, jw, jh);
+		theori.graphics.setFillToTexture(chart.getJacketTexture(), 255, 255, 255, 255);
+		theori.graphics.fillRect(jx, jy, jw, jh);
 	end
 	
-	theori.graphics.setImageColor(r, g, b, 255);
-	theori.graphics.draw(textures.chartFrame.jacketTopLeft, x, y, w, h);
-	theori.graphics.draw(textures.chartFrame.jacketBottomRight, x, y, w, h);
-	
-	theori.graphics.setImageColor(r, g, b, 255);
-	theori.graphics.draw(textures.levelBadgeBorder, x + w * 0.73, y + h * 0.55, w * 0.22, h * 0.22);
-	theori.graphics.setImageColor(50, 50, 50, 170);
-	theori.graphics.draw(textures.levelBadge, x + w * 0.73, y + h * 0.55, w * 0.22, h * 0.22);
+	theori.graphics.setFillToTexture(textures.levelBadgeBorder, r, g, b, 255);
+	theori.graphics.fillRect(x + w * 0.73, y + h * 0.55, w * 0.22, h * 0.22);
+	theori.graphics.setFillToTexture(textures.levelBadge, 50, 50, 50, 170);
+	theori.graphics.fillRect(x + w * 0.73, y + h * 0.55, w * 0.22, h * 0.22);
 
-	theori.graphics.setImageColor(0, 0, 0, 255);
-	renderSpriteNumCenteredNumDigits(diffLvl, 2, x + w * 0.835, y + h * 0.665, h * 0.08);
-	theori.graphics.setImageColor(255, 255, 255, 255);
-	renderSpriteNumCenteredNumDigits(diffLvl, 2, x + w * 0.84, y + h * 0.66, h * 0.08);
+	renderSpriteNumCenteredNumDigits(diffLvl,
+		2, x + w * 0.835, y + h * 0.665, h * 0.08,
+		0, 0, 0, 255);
+	renderSpriteNumCenteredNumDigits(diffLvl,
+		2, x + w * 0.84, y + h * 0.66, h * 0.08,
+		255, 255, 255, 255);
 	
 	theori.graphics.saveTransform();
 	if (isSelected) then
 		theori.graphics.rotate(timer * 180);
 	end
 	theori.graphics.translate(LayoutScale * (x + w * (79 / 1028)), LayoutScale * (y + h * (75 / 1028)));
-	theori.graphics.setImageColor(255, 255, 255, 255);
+	theori.graphics.setFillToTexture(textures.chartFrame.storageDevice, 255, 255, 255, 255);
 	local sdw, sdh = w * (100 / 1028), h * (100 / 1028);
-	theori.graphics.draw(textures.chartFrame.storageDevice, -sdw / 2, -sdh / 2, sdw, sdh);
+	theori.graphics.fillRect(-sdw / 2, -sdh / 2, sdw, sdh);
 	theori.graphics.restoreTransform();
 end
 
@@ -572,7 +567,7 @@ local function renderChartGridPanel(x, y, w, h)
 		-- if the bottom of this group is in view, we start checking cell rendering
 		if (yPosRel + groupHeight > minCamera) then
 			if (yPosRel + gridGroupHeaderSize > minCamera) then
-				theori.graphics.setColor(50, 160, 255, 200);
+				theori.graphics.setFillToColor(50, 160, 255, 200);
 				theori.graphics.fillRect(x, yOffset + yPosRel * cellSize, w, gridGroupHeaderSize * cellSize);
 			end
 
@@ -612,13 +607,13 @@ local function renderChartLevelBar(set, x, y, w, h)
 		r, g, b = chart.difficultyColor;
 	end
 	
-	theori.graphics.setImageColor(r, g, b, 255);
-	theori.graphics.draw(textures.levelBarBorder, x, y, w, h);
-	theori.graphics.setImageColor(50, 50, 50, 170);
-	theori.graphics.draw(textures.levelBar, x, y, w, h);
+	theori.graphics.setFillToTexture(textures.levelBarBorder, r, g, b, 255);
+	theori.graphics.fillRect(x, y, w, h);
+	theori.graphics.setFillToTexture(textures.levelBar, 50, 50, 50, 170);
+	theori.graphics.fillRect(x, y, w, h);
 
-	theori.graphics.setImageColor(255, 255, 255, 255);
-	theori.graphics.draw(textures.levelText, x, y, h, h);
+	theori.graphics.setFillToTexture(textures.levelText, 255, 255, 255, 255);
+	theori.graphics.fillRect(x, y, h, h);
 
 	for i = 1, 5 do
 		local slot = setSlots[i];
@@ -634,17 +629,19 @@ local function renderChartLevelBar(set, x, y, w, h)
 		local s = h * 0.7;
 		local o = (h - s) / 2;
 
-		theori.graphics.setImageColor(r, g, b, 255);
-		theori.graphics.draw(textures.levelBadgeBorder, x + h * i + o, y + o, s, s);
-		theori.graphics.setImageColor(50, 50, 50, 255);
-		theori.graphics.draw(textures.levelBadge, x + h * i + o, y + o, s, s);
+		theori.graphics.setFillToTexture(textures.levelBadgeBorder, r, g, b, 255);
+		theori.graphics.fillRect(x + h * i + o, y + o, s, s);
+		theori.graphics.setFillToTexture(textures.levelBadge, 50, 50, 50, 255);
+		theori.graphics.fillRect(x + h * i + o, y + o, s, s);
 		
 		if (#slot > 0) then
 			local diffLvl = slot[childIndex].chart.difficultyLevel;
-			theori.graphics.setImageColor(0, 0, 0, 255);
-			renderSpriteNumCenteredNumDigits(diffLvl, 2, x + h * i + h / 2 - 2, y + h / 2 + 2, s * 0.4);
-			theori.graphics.setImageColor(255, 255, 255, 255);
-			renderSpriteNumCenteredNumDigits(diffLvl, 2, x + h * i + h / 2, y + h / 2, s * 0.4);
+			renderSpriteNumCenteredNumDigits(diffLvl,
+				2, x + h * i + h / 2 - 2, y + h / 2 + 2, s * 0.4,
+				0, 0, 0, 255);
+			renderSpriteNumCenteredNumDigits(diffLvl,
+				2, x + h * i + h / 2, y + h / 2, s * 0.4,
+				255, 255, 255, 255);
 		end
 	end
 
@@ -656,19 +653,19 @@ end
 local function renderLandscapeInfoPanel(chart, x, y, w, h)
 	renderCell(chart, x + w * 0.1, y, w * 0.8, h * 0.8);
 
-	theori.graphics.setImageColor(50, 50, 50, 255);
-	theori.graphics.draw(textures.infoPanel.landscape.background, x, y, w, h);
+	theori.graphics.setFillToTexture(textures.infoPanel.landscape.background, 50, 50, 50, 255);
+	theori.graphics.fillRect(x, y, w, h);
 
 	renderChartLevelBar(chart and chart.set, x + w * 0.25, y + h * 0.875, w * 0.75, h * 0.125);
 end
 
 function renderPortraitInfoPanel(chart, x, y, w, h)
-	theori.graphics.setImageColor(255, 255, 255, 255);
-	theori.graphics.draw(textures.infoPanel.portrait.border, x, y, w, h);
-	theori.graphics.setImageColor(50, 50, 50, 170);
-	theori.graphics.draw(textures.infoPanel.portrait.fill, x, y, w, h);
-	theori.graphics.setImageColor(255, 255, 255, 255);
-	theori.graphics.draw(textures.infoPanel.portrait.jacketBorder, x, y, w, h);
+	theori.graphics.setFillToTexture(textures.infoPanel.portrait.border, 255, 255, 255, 255);
+	theori.graphics.fillRect(x, y, w, h);
+	theori.graphics.setFillToTexture(textures.infoPanel.portrait.fill, 50, 50, 50, 170);
+	theori.graphics.fillRect(x, y, w, h);
+	theori.graphics.setFillToTexture(textures.infoPanel.portrait.jacketBorder, 255, 255, 255, 255);
+	theori.graphics.fillRect(x, y, w, h);
 
 	local chartLevelBarWidth = w * (1006 / 1440);
 	local chartLevelBarHeight = chartLevelBarWidth / 6;

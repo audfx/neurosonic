@@ -1,4 +1,24 @@
 
+include "layerLayout";
+
+function theori.layer.doAsyncLoad()
+    return true;
+end
+
+function theori.layer.doAsyncFinalize()
+    return true;
+end
+
+function theori.layer.init()
+    theori.graphics.openCurtain();
+    game.begin();
+end
+
+function theori.layer.resumed()
+end
+
+
+--[[
 -- requires `generic-layer.lua`
 
 function Override.Init()
@@ -119,3 +139,4 @@ end
 
 function Layouts.TallPortrait.Draw(self)
 end
+--]]

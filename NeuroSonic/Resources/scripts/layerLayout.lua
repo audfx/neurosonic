@@ -83,7 +83,7 @@ function Layout.Update(delta, total)
 end
 
 function Layout.Render()
-	Layout.DrawLiveBackground();
+	--Layout.DrawLiveBackground();
 	Layouts[LayoutKind]:Render();
 end
 

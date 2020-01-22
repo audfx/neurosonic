@@ -51,10 +51,10 @@ local function CreateParticleSpawner(frequency, spawnOffset, texture, size, posx
 end
 
 function AsyncLoad()
-	CenterpieceTex = res.QueueTextureLoad("textures/game_bg/centerpiece");
-	ParticlesTex[1] = res.QueueTextureLoad("textures/game_bg/particle0");
-	ParticlesTex[2] = res.QueueTextureLoad("textures/game_bg/particle1");
-	ParticlesTex[3] = res.QueueTextureLoad("textures/game_bg/particle2");
+	CenterpieceTex = theori.graphics.queueTextureLoad("game_bg/centerpiece");
+	ParticlesTex[1] = theori.graphics.queueTextureLoad("game_bg/particle0");
+	ParticlesTex[2] = theori.graphics.queueTextureLoad("game_bg/particle1");
+	ParticlesTex[3] = theori.graphics.queueTextureLoad("game_bg/particle2");
 
 	return true;
 end
@@ -108,25 +108,25 @@ function Update(delta, total)
 end
 
 function Draw()
-	local width, height = g2d.GetViewportSize();
-	local originx, originy = width / 2, height * HorizonHeight;
+	local width, height = theori.graphics.getViewportSize();
+	local originx, originy = width / 2, height * Background.horizonHeight;
 
 	local centerSize = width * 0.6;
 
-	--local spins = -math.min(1, SpinTimer * 2) * 720 - math.min(1, SwingTimer * 2) * 360;
+	--local spins = -math.min(1, Background.spinTimer * 2) * 720 - math.min(1, Background.swingTimer * 2) * 360;
 
-	g2d.SaveTransform();
-	g2d.Rotate(-CombinedTilt * 0.25);
-	g2d.Translate(originx, originy);
+	theori.graphics.saveTransform();
+	theori.graphics.rotate(-Background.combinedTilt * 0.25);
+	theori.graphics.translate(originx, originy);
 
-	g2d.SetImageColor(255, 255, 255, 255);
-	g2d.Image(CenterpieceTex, -centerSize / 2, -centerSize * 0.8, centerSize, centerSize);
+	theori.graphics.setFillToTexture(CenterpieceTex, 255, 255, 255, 255);
+	theori.graphics.fillRect(-centerSize / 2, -centerSize * 0.8, centerSize, centerSize);
 
-	g2d.RestoreTransform();
+	theori.graphics.restoreTransform();
 
-	g2d.SaveTransform();
-	g2d.Rotate(-CombinedTilt * 0.25);
-	g2d.Translate(originx, originy);
+	theori.graphics.saveTransform();
+	theori.graphics.rotate(-Background.combinedTilt * 0.25);
+	theori.graphics.translate(originx, originy);
 
 	for _, particle in next, Particles do
 		local posx = width * (particle.Position.X / particle.Distance);
@@ -140,9 +140,9 @@ function Draw()
 			alpha = particle.Distance / 4;
 		end
 
-		g2d.SetImageColor(255, 255, 255, math.floor(255 * alpha));
-		g2d.Image(particle.Texture, posx - size / 2, posy - size / 2, size, size);
+		theori.graphics.setFillToTexture(particle.Texture, 255, 255, 255, math.floor(255 * alpha));
+		theori.graphics.fillRect(posx - size / 2, posy - size / 2, size, size);
 	end
 	
-	g2d.RestoreTransform();
+	theori.graphics.restoreTransform();
 end

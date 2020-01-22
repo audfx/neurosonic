@@ -121,8 +121,8 @@ function Background.render()
 	nsc.graphics.rotate(-Background.combinedTilt * 0.25);
 	nsc.graphics.translate(originx, originy);
 
-	nsc.graphics.setImageColor(255, 255, 255, 255);
-	nsc.graphics.draw(CenterpieceTex, -centerSize / 2, -centerSize * 0.8, centerSize, centerSize);
+	nsc.graphics.setFillToTexture(CenterpieceTex, 255, 255, 255, 255);
+	nsc.graphics.fillRect(-centerSize / 2, -centerSize * 0.8, centerSize, centerSize);
 
 	nsc.graphics.restoreTransform();
 
@@ -142,8 +142,8 @@ function Background.render()
 			alpha = particle.Distance / 4;
 		end
 
-		nsc.graphics.setImageColor(255, 255, 255, math.floor(255 * alpha));
-		nsc.graphics.draw(particle.Texture, posx - size / 2, posy - size / 2, size, size);
+		nsc.graphics.setFillToTexture(particle.Texture, 255, 255, 255, math.floor(255 * alpha));
+		nsc.graphics.fillRect(posx - size / 2, posy - size / 2, size, size);
 	end
 	
 	nsc.graphics.restoreTransform();

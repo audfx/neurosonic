@@ -177,8 +177,8 @@ namespace NeuroSonic.GamePlay
 
             m_metaTable["PlayKind"] = "N";
 
-            m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/generic-layer.lua"));
-            m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/game/main.lua"));
+            //m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/generic-layer.lua"));
+            //m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/game/main.lua"));
 
             if (!m_guiScript.LuaAsyncLoad())
                 return false;
@@ -253,7 +253,7 @@ namespace NeuroSonic.GamePlay
         {
             if (!m_guiScript.LuaAsyncFinalize())
                 return false;
-            m_guiScript.InitSpriteRenderer();
+            //m_guiScript.InitSpriteRenderer();
 
             if (!m_highwayView.AsyncFinalize())
                 return false;
@@ -408,6 +408,7 @@ namespace NeuroSonic.GamePlay
             m_guiScript.CallIfExists("Init");
 
             ClientAs<NscClient>().OpenCurtain();
+            Begin();
         }
 
         private void SetHiSpeed()

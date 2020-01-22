@@ -68,6 +68,7 @@
   <ItemGroup>
     <None Remove="Resources\audio\chartSelect\click0.ogg" />
     <None Remove="Resources\audio\launchtower-title-loop.ogg" />
+    <None Remove="Resources\fonts\slant.ttf" />
     <None Remove="Resources\scripts\chartSelect.lua" />
     <None Remove="Resources\scripts\controllerBinding.lua" />
     <None Remove="Resources\scripts\driver.lua" />
@@ -168,6 +169,7 @@
     <EmbeddedResource Include="Resources\audio\sample_snare.ogg" />
     <EmbeddedResource Include="Resources\audio\sample_snare_lo.ogg" />
     <EmbeddedResource Include="Resources\audio\slam.ogg" />
+    <EmbeddedResource Include="Resources\fonts\slant.ttf" />
     <EmbeddedResource Include="Resources\materials\chip.fs" />
     <EmbeddedResource Include="Resources\materials\game_background.fs" />
     <EmbeddedResource Include="Resources\materials\highway.fs" />
@@ -192,13 +194,8 @@
     <EmbeddedResource Include="Resources\textures\bgHighContrast_PR.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\background.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\border.png" />
-    <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\cornerPanel.png" />
-    <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\cornerPanelBorder.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\cornerPanelChevrons.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\fill.png" />
-    <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\infoBorders.png" />
-    <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\jacketBottomRight.png" />
-    <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\jacketTopLeft.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\storageDevice.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\trackDataLabel.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\cursor.png" />
