@@ -11,6 +11,7 @@ using NeuroSonic.Graphics;
 using NeuroSonic.GamePlay;
 using theori.Configuration;
 using NeuroSonic.IO;
+using theori.Scripting;
 
 namespace NeuroSonic.Platform
 {
@@ -20,6 +21,7 @@ namespace NeuroSonic.Platform
 
         static NscClient()
         {
+            ScriptService.RegisterType<AutoPlayTargets>();
         }
 
         [Pure] public NscClient()

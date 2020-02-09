@@ -12,6 +12,7 @@ using NeuroSonic.GamePlay;
 using MoonSharp.Interpreter;
 using theori.Database;
 using theori.Platform;
+
 using NeuroSonic.Platform;
 
 namespace NeuroSonic
@@ -29,11 +30,30 @@ namespace NeuroSonic
         public NscLayer(ClientResourceLocator? resourceLocator = null, string? layerPath = null, params DynValue[] args)
             : base(resourceLocator ?? ClientSkinService.CurrentlySelectedSkin, layerPath, args)
         {
+            m_script["AutoPlayTargets"] = typeof(AutoPlayTargets);
+
             m_script["nsc"] = tblNsc = m_script.NewTable();
 
             tblNsc["charts"] = tblNscCharts = m_script.NewTable();
 
-            tblNsc["pushGameplay"] = (Action<ChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlayTargets.None)));
+            //tblNsc["pushGameplay"] = (Action<ChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlayTargets.None)));
+            tblNsc["pushGameplay"] = DynValue.NewCallback((context, args) =>
+            {
+                if (args.Count == 0)
+                    throw new ScriptRuntimeException("Chart info expected for pushGameplay.");
+                args = args.SkipMethodCall();
+
+                ChartInfoHandle chartInfo = args.AsUserData<ChartInfoHandle>(0, "pushGameplay"); ;
+                var autoPlay = AutoPlayTargets.None;
+                if (args.Count >= 2)
+                    autoPlay = args.AsUserData<AutoPlayTargets>(1, "pushGameplay");
+
+                var layer = new GameLayer(ResourceLocator, chartInfo, autoPlay);
+                Push(layer);
+
+                return DynValue.Void;
+            });
+
 
             tblNscCharts["scanForKshCharts"] = (Action)(() =>
             {

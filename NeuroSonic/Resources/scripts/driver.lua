@@ -6,6 +6,8 @@ function theori.layer.doAsyncLoad()
     theori.graphics.queueStaticTextureLoad("audfx-text-large");
 
     titleLoop = theori.audio.queueStaticAudioLoad("launchtower-title-loop");
+    
+    theori.graphics.createStaticFont("slant");
 
     return theori.doStaticLoadsAsync();
 end

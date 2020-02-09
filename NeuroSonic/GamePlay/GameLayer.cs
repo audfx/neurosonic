@@ -671,6 +671,12 @@ namespace NeuroSonic.GamePlay
         {
             switch (key.KeyCode)
             {
+                case KeyCode.UP: m_tempPitch += 0.01f; break;
+                case KeyCode.DOWN: m_tempPitch -= 0.01f; break;
+
+                case KeyCode.RIGHT: m_tempPitch += 0.1f; break;
+                case KeyCode.LEFT: m_tempPitch -= 0.1f; break;
+
                 case KeyCode.PAGEUP:
                 {
                     m_audioController.Position += m_chart.ControlPoints.MostRecent(m_audioController.Position).MeasureDuration;
@@ -694,6 +700,7 @@ namespace NeuroSonic.GamePlay
             if (AutoButtons) return;
 
             ((ButtonJudge)m_judge[lane]).UserReleased(m_judge.Position);
+            m_highwayView.EndKeyBeam(lane);
         }
 
         void UserInput_VolPulse(int lane, float amount)
@@ -719,7 +726,7 @@ namespace NeuroSonic.GamePlay
                 case JudgeKind.Miss: color = new Vector3(1, 0, 0); break;
             }
 
-            m_highwayView.CreateKeyBeam(label, color);
+            m_highwayView.BeginKeyBeam(label, color);
             if (doAnim) m_critRootWorld.TriggerButtonAnimation((int)label, color);
         }
 
@@ -733,6 +740,8 @@ namespace NeuroSonic.GamePlay
             m_scoringTable["Gauge"] = m_judge.Gauge;
             m_scoringTable["Score"] = m_judge.Score;
         }
+
+        float m_tempPitch = 0;
 
         public override void Update(float delta, float total)
         {
@@ -755,7 +764,7 @@ namespace NeuroSonic.GamePlay
 
                 var mrPoint = s.MostRecent<GraphPointEvent>(pos);
                 if (mrPoint == null)
-                    return ((GraphPointEvent)s.First)?.Value ?? 0;
+                    return ((GraphPointEvent?)s.First)?.Value ?? 0;
 
                 if (mrPoint.HasNext)
                 {
@@ -830,9 +839,18 @@ namespace NeuroSonic.GamePlay
             m_highwayControl.RightLaserInput = 1 - m_laserInputs[1];
 
             m_highwayControl.Zoom = GetPathValueLerped(visualPosition, NscLane.CameraZoom);
+            //m_highwayControl.Zoom = 0;
             m_highwayControl.Pitch = GetPathValueLerped(visualPosition, NscLane.CameraPitch);
+            //m_highwayControl.Pitch = m_tempPitch;
+            //Console.WriteLine(m_tempPitch);
             m_highwayControl.Offset = GetPathValueLerped(visualPosition, NscLane.CameraOffset);
             m_highwayControl.Roll = GetPathValueLerped(visualPosition, NscLane.CameraTilt);
+
+            m_highwayView.Split0 = GetPathValueLerped(visualPosition, NscLane.Split0);
+            m_highwayView.Split1 = GetPathValueLerped(visualPosition, NscLane.Split1);
+            m_highwayView.Split2 = GetPathValueLerped(visualPosition, NscLane.Split2);
+            m_highwayView.Split3 = GetPathValueLerped(visualPosition, NscLane.Split3);
+            m_highwayView.Split4 = GetPathValueLerped(visualPosition, NscLane.Split4);
 
             for (int i = 0; i < 8; i++)
             {
@@ -1059,7 +1077,7 @@ namespace NeuroSonic.GamePlay
         public override void LateRender()
         {
             base.LateRender();
-            m_guiScript.Draw();
+            m_guiScript.Render();
         }
     }
 }

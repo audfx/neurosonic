@@ -73,7 +73,6 @@
     <None Remove="Resources\scripts\controllerBinding.lua" />
     <None Remove="Resources\scripts\driver.lua" />
     <None Remove="Resources\scripts\game.lua" />
-    <None Remove="Resources\scripts\game\backgrounds\stars.lua" />
     <None Remove="Resources\scripts\game\chart-result.lua" />
     <None Remove="Resources\scripts\generic-layer.lua" />
     <None Remove="Resources\scripts\layerLayout.lua" />
@@ -181,7 +180,6 @@
     <EmbeddedResource Include="Resources\scripts\driver.lua" />
     <EmbeddedResource Include="Resources\scripts\game.lua" />
     <EmbeddedResource Include="Resources\scripts\game\backgrounds\stars.lua" />
-    <EmbeddedResource Include="Resources\scripts\game\bg-stars.lua" />
     <EmbeddedResource Include="Resources\scripts\game\chart-result.lua" />
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
     <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />

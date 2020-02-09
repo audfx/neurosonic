@@ -34,6 +34,8 @@ local cellIndex = 1;
 local slotIndex = 1;
 -- which chart in a slot, if there are multiple, is selected
 local slotChildIndex = 1;
+
+local autoPlay = AutoPlayTargets.None;
 --------------------------------------------------
 
 
@@ -57,6 +59,9 @@ local gridCameraPos = 0;
 local gridCameraPosTarget = 0;
 
 local infoBounceTimer = 0;
+local selectedSongTitleScrollTimer = 0;
+
+local fontSlant;
 --------------------------------------------------
 
 
@@ -413,6 +418,8 @@ function theori.layer.init()
 	audio.clicks.primary.volume = 0.5;
 	gridCameraPosTarget = getGridCameraPosition();
 
+    fontSlant = theori.graphics.getStaticFont("slant");
+
     theori.graphics.openCurtain();
 
     theori.input.controller.pressed:connect(onButtonPressed);
@@ -424,6 +431,7 @@ function theori.layer.update(delta, total)
 	timer = total;
 
 	currentNoiseTexture = textures.noise[math.floor((timer * 24) % 10)];
+	selectedSongTitleScrollTimer = selectedSongTitleScrollTimer + delta;
 
     Layout.Update(delta, total);
 	for _, v in next, stateData do
@@ -449,9 +457,8 @@ end
 -- Layout Rendering Functions --------------------
 --------------------------------------------------
 local function renderSpriteNumCenteredNumDigits(num, dig, x, y, h, r, g, b, a)
-	local digInfos = { };
 	local w = 0;
-
+	local digInfos = { };
 	for i = dig, 1, -1 do
 		local tento, tentom1 = math.pow(10, i), math.pow(10, i - 1);
 		local tex = textures.numbers[math.floor((num % tento) / tentom1)];
@@ -523,10 +530,10 @@ local function renderCell(chart, x, y, w, h)
 	theori.graphics.fillRect(x + w * 0.73, y + h * 0.55, w * 0.22, h * 0.22);
 
 	renderSpriteNumCenteredNumDigits(diffLvl,
-		2, x + w * 0.835, y + h * 0.665, h * 0.08,
+		2, x + w * 0.835, y + h * 0.665, h * 0.09,
 		0, 0, 0, 255);
 	renderSpriteNumCenteredNumDigits(diffLvl,
-		2, x + w * 0.84, y + h * 0.66, h * 0.08,
+		2, x + w * 0.84, y + h * 0.66, h * 0.09,
 		255, 255, 255, 255);
 	
 	theori.graphics.saveTransform();
@@ -538,6 +545,25 @@ local function renderCell(chart, x, y, w, h)
 	local sdw, sdh = w * (100 / 1028), h * (100 / 1028);
 	theori.graphics.fillRect(-sdw / 2, -sdh / 2, sdw, sdh);
 	theori.graphics.restoreTransform();
+
+	local titleBoundsX, _ = theori.graphics.measureString(chart.songTitle);
+	local centerTitle, scrollTime = titleBoundsX < w * 0.8, math.floor((titleBoundsX - w * 0.8) / 25);
+	local titleOffsetX = centerTitle and w * 0.4 or -math.max(0, math.min(scrollTime, selectedSongTitleScrollTimer % (2 + scrollTime) - 1)) * (titleBoundsX - w * 0.8);
+
+	if (not centerTitle) then
+		theori.graphics.saveScissor();
+		theori.graphics.scissor(x * LayoutScale + w * LayoutScale * 0.1, y * LayoutScale + h * LayoutScale * 0.7, w * LayoutScale * 0.8, h * LayoutScale * 0.3);
+	end
+
+	theori.graphics.setFont(nil);
+	theori.graphics.setFontSize(h * 0.075);
+	theori.graphics.setTextAlign(centerTitle and Anchor.MiddleCenter or Anchor.MiddleLeft);
+	theori.graphics.setFillToColor(255, 255, 255, 255);
+	theori.graphics.fillString(chart.songTitle, x + w * 0.1 + titleOffsetX, y + h * 0.825);
+
+	if (not centerTitle) then
+		theori.graphics.restoreScissor();
+	end
 end
 
 local function renderChartGridPanel(x, y, w, h)
@@ -748,7 +774,7 @@ function defaultState.buttonPressed(self, controller, button)
 		if (#charts == 0) then return; end
 
 		local chart = charts[groupIndex][cellIndex];
-        theori.graphics.closeCurtain(0.2, function() nsc.pushGameplay(chart); end);
+        theori.graphics.closeCurtain(0.2, function() nsc.pushGameplay(chart, autoPlay); end);
 	elseif (button == 3) then -- TEMP TEMP TEMP
 		if (charts and #charts > 0) then
 			local chart = charts[groupIndex][cellIndex];

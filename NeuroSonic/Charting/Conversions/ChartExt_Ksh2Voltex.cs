@@ -317,6 +317,41 @@ namespace NeuroSonic.Charting.Conversions
                             point.Value = setting.Value.ToInt() / 100.0f;
                             Logger.Log($"ksh.convert({ chartPos }) offset { setting.Value }");
                         } break;
+                        
+                        case "split_0":
+                        {
+                            var point = chart[NscLane.Split0].Add<GraphPointEvent>(chartPos);
+                            point.Value = setting.Value.ToInt() / 100.0f;
+                            Logger.Log($"ksh.convert({ chartPos }) split 0 (l-a) { setting.Value }");
+                        } break;
+                        
+                        case "split_1":
+                        {
+                            var point = chart[NscLane.Split1].Add<GraphPointEvent>(chartPos);
+                            point.Value = setting.Value.ToInt() / 100.0f;
+                            Logger.Log($"ksh.convert({ chartPos }) split 1 (a-b) { setting.Value }");
+                        } break;
+                        
+                        case "split_2":
+                        {
+                            var point = chart[NscLane.Split2].Add<GraphPointEvent>(chartPos);
+                            point.Value = setting.Value.ToInt() / 100.0f;
+                            Logger.Log($"ksh.convert({ chartPos }) split 2 (b-c) { setting.Value }");
+                        } break;
+                        
+                        case "split_3":
+                        {
+                            var point = chart[NscLane.Split3].Add<GraphPointEvent>(chartPos);
+                            point.Value = setting.Value.ToInt() / 100.0f;
+                            Logger.Log($"ksh.convert({ chartPos }) split 3 (c-d) { setting.Value }");
+                        } break;
+                        
+                        case "split_4":
+                        {
+                            var point = chart[NscLane.Split4].Add<GraphPointEvent>(chartPos);
+                            point.Value = setting.Value.ToInt() / 100.0f;
+                            Logger.Log($"ksh.convert({ chartPos }) split 4 (d-r) { setting.Value }");
+                        } break;
 
                         case "roll": // NOTE(local): This is an extension, not originally supported in KSH. Used primarily for development purposes, but may also be exported to KSH should someone want to export back to that format.
                         {

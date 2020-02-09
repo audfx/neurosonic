@@ -13,19 +13,22 @@ namespace NeuroSonic.GamePlay
 {
     internal sealed class ObjectRenderable3DStaticResources : System.Disposable
     {
-        public readonly Mesh ButtonChipMesh;
-        public readonly Mesh ButtonHoldMesh;
+        public readonly Mesh ButtonChipLeftMesh, ButtonChipRightMesh;
+        public readonly Mesh ButtonHoldLeftMesh, ButtonHoldRightMesh;
 
         public ObjectRenderable3DStaticResources()
         {
-            ButtonChipMesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1.0f / 6, 0.1f, Anchor.BottomCenter);
-            ButtonHoldMesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1.0f / 6, 1.0f, Anchor.BottomCenter);
+            ButtonChipLeftMesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1.0f / 12, 0.1f, Anchor.BottomRight, new Rect(0, 0, 0.5f, 1));
+            ButtonChipRightMesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1.0f / 12, 0.1f, Anchor.BottomLeft, new Rect(0.5f, 0, 0.5f, 1));
+
+            ButtonHoldLeftMesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1.0f / 12, 1.0f, Anchor.BottomRight, new Rect(0, 0, 0.5f, 1));
+            ButtonHoldRightMesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1.0f / 12, 1.0f, Anchor.BottomLeft, new Rect(0.5f, 0, 0.5f, 1));
         }
 
         protected override void DisposeManaged()
         {
-            ButtonChipMesh.Dispose();
-            ButtonHoldMesh.Dispose();
+            ButtonChipLeftMesh.Dispose();
+            ButtonHoldLeftMesh.Dispose();
         }
     }
 
@@ -66,13 +69,20 @@ namespace NeuroSonic.GamePlay
         protected abstract void SetGlowState(int glow);
     }
 
-    internal class ButtonChipRenderState3D : ObjectRenderable3D
+    public interface IButtonRenderState3D
+    {
+        public int SplitDrawMode { get; set; }
+    }
+
+    internal class ButtonChipRenderState3D : ObjectRenderable3D, IButtonRenderState3D
     {
         public new ButtonEntity Object => (ButtonEntity)base.Object;
 
         private readonly int m_width;
 
-        private readonly Drawable3D m_drawable;
+        private readonly Drawable3D[] m_drawables;
+
+        public int SplitDrawMode { get; set; } = 0;
 
         public ButtonChipRenderState3D(ButtonEntity obj, ClientResourceManager resources, ObjectRenderable3DStaticResources staticResources)
             : base(obj)
@@ -95,30 +105,46 @@ namespace NeuroSonic.GamePlay
                 else textureName = "textures/game/fx_chip";
             }
 
-            m_drawable = new Drawable3D()
+            m_drawables = new[]
             {
-                Texture = resources.GetTexture(textureName),
-                Material = resources.GetMaterial("materials/chip"),
-                Mesh = staticResources.ButtonChipMesh,
+                new Drawable3D()
+                {
+                    Texture = resources.GetTexture(textureName),
+                    Material = resources.GetMaterial("materials/chip"),
+                    Mesh = staticResources.ButtonChipLeftMesh,
+                },
+                new Drawable3D()
+                {
+                    Texture = resources.GetTexture(textureName),
+                    Material = resources.GetMaterial("materials/chip"),
+                    Mesh = staticResources.ButtonChipRightMesh,
+                }
             };
         }
 
         public override void Render(RenderQueue rq, Transform world, float len)
         {
-            m_drawable.DrawToQueue(rq, Transform.Scale(m_width, 1, len) * world);
+            if (SplitDrawMode == 0)
+            {
+                foreach (var d in m_drawables)
+                    d.DrawToQueue(rq, Transform.Scale(m_width, 1, len) * world);
+            }
+            else m_drawables[SplitDrawMode - 1].DrawToQueue(rq, Transform.Scale(m_width, 1, len) * world);
         }
     }
 
-    internal class ButtonHoldRenderState3D : GlowingRenderState3D
+    internal class ButtonHoldRenderState3D : GlowingRenderState3D, IButtonRenderState3D
     {
-        private const float ENTRY_LENGTH = 0.1f;
-        private const float EXIT_LENGTH = ENTRY_LENGTH * 0.5f;
+        private const float ENTRY_LENGTH = 0.15f;
+        private const float EXIT_LENGTH = ENTRY_LENGTH;
 
         public new ButtonEntity Object => (ButtonEntity)base.Object;
 
         private readonly int m_width;
 
         private readonly Drawable3D[] m_drawables;
+
+        public int SplitDrawMode { get; set; } = 0;
 
         public ButtonHoldRenderState3D(ButtonEntity obj, ClientResourceManager resources, ObjectRenderable3DStaticResources staticResources)
             : base(obj)
@@ -137,31 +163,50 @@ namespace NeuroSonic.GamePlay
                 m_width = 2;
             }
 
-            m_drawables = new Drawable3D[3]
+            m_drawables = new[]
             {
                 new Drawable3D()
                 {
                     Texture = resources.GetTexture(holdTextureName),
                     Material = resources.GetMaterial("materials/hold"),
-                    Mesh = staticResources.ButtonHoldMesh,
+                    Mesh = staticResources.ButtonHoldLeftMesh,
+                },
+                new Drawable3D()
+                {
+                    Texture = resources.GetTexture(holdTextureName),
+                    Material = resources.GetMaterial("materials/hold"),
+                    Mesh = staticResources.ButtonHoldRightMesh,
                 },
 
                 new Drawable3D()
                 {
                     Texture = resources.GetTexture(holdTextureName + "_entry"),
                     Material = resources.GetMaterial("materials/basic"),
-                    Mesh = staticResources.ButtonHoldMesh,
+                    Mesh = staticResources.ButtonHoldLeftMesh,
+                },
+                new Drawable3D()
+                {
+                    Texture = resources.GetTexture(holdTextureName + "_entry"),
+                    Material = resources.GetMaterial("materials/basic"),
+                    Mesh = staticResources.ButtonHoldRightMesh,
                 },
 
                 new Drawable3D()
                 {
                     Texture = resources.GetTexture(holdTextureName + "_exit"),
                     Material = resources.GetMaterial("materials/hold"),
-                    Mesh = staticResources.ButtonHoldMesh,
+                    Mesh = staticResources.ButtonHoldLeftMesh,
+                },
+                new Drawable3D()
+                {
+                    Texture = resources.GetTexture(holdTextureName + "_exit"),
+                    Material = resources.GetMaterial("materials/hold"),
+                    Mesh = staticResources.ButtonHoldRightMesh,
                 },
             };
 
-            m_drawables[1].Params["Color"] = Vector4.One;
+            foreach (var d in m_drawables)
+                d.Params["Color"] = Vector4.One;
 
             Glow = 0.0f;
             GlowState = 1;
@@ -182,13 +227,27 @@ namespace NeuroSonic.GamePlay
         public override void Render(RenderQueue rq, Transform world, float len)
         {
             var holdTransform = Transform.Scale(m_width, 1, len - EXIT_LENGTH - ENTRY_LENGTH) * Transform.Translation(0, 0, -ENTRY_LENGTH);
-            m_drawables[0].DrawToQueue(rq, holdTransform * world);
-
             var entryTransform = Transform.Scale(m_width, 1, ENTRY_LENGTH);
             var exitTransform = Transform.Scale(m_width, 1, EXIT_LENGTH) * Transform.Translation(0, 0, -len + EXIT_LENGTH);
 
-            m_drawables[1].DrawToQueue(rq, entryTransform * world);
-            m_drawables[2].DrawToQueue(rq, exitTransform * world);
+            if (SplitDrawMode == 0)
+            {
+                m_drawables[0].DrawToQueue(rq, holdTransform * world);
+                m_drawables[1].DrawToQueue(rq, holdTransform * world);
+
+                m_drawables[2].DrawToQueue(rq, entryTransform * world);
+                m_drawables[3].DrawToQueue(rq, entryTransform * world);
+
+                m_drawables[4].DrawToQueue(rq, exitTransform * world);
+                m_drawables[5].DrawToQueue(rq, exitTransform * world);
+            }
+            else
+            {
+                int offs = SplitDrawMode - 1;
+                m_drawables[0 + offs].DrawToQueue(rq, holdTransform * world);
+                m_drawables[2 + offs].DrawToQueue(rq, entryTransform * world);
+                m_drawables[4 + offs].DrawToQueue(rq, exitTransform * world);
+            }
         }
     }
 

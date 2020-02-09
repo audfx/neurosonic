@@ -55,7 +55,42 @@ namespace NeuroSonic.GamePlay
                     //  angle the distance from the camera, etc. can all be pre-determined and also
                     //  imported and used for these calculations without giving access to the 
                     //  highway view to this part of the program.
-                    return input * 15;
+
+                    const float KSM_FLAT_AWAY = -4.0f;
+                    const float KSM_VERT = 5.59f;
+                    const float KSM_FLAT_TOWARDS = 7.99f;
+                    const float KSM_FLAT_TOWARDS_NEG = -24 + KSM_FLAT_TOWARDS;
+
+                    const float NSC_FLAT_AWAY = -3.925f;
+                    const float NSC_VERT = 4.79f;
+                    const float NSC_FLAT_TOWARDS = 8.065f;
+                    const float NSC_FLAT_TOWARDS_NEG = -24 + NSC_FLAT_TOWARDS;
+
+
+                    float addAmt = 0;
+                    while (input < -(24 + KSM_FLAT_TOWARDS))
+                    {
+                        input += 24;
+                        addAmt--;
+                    }
+                    while (input > KSM_FLAT_TOWARDS)
+                    {
+                        input -= 24;
+                        addAmt++;
+                    }
+
+                    float result;
+                    if (input > 0 && input <= KSM_VERT)
+                        result = (input / KSM_VERT) * NSC_VERT;
+                    else if (input > KSM_VERT && input <= KSM_FLAT_TOWARDS)
+                        result = NSC_VERT + (input - KSM_VERT) / (KSM_FLAT_TOWARDS - KSM_VERT) * (NSC_FLAT_TOWARDS - NSC_VERT);
+                    else if (input <= 0 && input > KSM_FLAT_AWAY)
+                        result = (input / KSM_FLAT_AWAY) * NSC_FLAT_AWAY;
+                    else // <= KSM_FLAT_AWAY, > KSM_FLAT_TOWARDS_NEG
+                        result = NSC_FLAT_AWAY + (input - KSM_FLAT_AWAY) / (KSM_FLAT_TOWARDS_NEG - KSM_FLAT_AWAY) * (NSC_FLAT_TOWARDS_NEG - NSC_FLAT_AWAY);
+
+                    return result * 15 + addAmt * 360;
+                    //return input * 15;
                 },
 
                 OffsetUnitWorld = 5.0f / (12 * 1.16f),

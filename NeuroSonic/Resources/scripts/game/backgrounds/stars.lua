@@ -1,6 +1,4 @@
 ﻿
-local Background = { };
-
 local CenterpieceTex;
 local ParticlesTex = { };
 
@@ -52,20 +50,20 @@ local function CreateParticleSpawner(frequency, spawnOffset, texture, size, posx
 	return spawner;
 end
 
-function Background.doAsyncLoad()
-	CenterpieceTex = nsc.graphics.queueTextureLoad("game_bg/centerpiece");
-	ParticlesTex[1] = nsc.graphics.queueTextureLoad("game_bg/particle0");
-	ParticlesTex[2] = nsc.graphics.queueTextureLoad("game_bg/particle1");
-	ParticlesTex[3] = nsc.graphics.queueTextureLoad("game_bg/particle2");
+function asyncLoad()
+	CenterpieceTex = theori.graphics.queueTextureLoad("game_bg/centerpiece");
+	ParticlesTex[1] = theori.graphics.queueTextureLoad("game_bg/particle0");
+	ParticlesTex[2] = theori.graphics.queueTextureLoad("game_bg/particle1");
+	ParticlesTex[3] = theori.graphics.queueTextureLoad("game_bg/particle2");
 
 	return true;
 end
 
-function Background.doAsyncFinalize()
+function asyncFinalize()
 	return true;
 end
 
-function Background.init()
+function initialize()
 	for i = 1, 2 do
 		local side = (i == 1 and -1 or 1);
 		
@@ -90,7 +88,7 @@ function Background.init()
 	end
 end
 
-function Background.update(delta, total)
+function update(delta, total)
 	for _, spawner in next, ParticleSpawners do
 		spawner.Timer = spawner.Timer - delta;
 		if (spawner.Timer <= 0) then
@@ -109,26 +107,26 @@ function Background.update(delta, total)
 	end
 end
 
-function Background.render()
-	local width, height = nsc.graphics.getViewportSize();
-	local originx, originy = width / 2, height * Background.horizonHeight;
+function render()
+	local width, height = theori.graphics.getViewportSize();
+	local originx, originy = width / 2, height * horizonHeight;
 
 	local centerSize = width * 0.6;
 
-	--local spins = -math.min(1, Background.spinTimer * 2) * 720 - math.min(1, Background.swingTimer * 2) * 360;
+	--local spins = -math.min(1, spinTimer * 2) * 720 - math.min(1, swingTimer * 2) * 360;
 
-	nsc.graphics.saveTransform();
-	nsc.graphics.rotate(-Background.combinedTilt * 0.25);
-	nsc.graphics.translate(originx, originy);
+	theori.graphics.saveTransform();
+	theori.graphics.rotate(-combinedTilt * 0.25);
+	theori.graphics.translate(originx, originy);
 
-	nsc.graphics.setFillToTexture(CenterpieceTex, 255, 255, 255, 255);
-	nsc.graphics.fillRect(-centerSize / 2, -centerSize * 0.8, centerSize, centerSize);
+	theori.graphics.setFillToTexture(CenterpieceTex, 255, 255, 255, 255);
+	theori.graphics.fillRect(-centerSize / 2, -centerSize * 0.8, centerSize, centerSize);
 
-	nsc.graphics.restoreTransform();
+	theori.graphics.restoreTransform();
 
-	nsc.graphics.saveTransform();
-	nsc.graphics.rotate(-Background.combinedTilt * 0.25);
-	nsc.graphics.translate(originx, originy);
+	theori.graphics.saveTransform();
+	theori.graphics.rotate(-combinedTilt * 0.25);
+	theori.graphics.translate(originx, originy);
 
 	for _, particle in next, Particles do
 		local posx = width * (particle.Position.X / particle.Distance);
@@ -142,11 +140,9 @@ function Background.render()
 			alpha = particle.Distance / 4;
 		end
 
-		nsc.graphics.setFillToTexture(particle.Texture, 255, 255, 255, math.floor(255 * alpha));
-		nsc.graphics.fillRect(posx - size / 2, posy - size / 2, size, size);
+		theori.graphics.setFillToTexture(particle.Texture, 255, 255, 255, math.floor(255 * alpha));
+		theori.graphics.fillRect(posx - size / 2, posy - size / 2, size, size);
 	end
 	
-	nsc.graphics.restoreTransform();
+	theori.graphics.restoreTransform();
 end
-
-return Background;

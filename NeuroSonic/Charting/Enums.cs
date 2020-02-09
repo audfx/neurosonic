@@ -13,6 +13,12 @@ namespace NeuroSonic.Charting
         public static readonly HybridLabel CameraPitch = nameof(CameraPitch);
         public static readonly HybridLabel CameraOffset = nameof(CameraOffset);
         public static readonly HybridLabel CameraTilt = nameof(CameraTilt);
+        
+        public static readonly HybridLabel Split0 = nameof(Split0);
+        public static readonly HybridLabel Split1 = nameof(Split1);
+        public static readonly HybridLabel Split2 = nameof(Split2);
+        public static readonly HybridLabel Split3 = nameof(Split3);
+        public static readonly HybridLabel Split4 = nameof(Split4);
     }
 
     public enum Damping : byte

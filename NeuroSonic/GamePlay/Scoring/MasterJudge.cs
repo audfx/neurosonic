@@ -15,6 +15,8 @@ namespace NeuroSonic.GamePlay.Scoring
             get => m_position;
             set
             {
+                if (value.Seconds.ApproxEq(m_position.Seconds, 0.001)) return;
+
                 if (value < m_position)
                     throw new System.Exception("Cannot rewind score judgement");
                 else if (value == m_position) return;

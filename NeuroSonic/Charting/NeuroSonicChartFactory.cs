@@ -24,6 +24,12 @@ namespace NeuroSonic.Charting
             chart.CreateTypedLane<GraphPointEvent>(NscLane.CameraOffset);
             chart.CreateTypedLane<GraphPointEvent>(NscLane.CameraTilt);
 
+            chart.CreateTypedLane<GraphPointEvent>(NscLane.Split0);
+            chart.CreateTypedLane<GraphPointEvent>(NscLane.Split1);
+            chart.CreateTypedLane<GraphPointEvent>(NscLane.Split2);
+            chart.CreateTypedLane<GraphPointEvent>(NscLane.Split3);
+            chart.CreateTypedLane<GraphPointEvent>(NscLane.Split4);
+
             return chart;
         }
     }

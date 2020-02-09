@@ -1,15 +1,17 @@
-﻿using System;
+﻿#nullable disable
+
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
 using theori;
 using theori.Charting;
+using theori.Charting.Playback;
 using theori.Graphics;
 using theori.Graphics.OpenGL;
 using theori.Resources;
 
 using NeuroSonic.Charting;
-using theori.Charting.Playback;
 
 namespace NeuroSonic.GamePlay
 {
@@ -21,21 +23,19 @@ namespace NeuroSonic.GamePlay
         {
             public float Alpha;
             public Vector3 Color;
+            public bool Held;
         }
 
         class GlowInfo
         {
-            public Entity? Object;
+            public Entity Object;
             public float Glow;
             public int GlowState;
         }
 
-        //private const float PITCH_AMT = 15;
         private const float LENGTH_BASE = 11;
         private const float LENGTH_ADD = 1.1f;
-        //private const float LENGTH_ADD = 0;
 
-        private float roll;
         private float m_pitch, m_zoom; // "top", "bottom"
         public float CritScreenY = 0.1f;
 
@@ -52,35 +52,32 @@ namespace NeuroSonic.GamePlay
         private Texture highwayTexture, keyBeamTexture;
         private Texture entryTexture, exitTexture;
 
-        private Texture btChipTexture, fxChipTexture, btChipSampleTexture, fxChipSampleTexture;
-        private Texture btHoldTexture, fxHoldTexture, btHoldEntryTexture, fxHoldEntryTexture, btHoldExitTexture, fxHoldExitTexture;
-        private Texture laserTexture;
-
-        private Material basicMaterial, chipMaterial, holdMaterial;
-        private Material highwayMaterial, buttonMaterial;
+        private Material basicMaterial;
+        private Material highwayMaterial;
         private Material laserMaterial, laserEntryMaterial;
 
-        private Drawable3D m_highwayDrawable;
-        private Dictionary<HybridLabel, Drawable3D?> m_keyBeamDrawables = new Dictionary<HybridLabel, Drawable3D?>();
+        private readonly Drawable3D[] m_highwayDrawables = new Drawable3D[6];
+        private readonly Dictionary<HybridLabel, Drawable3D> m_keyBeamDrawables = new Dictionary<HybridLabel, Drawable3D>();
         private Drawable3D m_lVolEntryDrawable, m_lVolExitDrawable;
         private Drawable3D m_rVolEntryDrawable, m_rVolExitDrawable;
 
         private Vector3 m_lVolColor, m_rVolColor;
 
-        private Dictionary<HybridLabel, EntityMap> m_renderables = new Dictionary<HybridLabel, EntityMap>();
+        private readonly Dictionary<HybridLabel, EntityMap> m_renderables = new Dictionary<HybridLabel, EntityMap>();
         private readonly Dictionary<HybridLabel, KeyBeamInfo> m_keyBeamInfos = new Dictionary<HybridLabel, KeyBeamInfo>();
         private readonly Dictionary<HybridLabel, GlowInfo> m_glowInfos = new Dictionary<HybridLabel, GlowInfo>();
         private readonly Dictionary<HybridLabel, bool> m_streamsActive = new Dictionary<HybridLabel, bool>();
 
         public SlidingChartPlayback Playback { get; }
 
-        public float LaserRoll => roll;
+        public float LaserRoll { get; private set; }
         public float CriticalHeight => (1 - CritScreenY) * Camera.ViewportHeight;
 
         public float HorizonHeight { get; private set; }
 
+        const float SizeScaleHeight = 1.2f; // 0.95f
         //public (int X, int Y, int Size) Viewport { get; set; } = ((Window.Width - Window.Height * 2) / 2, -Window.Height / 2, Window.Height * 2);
-        public (int X, int Y, int Size) Viewport { get; set; } = ((int)(Window.Width - Window.Height * 0.95f) / 2, 0, (int)(Window.Height * 0.95f));
+        public (int X, int Y, int Size) Viewport { get; set; } = ((int)(Window.Width - Window.Height * SizeScaleHeight) / 2, 0, (int)(Window.Height * SizeScaleHeight));
         //public (int X, int Y, int Size) Viewport { get; set; } = Window.Height > Window.Width ? (0, (Window.Height - Window.Width) / 2, Window.Width) : ((int)(Window.Width - Window.Height * 0.95f) / 2, 0, (int)(Window.Height * 0.95f));
 
         public float TargetLaserRoll { get; set; }
@@ -92,10 +89,19 @@ namespace NeuroSonic.GamePlay
         public float TargetOffset { get; set; }
         public float TargetEffectOffset { get; set; }
 
+        private readonly float[] m_splits = new float[5];
+
+        public float Split0 { get => m_splits[0]; set => m_splits[0] = value; }
+        public float Split1 { get => m_splits[1]; set => m_splits[1] = value; }
+        public float Split2 { get => m_splits[2]; set => m_splits[2] = value; }
+        public float Split3 { get => m_splits[3]; set => m_splits[3] = value; }
+        public float Split4 { get => m_splits[4]; set => m_splits[4] = value; }
+
+        public bool LasersFillHighway { get; set; } = false;
+
         public Vector3 CameraOffset { get; set; }
 
-        const float SLAM_DUR_TICKS = 1 / 32.0f;
-        time_t SlamDurationTime(Entity obj) => obj.Chart.ControlPoints.MostRecent(obj.Position).MeasureDuration * SLAM_DUR_TICKS;
+        time_t SlamDurationTime(Entity e) => Playback.Chart.ControlPoints.MostRecent(e.Position).MeasureDuration / 24.0;
 
         public HighwayView(ClientResourceLocator locator, SlidingChartPlayback playback)
         {
@@ -125,19 +131,19 @@ namespace NeuroSonic.GamePlay
 
         public bool AsyncLoad()
         {
-            btChipTexture = m_resources.QueueTextureLoad("textures/game/bt_chip");
-            btChipSampleTexture = m_resources.QueueTextureLoad("textures/game/bt_chip_sample");
-            btHoldTexture = m_resources.QueueTextureLoad("textures/game/bt_hold");
-            btHoldEntryTexture = m_resources.QueueTextureLoad("textures/game/bt_hold_entry");
-            btHoldExitTexture = m_resources.QueueTextureLoad("textures/game/bt_hold_exit");
+            m_resources.QueueTextureLoad("textures/game/bt_chip");
+            m_resources.QueueTextureLoad("textures/game/bt_chip_sample");
+            m_resources.QueueTextureLoad("textures/game/bt_hold");
+            m_resources.QueueTextureLoad("textures/game/bt_hold_entry");
+            m_resources.QueueTextureLoad("textures/game/bt_hold_exit");
 
-            fxChipTexture = m_resources.QueueTextureLoad("textures/game/fx_chip");
-            fxChipSampleTexture = m_resources.QueueTextureLoad("textures/game/fx_chip_sample");
-            fxHoldTexture = m_resources.QueueTextureLoad("textures/game/fx_hold");
-            fxHoldEntryTexture = m_resources.QueueTextureLoad("textures/game/fx_hold_entry");
-            fxHoldExitTexture = m_resources.QueueTextureLoad("textures/game/fx_hold_exit");
+            m_resources.QueueTextureLoad("textures/game/fx_chip");
+            m_resources.QueueTextureLoad("textures/game/fx_chip_sample");
+            m_resources.QueueTextureLoad("textures/game/fx_hold");
+            m_resources.QueueTextureLoad("textures/game/fx_hold_entry");
+            m_resources.QueueTextureLoad("textures/game/fx_hold_exit");
 
-            laserTexture = m_resources.QueueTextureLoad("textures/game/laser");
+            m_resources.QueueTextureLoad("textures/game/laser");
 
             highwayTexture = m_resources.QueueTextureLoad("textures/game/highway");
             keyBeamTexture = m_resources.QueueTextureLoad("textures/game/key_beam");
@@ -145,8 +151,8 @@ namespace NeuroSonic.GamePlay
             exitTexture = m_resources.QueueTextureLoad("textures/game/laser_exit");
 
             basicMaterial = m_resources.QueueMaterialLoad("materials/basic");
-            chipMaterial = m_resources.QueueMaterialLoad("materials/chip");
-            holdMaterial = m_resources.QueueMaterialLoad("materials/hold");
+            m_resources.QueueMaterialLoad("materials/chip");
+            m_resources.QueueMaterialLoad("materials/hold");
             highwayMaterial = m_resources.QueueMaterialLoad("materials/highway");
             laserMaterial = m_resources.QueueMaterialLoad("materials/laser");
             laserEntryMaterial = m_resources.QueueMaterialLoad("materials/laser_entry");
@@ -175,16 +181,19 @@ namespace NeuroSonic.GamePlay
             var keyBeamMesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1, LENGTH_BASE + LENGTH_ADD, Anchor.BottomCenter);
             m_resources.Manage(keyBeamMesh);
 
-            m_highwayDrawable = new Drawable3D()
-            {
-                Texture = highwayTexture,
-                Material = highwayMaterial,
-                Mesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1, LENGTH_BASE + LENGTH_ADD, Anchor.BottomCenter),
-                Params = highwayParams,
-            };
-            m_resources.Manage(m_highwayDrawable.Mesh);
-
             for (int i = 0; i < 6; i++)
+            {
+                m_highwayDrawables[i] = new Drawable3D()
+                {
+                    Texture = highwayTexture,
+                    Material = highwayMaterial,
+                    Mesh = Mesh.CreatePlane(Vector3.UnitX, Vector3.UnitZ, 1.0f / 6, LENGTH_BASE + LENGTH_ADD, Anchor.BottomCenter, new Rect(i / 6.0f, 0, 1.0f / 6, 1)),
+                    Params = highwayParams,
+                };
+                m_resources.Manage(m_highwayDrawables[i].Mesh);
+            }
+
+            for (int i = 0; i < 8; i++)
             {
                 m_keyBeamDrawables[i] = new Drawable3D()
                 {
@@ -234,7 +243,7 @@ namespace NeuroSonic.GamePlay
             m_resources.Dispose();
             m_obj3dResources.Dispose();
 
-            foreach (var (label, r) in m_renderables)
+            foreach (var (_, r) in m_renderables)
             {
                 foreach (var obj3d in r.Values)
                     obj3d.Dispose();
@@ -245,7 +254,7 @@ namespace NeuroSonic.GamePlay
 
         public void Reset()
         {
-            foreach (var (label, r) in m_renderables)
+            foreach (var (_, r) in m_renderables)
             {
                 foreach (var obj3d in r.Values)
                     obj3d.Dispose();
@@ -283,10 +292,16 @@ namespace NeuroSonic.GamePlay
             m_renderables[obj.Lane].Remove(obj);
         }
 
-        public void CreateKeyBeam(HybridLabel lane, Vector3 color)
+        public void BeginKeyBeam(HybridLabel lane, Vector3 color)
         {
             m_keyBeamInfos[(int)lane].Alpha = 1.0f;
             m_keyBeamInfos[(int)lane].Color = color;
+            m_keyBeamInfos[(int)lane].Held = true;
+        }
+
+        public void EndKeyBeam(HybridLabel lane)
+        {
+            m_keyBeamInfos[(int)lane].Held = false;
         }
 
         public void SetStreamActive(int stream, bool active)
@@ -311,16 +326,18 @@ namespace NeuroSonic.GamePlay
         {
             for (int i = 0; i < 6; i++)
             {
-                const float KEY_BEAM_SPEED = 10.0f;
+                const float KEY_BEAM_SPEED = 15.0f;
 
                 var info = m_keyBeamInfos[i];
+                if (info.Held) continue;
+
                 info.Alpha = Math.Max(0, info.Alpha - Time.Delta * KEY_BEAM_SPEED);
             }
 
             Camera.ViewportWidth = Window.Width;
             Camera.ViewportHeight = Window.Height;
 
-            roll = TargetLaserRoll;
+            LaserRoll = TargetLaserRoll;
             m_pitch = TargetPitch;
             m_zoom = TargetZoom;
             
@@ -340,9 +357,9 @@ namespace NeuroSonic.GamePlay
                 return contnr * anchor * origin;
             }
 
-            var worldNormal = GetAtRoll((TargetBaseRoll + TargetEffectRoll) * 360 + roll, TargetOffset + TargetEffectOffset);
+            var worldNormal = GetAtRoll((TargetBaseRoll + TargetEffectRoll) * 360 + LaserRoll, TargetOffset + TargetEffectOffset);
             var worldNoRoll = GetAtRoll(0, 0);
-            var worldCritLine = GetAtRoll(TargetBaseRoll * 360 + roll, TargetOffset + TargetEffectOffset);
+            var worldCritLine = GetAtRoll(TargetBaseRoll * 360 + LaserRoll, TargetOffset + TargetEffectOffset);
 
             static Vector3 ZoomDirection(Transform t, out float dist)
             {
@@ -400,7 +417,7 @@ namespace NeuroSonic.GamePlay
             Camera.FarDistance = clipFar;
         }
 
-        private Vector3[] m_clipPoints = new Vector3[4] { new Vector3(-1, 0, LENGTH_ADD), new Vector3(1, 0, LENGTH_ADD), new Vector3(-1, 0, -LENGTH_BASE), new Vector3(1, 0, -LENGTH_BASE) };
+        private readonly Vector3[] m_clipPoints = new Vector3[4] { new Vector3(-1, 0, LENGTH_ADD), new Vector3(1, 0, LENGTH_ADD), new Vector3(-1, 0, -LENGTH_BASE), new Vector3(1, 0, -LENGTH_BASE) };
 
         public void Render()
         {
@@ -412,76 +429,130 @@ namespace NeuroSonic.GamePlay
                 CameraMatrix = Camera.ViewMatrix,
             };
 
+            static float GetLanePosition(int lane) => -5 / 12.0f + lane / 6.0f;
+            float GetLaneOffset(int lane)
+            {
+                float center = m_splits[2] / 12;
+
+                float result = 0;
+
+                if (lane <= 2) result -= center;
+                if (lane <= 1) result -= m_splits[1] / 6;
+                if (lane == 0) result -= m_splits[0] / 6;
+
+                if (lane >= 3) result += center;
+                if (lane >= 4) result += m_splits[3] / 6;
+                if (lane == 5) result += m_splits[4] / 6;
+
+                return result;
+            }
+
+            float highwayWidthScale = 0;
+            for (int i = 0; i < m_splits.Length; i++)
+                highwayWidthScale += m_splits[i];
+            highwayWidthScale = highwayWidthScale / 6.0f + 1;
+
             using var queue = new RenderQueue(renderState);
-            m_highwayDrawable.DrawToQueue(queue, Transform.Translation(0, 0, LENGTH_ADD) * WorldTransform);
 
             for (int i = 0; i < 6; i++)
             {
-                var keyBeamInfo = m_keyBeamInfos[i];
-                var keyBeamDrawable = m_keyBeamDrawables[i];
+                float offset = GetLanePosition(i) + GetLaneOffset(i);
+                m_highwayDrawables[i].DrawToQueue(queue, Transform.Translation(offset, 0, LENGTH_ADD) * WorldTransform);
+            }
 
-                Transform t = Transform.Scale(i < 4 ? 1.0f / 6 : 2.0f / 6, 1, 1)
-                            * Transform.Translation(i < 4 ? -3.0f / 12 + (float)i / 6 : -1.0f / 6 + (2.0f * (i - 4)) / 6, 0, LENGTH_ADD)
-                            * WorldTransform;
+            for (int i = 0; i < 6; i++)
+            {
+                if (i < 4)
+                    RenderKeyBeam(i + 1);
+                else
+                {
+                    RenderKeyBeam(1 + (i - 4) * 2);
+                    RenderKeyBeam(2 + (i - 4) * 2);
+                }
 
-                keyBeamDrawable.Params["Color"] = new Vector4(keyBeamInfo.Color, keyBeamInfo.Alpha);
-                keyBeamDrawable.DrawToQueue(queue, t);
+                void RenderKeyBeam(int lane)
+                {
+                    float offset = GetLanePosition(lane) + GetLaneOffset(lane);
+
+                    var keyBeamInfo = m_keyBeamInfos[i];
+                    var keyBeamDrawable = m_keyBeamDrawables[i];
+
+                    Transform t = Transform.Scale(1.0f / 6, 1, 1) * Transform.Translation(offset, 0, LENGTH_ADD) * WorldTransform;
+                    keyBeamDrawable!.Params["Color"] = new Vector4(keyBeamInfo.Color, keyBeamInfo.Alpha * (i < 4 ? 0.8f : 0.2f));
+                    keyBeamDrawable.DrawToQueue(queue, t);
+                }
             }
 
             void RenderButtonStream(int i, bool chip)
             {
                 foreach (var objr in m_renderables[i].Values)
                 {
+                    var objrBtn = (IButtonRenderState3D)objr;
                     if (chip != objr.Object.IsInstant) continue;
 
-                    float z = LENGTH_BASE * Playback.GetRelativeDistance(objr.Object.AbsolutePosition);
-                    float zDur = 1;
-
-                    float xOffs = 0;
                     if (i < 4)
-                        xOffs = -3 / 12.0f + i / 6.0f;
-                    else xOffs = -1 / 6.0f + (i - 4) / 3.0f;
-
-                    // TODO(local): [CONFIG] Allow user to change the scaling of chips, or use a different texture
-                    // TODO(local): change default scaling to take up exactly N degrees of the field of view at all times
-                    Transform tDiff = Transform.Identity;
-                    if (objr.Object.IsInstant)
                     {
-                        float distScaling = z / LENGTH_BASE;
-                        float widthMult = 1.0f;
-
-                        if ((int)objr.Object.Lane < 4)
-                        {
-                            int fxLaneCheck = 4 + (int)objr.Object.Lane / 2;
-                            if (objr.Object.Chart[fxLaneCheck].TryGetAt(objr.Object.Position, out var overlap) && overlap.IsInstant)
-                                widthMult = 0.8f;
-                        }
-
-                        tDiff = Transform.Scale(widthMult, 1, 1);
-                        zDur = 1 + distScaling;
+                        objrBtn.SplitDrawMode = 0;
+                        DrawObject(objr, i + 1);
                     }
                     else
                     {
-                        tDiff = Transform.Scale(1, 1, zDur);
-                        zDur = LENGTH_BASE * Playback.GetRelativeDistanceFromTime(objr.Object.AbsolutePosition, objr.Object.AbsoluteEndPosition);
+                        int lane = 1 + 2 * (i - 4);
+
+                        objrBtn.SplitDrawMode = 1;
+                        DrawObject(objr, lane, 1.0f / 12);
+
+                        objrBtn.SplitDrawMode = 2;
+                        DrawObject(objr, lane + 1, -1.0f / 12);
                     }
 
-                    if (objr is GlowingRenderState3D glowObj)
+                    void DrawObject(ObjectRenderable3D o, int lane, float xOffset = 0)
                     {
-                        if (m_glowInfos[objr.Object.Lane].Object == objr.Object)
+                        float z = LENGTH_BASE * Playback.GetRelativeDistance(o.Object.AbsolutePosition);
+                        float zDur = 1;
+
+                        // TODO(local): [CONFIG] Allow user to change the scaling of chips, or use a different texture
+                        // TODO(local): change default scaling to take up exactly N degrees of the field of view at all times
+                        Transform tDiff = Transform.Identity;
+                        if (o.Object.IsInstant)
                         {
-                            glowObj.Glow = m_glowInfos[objr.Object.Lane].Glow;
-                            glowObj.GlowState = m_glowInfos[objr.Object.Lane].GlowState;
+                            float distScaling = z / LENGTH_BASE;
+                            float widthMult = 1.0f;
+
+                            if ((int)o.Object.Lane < 4)
+                            {
+                                int fxLaneCheck = 4 + (int)o.Object.Lane / 2;
+                                if (o.Object.Chart[fxLaneCheck].TryGetAt(o.Object.Position, out var overlap) && overlap.IsInstant)
+                                    widthMult = 0.8f;
+                            }
+
+                            tDiff = Transform.Scale(widthMult, 1, 1);
+                            zDur = 1 + distScaling;
                         }
                         else
                         {
-                            glowObj.Glow = 0.0f;
-                            glowObj.GlowState = 1;
+                            tDiff = Transform.Scale(1, 1, zDur);
+                            zDur = LENGTH_BASE * Playback.GetRelativeDistanceFromTime(o.Object.AbsolutePosition, o.Object.AbsoluteEndPosition);
                         }
-                    }
 
-                    Transform t = tDiff * Transform.Translation(xOffs, 0, -z) * WorldTransform;
-                    objr.Render(queue, t, zDur);
+                        if (o is GlowingRenderState3D glowObj)
+                        {
+                            if (m_glowInfos[o.Object.Lane].Object == o.Object)
+                            {
+                                glowObj.Glow = m_glowInfos[o.Object.Lane].Glow;
+                                glowObj.GlowState = m_glowInfos[o.Object.Lane].GlowState;
+                            }
+                            else
+                            {
+                                glowObj.Glow = 0.0f;
+                                glowObj.GlowState = 1;
+                            }
+                        }
+
+                        float xOffs = GetLanePosition(lane) + GetLaneOffset(lane) + xOffset;
+                        Transform t = tDiff * Transform.Translation(xOffs, 0, -z) * WorldTransform;
+                        o.Render(queue, t, zDur);
+                    }
                 }
             }
 
@@ -489,6 +560,7 @@ namespace NeuroSonic.GamePlay
             {
                 const float HISCALE = 0.1f;
 
+                float horScale = LasersFillHighway ? highwayWidthScale : 1;
                 foreach (var objr in m_renderables[i + 6].Values)
                 {
                     var analog = (AnalogEntity)objr.Object;
@@ -507,17 +579,18 @@ namespace NeuroSonic.GamePlay
 
                     time_t position = analog.AbsolutePosition;
                     if (analog.PreviousConnected != null && analog.Previous.IsInstant)
-                        position += SlamDurationTime(analog.PreviousConnected);
+                        position += SlamDurationTime(analog);
 
                     time_t endPosition;
                     if (analog.IsInstant)
-                        endPosition = position + SlamDurationTime(objr.Object);
+                        endPosition = position + SlamDurationTime(analog);
                     else endPosition = objr.Object.AbsoluteEndPosition;
 
                     float z = LENGTH_BASE * Playback.GetRelativeDistance(position);
                     float zDur = LENGTH_BASE * Playback.GetRelativeDistanceFromTime(position, endPosition);
 
-                    Transform t = Transform.Translation(0, 0, -z) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
+                    Transform scale = Transform.Scale(horScale, 1, 1 + HISCALE);
+                    Transform t = Transform.Translation(0, 0, -z) * scale * WorldTransform;
                     objr.Render(queue, t, zDur);
 
                     if (objr.Object.PreviousConnected == null)
@@ -529,7 +602,7 @@ namespace NeuroSonic.GamePlay
                         float zEntryAbs = Playback.GetRelativeDistance(entryPosition);
                         float zEntry = LENGTH_BASE * zEntryAbs;
 
-                        Transform tEntry = Transform.Translation((((AnalogEntity)objr.Object).InitialValue - 0.5f) * laneSpace, 0, -zEntry) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
+                        Transform tEntry = Transform.Translation((((AnalogEntity)objr.Object).InitialValue - 0.5f) * laneSpace, 0, -zEntry) * scale * WorldTransform;
                         (i == 0 ? m_lVolEntryDrawable : m_rVolEntryDrawable).DrawToQueue(queue, tEntry);
                     }
 
@@ -545,7 +618,7 @@ namespace NeuroSonic.GamePlay
                         float zExitAbs = Playback.GetRelativeDistance(exitPosition);
                         float zExit = LENGTH_BASE * zExitAbs;
 
-                        Transform tExit = Transform.Translation((((AnalogEntity)objr.Object).FinalValue - 0.5f) * laneSpace, 0, -zExit) * Transform.Scale(1, 1, 1 + HISCALE) * WorldTransform;
+                        Transform tExit = Transform.Translation((((AnalogEntity)objr.Object).FinalValue - 0.5f) * laneSpace, 0, -zExit) * scale * WorldTransform;
                         (i == 0 ? m_lVolExitDrawable : m_rVolExitDrawable).DrawToQueue(queue, tExit);
                     }
                 }
