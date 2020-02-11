@@ -37,8 +37,8 @@ namespace NeuroSonic
 
         private void SearchAction()
         {
-            string chartsDir = TheoriConfig.ChartsDirectory;
-            Logger.Log($"Searching for .ksh files in `{Path.GetFullPath(chartsDir)}`");
+            string chartsDir = Path.GetFullPath(TheoriConfig.ChartsDirectory);
+            Logger.Log($"Searching for .ksh files in `{chartsDir}`");
             if (!Directory.Exists(chartsDir))
             {
                 Logger.Log($"Directory not found: `{chartsDir}`");
