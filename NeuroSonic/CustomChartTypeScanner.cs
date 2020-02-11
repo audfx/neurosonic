@@ -81,7 +81,12 @@ namespace NeuroSonic
                     if (m_attempts > 15) return;
                 }
 
-                if (!m_queue.TryDequeue(out var entry)) continue;
+                if (!m_queue.TryDequeue(out var entry))
+                {
+                    Logger.Log($"Attempted to load charts from the queue, none found. Retrying");
+                    m_attempts++;
+                    continue;
+                }
                 var (setDir, charts) = entry;
 
                 var sets = setDir.GetFiles("*.theori-set");
@@ -99,7 +104,9 @@ namespace NeuroSonic
                     {
                         Logger.Log($"Adding `{chartFile}` to the new chart set.");
                         using var reader = File.OpenText(chartFile.FullName);
+                        Logger.Log($"  Opened text file for reading.");
                         var meta = KshChartMetadata.Create(reader);
+                        Logger.Log($"  Got KSH metadata.");
 
                         var chartInfo = new ChartInfo()
                         {
@@ -125,6 +132,7 @@ namespace NeuroSonic
                             DifficultyColor = meta.Difficulty.GetColor(chartFile.Name),
                         };
 
+                        Logger.Log($"  Created info, adding to set.");
                         setInfo.Charts.Add(chartInfo);
                     }
                     Logger.Log("Done adding charts, ready to save.");
