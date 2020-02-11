@@ -546,23 +546,25 @@ local function renderCell(chart, x, y, w, h)
 	theori.graphics.fillRect(-sdw / 2, -sdh / 2, sdw, sdh);
 	theori.graphics.restoreTransform();
 
-	local titleBoundsX, _ = theori.graphics.measureString(chart.songTitle);
-	local centerTitle, scrollTime = titleBoundsX < w * 0.8, math.floor((titleBoundsX - w * 0.8) / 25);
-	local titleOffsetX = centerTitle and w * 0.4 or -math.max(0, math.min(scrollTime, selectedSongTitleScrollTimer % (2 + scrollTime) - 1)) * (titleBoundsX - w * 0.8);
+	if (chart) then
+		local titleBoundsX, _ = theori.graphics.measureString(chart.songTitle);
+		local centerTitle, scrollTime = titleBoundsX < w * 0.8, math.floor((titleBoundsX - w * 0.8) / 25);
+		local titleOffsetX = centerTitle and w * 0.4 or -math.max(0, math.min(scrollTime, selectedSongTitleScrollTimer % (2 + scrollTime) - 1)) * (titleBoundsX - w * 0.8);
 
-	if (not centerTitle) then
-		theori.graphics.saveScissor();
-		theori.graphics.scissor(x * LayoutScale + w * LayoutScale * 0.1, y * LayoutScale + h * LayoutScale * 0.7, w * LayoutScale * 0.8, h * LayoutScale * 0.3);
-	end
+		if (not centerTitle) then
+			theori.graphics.saveScissor();
+			theori.graphics.scissor(x * LayoutScale + w * LayoutScale * 0.1, y * LayoutScale + h * LayoutScale * 0.7, w * LayoutScale * 0.8, h * LayoutScale * 0.3);
+		end
 
-	theori.graphics.setFont(nil);
-	theori.graphics.setFontSize(h * 0.075);
-	theori.graphics.setTextAlign(centerTitle and Anchor.MiddleCenter or Anchor.MiddleLeft);
-	theori.graphics.setFillToColor(255, 255, 255, 255);
-	theori.graphics.fillString(chart.songTitle, x + w * 0.1 + titleOffsetX, y + h * 0.825);
+		theori.graphics.setFont(nil);
+		theori.graphics.setFontSize(h * 0.075);
+		theori.graphics.setTextAlign(centerTitle and Anchor.MiddleCenter or Anchor.MiddleLeft);
+		theori.graphics.setFillToColor(255, 255, 255, 255);
+		theori.graphics.fillString(chart.songTitle, x + w * 0.1 + titleOffsetX, y + h * 0.825);
 
-	if (not centerTitle) then
-		theori.graphics.restoreScissor();
+		if (not centerTitle) then
+			theori.graphics.restoreScissor();
+		end
 	end
 end
 

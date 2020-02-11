@@ -35,10 +35,18 @@ local buttons = {
                 titleLoop.stop();
                 theori.graphics.closeCurtain(0.2, function() theori.layer.push("chartSelect"); end);
             end),
+
             createButton("CHART EDITOR", "editor", "Create and edit custom charts for your favorite songs.", nil),
+
             createButton("GET SONGS", "getSongs", "Download official charts for your favorite songs.", nil),
-            createButton("SETTINGS", "settings", "Configure your NeuroSonic experience.", nil),
-            createButton("EXIT", "exit", "Leaving so soon? :(", function() theori.graphics.closeCurtain(0.1, theori.game.exit); end),
+
+            createButton("SETTINGS", "settings", "Configure your NeuroSonic experience.", function()
+                theori.graphics.closeCurtain(0.1, function() theori.layer.push("userConfig"); end);
+            end),
+
+            createButton("EXIT", "exit", "Leaving so soon? :(", function()
+                theori.graphics.closeCurtain(0.1, theori.game.exit);
+            end),
         },
     },
 };

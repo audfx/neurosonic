@@ -3,10 +3,29 @@ include "layerLayout";
 
 local bgName = "bgHighContrast";
 
+local fontSlant;
+
+local isListeningForInput = false;
+local onInputListened = nil;
+
+local function setToListenForInput(callback)
+    isListeningForInput = true;
+    onInputListened = callback;
+end
+
+local configOptions = {
+    ["Start Button"] = {
+        desc = "The start button for your virtual controller.",
+
+	},
+};
+
 function theori.layer.doAsyncLoad()
     Layouts.Landscape.Background = theori.graphics.queueTextureLoad(bgName .. "_LS");
     Layouts.Portrait.Background = theori.graphics.queueTextureLoad(bgName .. "_PR");
     
+    fontSlant = theori.graphics.getStaticFont("slant");
+
     return true;
 end
 
