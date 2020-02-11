@@ -67,7 +67,7 @@ namespace NeuroSonic
 
         private void ConvertAction()
         {
-            string chartsDir = TheoriConfig.ChartsDirectory;
+            string chartsDir = Path.GetFullPath(TheoriConfig.ChartsDirectory);
             if (!Directory.Exists(chartsDir)) return;
 
             var setSer = new ChartSetSerializer(chartsDir);
