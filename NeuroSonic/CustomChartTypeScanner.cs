@@ -38,10 +38,16 @@ namespace NeuroSonic
         private void SearchAction()
         {
             string chartsDir = TheoriConfig.ChartsDirectory;
-            if (!Directory.Exists(chartsDir)) return;
+            Logger.Log($"Searching for .ksh files in `{Path.GetFullPath(chartsDir)}`");
+            if (!Directory.Exists(chartsDir))
+            {
+                Logger.Log($"Directory not found: `{chartsDir}`");
+                return;
+            }
 
             void EnumerateSubDirs(string parent)
             {
+                Logger.Log($"Searching for .ksh chart groups in `{parent}`");
                 foreach (string dirPath in Directory.EnumerateDirectories(parent))
                 {
                     var dir = new DirectoryInfo(dirPath);
@@ -55,6 +61,7 @@ namespace NeuroSonic
 
             EnumerateSubDirs(chartsDir);
 
+            Logger.Log($"Completed search for .ksh files; converting directories to .theori-set");
             m_convertTask = Task.Run(ConvertAction);
         }
 
@@ -68,10 +75,10 @@ namespace NeuroSonic
             {
                 while (m_queue.IsEmpty)
                 {
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                     m_attempts++;
 
-                    if (m_attempts > 5) return;
+                    if (m_attempts > 15) return;
                 }
 
                 if (!m_queue.TryDequeue(out var entry)) continue;
@@ -80,6 +87,7 @@ namespace NeuroSonic
                 var sets = setDir.GetFiles("*.theori-set");
                 if (sets.Length == 0)
                 {
+                    Logger.Log($"No .theori-set file present for .ksh group in `{setDir}`; creating one.");
                     var setInfo = new ChartSetInfo()
                     {
                         FileName = "ksh-auto.theori-set",
@@ -88,6 +96,7 @@ namespace NeuroSonic
 
                     foreach (var chartFile in charts)
                     {
+                        Logger.Log($"Adding `{chartFile}` to the new chart set.");
                         using var reader = File.OpenText(chartFile.FullName);
                         var meta = KshChartMetadata.Create(reader);
 
@@ -120,6 +129,7 @@ namespace NeuroSonic
 
                     try
                     {
+                        Logger.Log("Saving the chart set to file...");
                         setSer.SaveToFile(setInfo);
                         ChartDatabaseService.AddSet(setInfo);
                     }
@@ -133,6 +143,7 @@ namespace NeuroSonic
                 }
                 else
                 {
+                    Logger.Log(".theori-set file already exists, skipping.");
                     // currently assume everything is fine, eventually parse and check for new chart files
                 }
             }
