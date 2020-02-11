@@ -87,13 +87,14 @@ namespace NeuroSonic
                 var sets = setDir.GetFiles("*.theori-set");
                 if (sets.Length == 0)
                 {
-                    Logger.Log($"No .theori-set file present for .ksh group in `{setDir}`; creating one.");
                     var setInfo = new ChartSetInfo()
                     {
                         FileName = "ksh-auto.theori-set",
                         FilePath = PathL.RelativePath(chartsDir, setDir.FullName),
                     };
+                    Logger.Log($"No .theori-set file present for .ksh group in `{setDir}`; creating one at {setInfo.FilePath}.");
 
+                    Logger.Log($"Adding {charts.Length} charts...");
                     foreach (var chartFile in charts)
                     {
                         Logger.Log($"Adding `{chartFile}` to the new chart set.");
@@ -126,6 +127,7 @@ namespace NeuroSonic
 
                         setInfo.Charts.Add(chartInfo);
                     }
+                    Logger.Log("Done adding charts, ready to save.");
 
                     try
                     {
