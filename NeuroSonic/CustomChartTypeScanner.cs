@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 using theori.Charting;
@@ -9,8 +10,6 @@ using theori.Configuration;
 using theori.Database;
 
 using NeuroSonic.Charting.KShootMania;
-using System;
-using System.Threading;
 
 namespace NeuroSonic
 {
@@ -153,7 +152,7 @@ namespace NeuroSonic
                 }
                 else
                 {
-                    Logger.Log(".theori-set file already exists, skipping.");
+                    //Logger.Log(".theori-set file already exists, skipping.");
                     // currently assume everything is fine, eventually parse and check for new chart files
                 }
             }

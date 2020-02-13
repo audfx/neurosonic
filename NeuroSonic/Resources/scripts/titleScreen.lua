@@ -1,5 +1,6 @@
 
 include "layerLayout";
+include "linearToggle";
 
 local bgName = "bgHighContrast";
 
@@ -14,16 +15,13 @@ local fontSlant;
 local startBtnTexture;
 
 local function createButton(text, img, desc, callback)
-    return {
-        text = text,
-        img = img,
-        desc = desc;
-        callback = callback,
-        
-        alpha = 1,
-        from = 0,
-        to = 0,
-    };
+    local b = linearToggle();
+    b.text = text;
+    b.img = img;
+    b.desc = desc;
+    b.callback = callback;
+
+    return b;
 end
 
 local selectedButtonIndex = 1;
@@ -107,17 +105,9 @@ function theori.layer.init()
     end);
 
     theori.input.controller.axisTicked:connect(function(controller, axis, dir)
-        local button = currentButtons.buttons[selectedButtonIndex];
-        button.from = button.from + (button.to - button.from) * button.alpha;
-        button.to = 0;
-        button.alpha = 0;
-
+        currentButtons.buttons[selectedButtonIndex]:toggle();
         selectedButtonIndex = 1 + (selectedButtonIndex + dir - 1) % #currentButtons.buttons;
-
-        button = currentButtons.buttons[selectedButtonIndex];
-        button.from = button.from + (button.to - button.from) * button.alpha;
-        button.to = 1;
-        button.alpha = 0;
+        currentButtons.buttons[selectedButtonIndex]:toggle();
     end);
 end
 
@@ -128,7 +118,7 @@ function theori.layer.update(delta, total)
     titleLoopMeasureTimer = (audioPosition % (4 * titleLoopBeatDuration)) / (4 * titleLoopBeatDuration);
 
     for i, button in next, currentButtons.buttons do
-        button.alpha = math.min(1, button.alpha + delta * 5);
+        button:update(delta * 5);
     end
 
     Layout.Update(delta, total);
@@ -142,12 +132,6 @@ function theori.layer.render()
 end
 
 -- Landscape
-
-local function outBack(t, b, c, d, s)
-  if not s then s = 1.70158 end
-  t = t / (d or 1) - 1
-  return c * (t * t * ((s + 1) * t + s) + 1) + b
-end
 
 function Layouts.Landscape.Render(self)
     local w, h = LayoutWidth, LayoutHeight;
@@ -163,8 +147,8 @@ function Layouts.Landscape.Render(self)
     Layout.DrawBackgroundFilled(self.Background);
 
     for i, button in next, currentButtons.buttons do
-        local linear = button.from + (button.to - button.from) * button.alpha;
-        local xOff = outBack(button.alpha, button.from, button.to - button.from);
+        local linear = button:sampleLinear();
+        local xOff = button:sample();
 
         local x, y = btnSpaceX + (i - 1) * w * 0.025, btnSpaceY + (i - 1) * btnHeight;
 

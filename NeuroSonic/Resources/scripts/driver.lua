@@ -1,5 +1,6 @@
 
 local titleLoop;
+local fontSlant;
 
 function theori.layer.doAsyncLoad()
     theori.graphics.queueStaticTextureLoad("title");
@@ -7,12 +8,20 @@ function theori.layer.doAsyncLoad()
 
     titleLoop = theori.audio.queueStaticAudioLoad("launchtower-title-loop");
     
-    theori.graphics.createStaticFont("slant");
+    fontSlant = theori.graphics.createStaticFont("slant");
 
     return theori.doStaticLoadsAsync();
 end
 
 function theori.layer.doAsyncFinalize()
+    --[[
+    local loadChars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~`!@#$%^&*()_=[{]}\\|:;\"'<,>.?/";
+    local scales = { 8, 12, 16, 24, 32 };
+    for _, scale in next, scales do
+        fontSlant.preFlattenToScales(loadChars, scales);
+    end
+    --]]
+
     return theori.finalizeStaticLoads();
 end
 

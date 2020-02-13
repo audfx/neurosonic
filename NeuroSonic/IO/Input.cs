@@ -11,17 +11,17 @@ namespace NeuroSonic.IO
         private static Controller? m_controller;
         public static Controller Controller => m_controller ?? throw new InvalidOperationException("Controller has not been initialized yet!");
 
-        private static Dictionary<string, Func<Controller?>> m_defaultFactories = new Dictionary<string, Func<Controller?>>()
+        private static readonly List<Func<Controller?>> m_defaultFactories = new List<Func<Controller?>>()
         {
-            { "NeuroSonic-Keyboard.json", CreateDefaultKeyboardController },
-            { "NeuroSonic-YuanCon.json", CreateYuanConController },
+            CreateDefaultKeyboardController,
+            CreateYuanConController,
         };
 
         private static readonly Dictionary<string, Controller> m_controllers = new Dictionary<string, Controller>();
 
         private static Controller? CreateDefaultKeyboardController()
         {
-            var con = new Controller("NeuroSonic Keyboard Controller");
+            var con = new Controller("NeuroSonic Keyboard");
 
             con.SetButtonToKey(0, KeyCode.A);
             con.SetButtonToKey(0, KeyCode.H);
@@ -56,7 +56,7 @@ namespace NeuroSonic.IO
         {
             if (!(UserInputService.TryGetGamepadFromName("YuanCon") is Gamepad gamepad)) return null;
 
-            var con = new Controller("NeuroSonic YuanCon Controller");
+            var con = new Controller("NeuroSonic YuanCon");
 
             con.SetButtonToGamepadButton(0, gamepad, 1);
             con.SetButtonToGamepadButton(1, gamepad, 2);
@@ -76,21 +76,20 @@ namespace NeuroSonic.IO
 
         public static void Initialize()
         {
-            foreach (var (fileName, factory) in m_defaultFactories)
+            foreach (var factory in m_defaultFactories)
             {
-                string filePath = Path.Combine("controllers", fileName);
+                if (!(factory() is Controller con)) continue;
+
+                string filePath = Path.Combine("controllers", con.Name);
                 if (File.Exists(filePath)) continue;
 
-                if (factory() is Controller con)
-                {
-                    m_controllers[fileName] = con;
-                    con.SaveToFile(filePath);
-                }
+                m_controllers[con.Name] = con;
+                con.SaveToFile();
             }
 
             if (TheoriConfig.SelectedController != null)
                 SelectController(TheoriConfig.SelectedController);
-            else SelectController("NeuroSonic-Keyboard.json");
+            else SelectController("NeuroSonic Keyboard Controller.json");
         }
 
         public static void DeselectController()
@@ -116,7 +115,7 @@ namespace NeuroSonic.IO
             if (nextController != null)
             {
                 if (m_controller != null)
-                    UserInputService.RegisterController(m_controller);
+                    UserInputService.RemoveController(m_controller);
                 m_controller = nextController;
                 UserInputService.RegisterController(m_controller!);
             }

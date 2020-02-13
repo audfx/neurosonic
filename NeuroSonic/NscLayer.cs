@@ -14,6 +14,8 @@ using theori.Database;
 using theori.Platform;
 
 using NeuroSonic.Platform;
+using NeuroSonic.IO;
+using theori.IO;
 
 namespace NeuroSonic
 {
@@ -24,6 +26,7 @@ namespace NeuroSonic
         public readonly Table tblNsc;
         
         public readonly Table tblNscCharts;
+        public readonly Table tblNscInput;
 
         public new NscClient Client => ClientAs<NscClient>();
 
@@ -35,6 +38,7 @@ namespace NeuroSonic
             m_script["nsc"] = tblNsc = m_script.NewTable();
 
             tblNsc["charts"] = tblNscCharts = m_script.NewTable();
+            tblNsc["input"] = tblNscInput = m_script.NewTable();
 
             //tblNsc["pushGameplay"] = (Action<ChartInfoHandle>)(chartInfo => Push(new GameLayer(ResourceLocator, chartInfo, AutoPlayTargets.None)));
             tblNsc["pushGameplay"] = DynValue.NewCallback((context, args) =>
@@ -54,11 +58,12 @@ namespace NeuroSonic
                 return DynValue.Void;
             });
 
-
             tblNscCharts["scanForKshCharts"] = (Action)(() =>
             {
                 Client.DatabaseWorker.SetToPopulate();
             });
+
+            tblNscInput["getController"] = (Func<Controller>)(() => Input.Controller);
         }
 
         protected override Layer CreateNewLuaLayer(string layerPath, DynValue[] args) => new NscLayer(ResourceLocator, layerPath, args);
