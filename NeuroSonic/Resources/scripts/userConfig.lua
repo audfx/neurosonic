@@ -18,33 +18,25 @@ local notifyMessage, notifyTimer = nil, 0;
 local scrollCamera = 0;
 local itemHeight = 100;
 
-local function hue2rgb(hue)
-    local s, l = 1, 1;
-    local r, g, b;
-
-    if (s == 0) then
-        r, g, b = l, l, l; -- achromatic
-    else
-        local function h(p, q, t)
-            if (t < 0) then t = t + 1; end
-            if (t > 1) then t = t - 1; end
-            if (t < 1 / 6) then return p + (q - p) * 6 * t; end
-            if (t < 1 / 2) then return q; end
-            if (t < 2 / 3) then return p + (q - p) * (2 / 3 - t) * 6; end
-            return p;
-        end
-
-        local q;
-        if (l < 0.5) then q = l * (1 + s); else q = l + s - l * s; end
-        local p = 2 * l - q;
-
-        r = h(p, q, hue + 1 / 3);
-        g = h(p, q, hue);
-        b = h(p, q, hue - 1 / 3);
-    end
-
-    return r * 255, g * 255, b * 255;
+-- https://love2d.org/wiki/HSV_color bc why not
+function hue2rgb(h)
+    h = h * 255;
+    local s, v = 255, 255;
+    if s <= 0 then return v,v,v end
+    h, s, v = h/256*6, s/255, v/255
+    local c = v*s
+    local x = (1-math.abs((h%2)-1))*c
+    local m,r,g,b = (v-c), 0,0,0
+    if h < 1     then r,g,b = c,x,0
+    elseif h < 2 then r,g,b = x,c,0
+    elseif h < 3 then r,g,b = 0,c,x
+    elseif h < 4 then r,g,b = 0,x,c
+    elseif h < 5 then r,g,b = x,0,c
+    else              r,g,b = c,0,x
+    end return (r+m)*255,(g+m)*255,(b+m)*255
 end
+
+print(hue2rgb(120));
 
 local function notifyUser(message)
     notifyMessage = message;
@@ -219,8 +211,8 @@ local configOptions = {
     createRangeEntry("Hi Speed (multiplier)", "The multiplier for relative scroll speed modes.", "NeuroSonic.HiSpeed", 0.1, 10, 0.05),
     createRangeEntry("Mod Speed (bpm)", "The base BPM to base absolute scroll speed modes on.", "NeuroSonic.ModSpeed", 25, 2000, 5),
 
-    --createRangeEntry("Left Laser Color (Hue)", "The hue of the left laser graphics.", "NeuroSonic.Laser0Color", 0, 360, 5),
-    --createRangeEntry("Right Laser Color (Hue)", "The hue of the right laser graphics.", "NeuroSonic.Laser1Color", 0, 360, 5),
+    createRangeEntry("Left Laser Color (Hue)", "The hue of the left laser graphics.", "NeuroSonic.Laser0Color", 0, 360, 5),
+    createRangeEntry("Right Laser Color (Hue)", "The hue of the right laser graphics.", "NeuroSonic.Laser1Color", 0, 360, 5),
 
     createBindingEntry("Start Button", "The start button.", bGetBinds("start"), bSetBinds("start"), function() setToListenForInput("Bind `Start` Button.", setButtonBinding("start")); end),
     createBindingEntry("Back Button", "The back button.", bGetBinds("back"), bSetBinds("back"), function() setToListenForInput("Bind `Back` Button.", setButtonBinding("back")); end),
@@ -462,7 +454,7 @@ function Layouts.Landscape.Render(self)
                 local zeroXPos = rangeXPos + 3 + xRelZero * (rangeWidth - 6);
 
                 if (string.find(opt.title, "Color")) then
-                    local r, g, b = hue2rgb(opt:getValue());
+                    local r, g, b = hue2rgb(opt:getValue() / 360);
                     theori.graphics.setFillToColor(r, g, b, 255);
                 end
 
