@@ -13,13 +13,33 @@ namespace NeuroSonic.IO
 
         private static readonly List<Func<Controller?>> m_defaultFactories = new List<Func<Controller?>>()
         {
-            CreateDefaultKeyboardController,
-            CreateYuanConController,
+            CreateDefaultController,
+            //CreateDefaultController,
+            //CreateYuanConController,
         };
 
         private static readonly Dictionary<string, Controller> m_controllers = new Dictionary<string, Controller>();
 
-        private static Controller? CreateDefaultKeyboardController()
+        private static Controller? CreateDefaultController()
+        {
+            var con = new Controller("NeuroSonic User");
+
+            con.SetButtonToKey(0, KeyCode.D);
+            con.SetButtonToKey(1, KeyCode.F);
+            con.SetButtonToKey(2, KeyCode.J);
+            con.SetButtonToKey(3, KeyCode.K);
+            con.SetButtonToKey(4, KeyCode.V);
+            con.SetButtonToKey(5, KeyCode.N);
+            con.SetButtonToKey("start", KeyCode.D1);
+            con.SetButtonToKey("back", KeyCode.BACKSPACE);
+
+            con.SetAxisToKeysLinear(0, KeyCode.W, KeyCode.Q);
+            con.SetAxisToKeysLinear(1, KeyCode.P, KeyCode.O);
+
+            return con;
+        }
+
+        private static Controller? CreateKeyboardController()
         {
             var con = new Controller("NeuroSonic Keyboard");
 
@@ -80,7 +100,7 @@ namespace NeuroSonic.IO
             {
                 if (!(factory() is Controller con)) continue;
 
-                string filePath = Path.Combine("controllers", con.Name);
+                string filePath = Path.Combine("controllers", con.Name + ".json");
                 if (File.Exists(filePath)) continue;
 
                 m_controllers[con.Name] = con;
@@ -89,7 +109,7 @@ namespace NeuroSonic.IO
 
             if (TheoriConfig.SelectedController != null)
                 SelectController(TheoriConfig.SelectedController);
-            else SelectController("NeuroSonic Keyboard Controller.json");
+            else SelectController("NeuroSonic User.json");
         }
 
         public static void DeselectController()

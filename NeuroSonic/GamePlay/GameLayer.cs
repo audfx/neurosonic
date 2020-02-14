@@ -892,8 +892,9 @@ namespace NeuroSonic.GamePlay
                 m_highwayView.SetObjectGlow(obj, glow, glowState);
             }
 
+            const float SCALING = 1.05f;
             if (Window.Width > Window.Height)
-                m_highwayView.Viewport = ((int)(Window.Width - Window.Height * 0.95f) / 2, 0, (int)(Window.Height * 0.95f));
+                m_highwayView.Viewport = ((int)(Window.Width - Window.Height * SCALING) / 2, (int)(Window.Height * 0.95f - Window.Height * SCALING), (int)(Window.Height * SCALING));
             else m_highwayView.Viewport = (0, (Window.Height - Window.Width) / 2 - Window.Width / 5, Window.Width);
             m_highwayView.Update();
 

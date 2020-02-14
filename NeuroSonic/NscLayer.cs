@@ -21,6 +21,11 @@ namespace NeuroSonic
 {
     public class NscLayer : Layer
     {
+        static NscLayer()
+        {
+            ScriptService.RegisterType<HiSpeedMod>();
+        }
+
         protected Panel? ForegroundGui;
 
         public readonly Table tblNsc;
@@ -34,6 +39,7 @@ namespace NeuroSonic
             : base(resourceLocator ?? ClientSkinService.CurrentlySelectedSkin, layerPath, args)
         {
             m_script["AutoPlayTargets"] = typeof(AutoPlayTargets);
+            m_script["HiSpeedMod"] = typeof(HiSpeedMod);
 
             m_script["nsc"] = tblNsc = m_script.NewTable();
 

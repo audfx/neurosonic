@@ -152,13 +152,14 @@ function Layouts.Landscape.Render(self)
 
         local x, y = btnSpaceX + (i - 1) * w * 0.025, btnSpaceY + (i - 1) * btnHeight;
 
-        theori.graphics.setFont(fontSlant);
         theori.graphics.setFillToColor(255 - 85 * linear, 255 - 45 * linear, 255, 255 - 45 * pulse);
 
+        theori.graphics.setFont(fontSlant);
         theori.graphics.setFontSize(btnHeight * 0.65);
         theori.graphics.setTextAlign(Anchor.BottomLeft);
         theori.graphics.fillString(button.text, x + xOff * w * 0.02, y + btnHeight * 0.5);
 
+        theori.graphics.setFont(nil);
         theori.graphics.setFontSize(btnHeight * 0.3);
         theori.graphics.setTextAlign(Anchor.TopLeft);
         theori.graphics.fillString(button.desc, x + w * 0.0075 * (1 + xOff * 0.7), y + btnHeight * 0.5);

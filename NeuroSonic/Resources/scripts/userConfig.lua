@@ -9,12 +9,42 @@ local fontSlant;
 local controller = nil;
 
 local isListeningForInput, inputPrompt = false;
+local bindingIndex = 1;
+
 local listenDebounce = false;
 local onInputListened = nil;
 local notifyMessage, notifyTimer = nil, 0;
 
 local scrollCamera = 0;
 local itemHeight = 100;
+
+local function hue2rgb(hue)
+    local s, l = 1, 1;
+    local r, g, b;
+
+    if (s == 0) then
+        r, g, b = l, l, l; -- achromatic
+    else
+        local function h(p, q, t)
+            if (t < 0) then t = t + 1; end
+            if (t > 1) then t = t - 1; end
+            if (t < 1 / 6) then return p + (q - p) * 6 * t; end
+            if (t < 1 / 2) then return q; end
+            if (t < 2 / 3) then return p + (q - p) * (2 / 3 - t) * 6; end
+            return p;
+        end
+
+        local q;
+        if (l < 0.5) then q = l * (1 + s); else q = l + s - l * s; end
+        local p = 2 * l - q;
+
+        r = h(p, q, hue + 1 / 3);
+        g = h(p, q, hue);
+        b = h(p, q, hue - 1 / 3);
+    end
+
+    return r * 255, g * 255, b * 255;
+end
 
 local function notifyUser(message)
     notifyMessage = message;
@@ -35,6 +65,7 @@ end
 -- input = KeyCode, MouseButton / "motion" / "wheel", integer
 -- axis = nil, nil / Axis / integer direction, nil / integer axis
 local function setButtonBinding(bindingLabel)
+    local index = bindingIndex;
     return function(device, input, axis)
         if (axis) then
             notifyUser("Cannot currently assign an axis to a button input.");
@@ -42,12 +73,14 @@ local function setButtonBinding(bindingLabel)
         end
 
         local bindings = controller.getButtonBindings(bindingLabel);
-        bindings[1] = { device = device, input = input, axis = axis };
+        local bi = math.max(1, math.min(#bindings + 1, index));
+        bindings[bi] = { device = device, input = input, axis = axis };
 
         controller.setButtonBindings(bindingLabel, bindings);
     end;
 end
 local function setAxisBinding(bindingLabel, posnegMessage)
+    local index = bindingIndex;
     return function(device, input, axis)
         if (posnegMessage) then -- two inputs for buttons, otherwise regular axis
             local isKeyboardButton = device == "keyboard";
@@ -78,7 +111,8 @@ local function setAxisBinding(bindingLabel, posnegMessage)
                     end
 
                     local bindings = controller.getButtonBindings(bindingLabel);
-                    bindings[1] = { device = device, input = input, input2 = input2, axis = axis, axisStyle = ControllerAxisStyle.Linear };
+                    local bi = math.max(1, math.min(#bindings + 1, index));
+                    bindings[bi] = { device = device, input = input, input2 = input2, axis = axis, axisStyle = ControllerAxisStyle.Linear };
 
                     controller.setAxisBindings(bindingLabel, bindings);
                 end);
@@ -89,7 +123,8 @@ local function setAxisBinding(bindingLabel, posnegMessage)
                 end
 
                 local bindings = controller.getButtonBindings(bindingLabel);
-                bindings[1] = { device = device, input = input, axis = axis, axisStyle = ControllerAxisStyle.Radial };
+                local bi = math.max(1, math.min(#bindings + 1, index));
+                bindings[bi] = { device = device, input = input, axis = axis, axisStyle = ControllerAxisStyle.Radial };
 
                 controller.setAxisBindings(bindingLabel, bindings);
             end
@@ -99,13 +134,14 @@ local function setAxisBinding(bindingLabel, posnegMessage)
                 return;
             end
 
-            if ((device ~= "keyboar" and device ~= "mouse") and not axis) then
+            if ((device ~= "keyboard" and device ~= "mouse") and not axis) then
                 notifyUser("Gamepad buttons are currently not supported for axis bindings.");
                 return;
             end
 
             local bindings = controller.getButtonBindings(bindingLabel);
-            bindings[1] = { device = device, input = input, axis = axis };
+            local bi = math.max(1, math.min(#bindings + 1, index));
+            bindings[bi] = { device = device, input = input, axis = axis };
 
             controller.setAxisBindings(bindingLabel, bindings);
         end
@@ -129,33 +165,76 @@ local function createRangeEntry(title, desc, configKey, min, max, step)
     return result;
 end
 
-local function createBindingEntry(title, desc, callback)
+local function createComboEntry(title, desc, configKey, ...)
+    local combos = { ... };
+
+    local result = linearToggle();
+    result.kind = "combo";
+    result.title = title;
+    result.desc = desc;
+    result.key = configKey;
+    result.combos = combos;
+    result.change = function(self, dir) theori.config.set(self.key, self.combos[math.max(1, math.min(#self.combos, self.index + dir))][1]); self:updateIndex(); end;
+    result.index = 1;
+    result.indexPartial = 1;
+    result.updateIndex = function(self) self.index = 1; for i, c in next, self.combos do if c[1] == theori.config.get(self.key) then self.index = i; break; end end end;
+    result:updateIndex();
+    result.updateItem = function(self, delta)
+        delta = delta * 5;
+        if (self.indexPartial < self.index) then
+            self.indexPartial = math.min(self.indexPartial + delta, self.index);
+        elseif (self.indexPartial > self.index) then
+            self.indexPartial = math.max(self.indexPartial - delta, self.index);
+        end
+    end;
+    return result;
+end
+
+local function createBindingEntry(title, desc, getBindingCallback, setBindingCallback, callback)
     local result = linearToggle();
     result.kind = "binding";
     result.title = title;
     result.desc = desc;
+    result.getBindings = getBindingCallback;
+    result.setBindings = setBindingCallback;
     result.callback = callback;
     return result;
 end
 
+local function bGetBinds(label) return function(self) return controller.getButtonBindings(label); end; end
+local function aGetBinds(label) return function(self) return controller.getAxisBindings(label); end; end
+
+local function bSetBinds(label) return function(self, bindings) return controller.setButtonBindings(label, bindings); end; end
+local function aSetBinds(label) return function(self, bindings) return controller.setAxisBindings(label, bindings); end; end
+
 local configIndex = 1;
 local configOptions = {
-    createRangeEntry("Input Offset", "The offset applied to input judgements.", "NeuroSonic.InputOffset", -100, 100, 1),
-    createRangeEntry("Video Offset", "The offset applied to rendering systems.", "NeuroSonic.VideoOffset", -100, 100, 1),
+    createRangeEntry("Master Volume", "The master volume.", "theori.MasterVolume", 0.0, 1.0, 0.01),
+    createRangeEntry("Input Offset (ms)", "The offset applied to input judgements.", "NeuroSonic.InputOffset", -100, 100, 1),
+    createRangeEntry("Video Offset (ms)", "The offset applied to rendering systems.", "NeuroSonic.VideoOffset", -100, 100, 1),
+    
+    createComboEntry("Hi Speed Kind", "Which hi speed mode to use.", "NeuroSonic.HiSpeedModKind",
+        { HiSpeedMod.Default, "Multiplier" }, { HiSpeedMod.MMod, "Mode BPM" }, { HiSpeedMod.CMod, "Constant BPM" }),
 
-    createBindingEntry("Start Button", "The start button.", function() setToListenForInput("Bind `Start` Button.", setButtonBinding("start")); end),
-    createBindingEntry("Back Button", "The back button.", function() setToListenForInput("Bind `Back` Button.", setButtonBinding("back")); end),
+    createRangeEntry("Hi Speed (multiplier)", "The multiplier for relative scroll speed modes.", "NeuroSonic.HiSpeed", 0.1, 10, 0.05),
+    createRangeEntry("Mod Speed (bpm)", "The base BPM to base absolute scroll speed modes on.", "NeuroSonic.ModSpeed", 25, 2000, 5),
+
+    --createRangeEntry("Left Laser Color (Hue)", "The hue of the left laser graphics.", "NeuroSonic.Laser0Color", 0, 360, 5),
+    --createRangeEntry("Right Laser Color (Hue)", "The hue of the right laser graphics.", "NeuroSonic.Laser1Color", 0, 360, 5),
+
+    createBindingEntry("Start Button", "The start button.", bGetBinds("start"), bSetBinds("start"), function() setToListenForInput("Bind `Start` Button.", setButtonBinding("start")); end),
+    createBindingEntry("Back Button", "The back button.", bGetBinds("back"), bSetBinds("back"), function() setToListenForInput("Bind `Back` Button.", setButtonBinding("back")); end),
     
-    createBindingEntry("BT-A", "The A button.", function() setToListenForInput("Bind `BT-A` Button.", setButtonBinding(0)); end),
-    createBindingEntry("BT-B", "The B button.", function() setToListenForInput("Bind `BT-B` Button.", setButtonBinding(1)); end),
-    createBindingEntry("BT-C", "The C button.", function() setToListenForInput("Bind `BT-C` Button.", setButtonBinding(2)); end),
-    createBindingEntry("BT-D", "The D button.", function() setToListenForInput("Bind `BT-D` Button.", setButtonBinding(3)); end),
+    createBindingEntry("BT-A", "The A button.", bGetBinds(0), bSetBinds(0), function() setToListenForInput("Bind `BT-A` Button.", setButtonBinding(0)); end),
+    createBindingEntry("BT-B", "The B button.", bGetBinds(1), bSetBinds(1), function() setToListenForInput("Bind `BT-B` Button.", setButtonBinding(1)); end),
+    createBindingEntry("BT-C", "The C button.", bGetBinds(2), bSetBinds(2), function() setToListenForInput("Bind `BT-C` Button.", setButtonBinding(2)); end),
+    createBindingEntry("BT-D", "The D button.", bGetBinds(3), bSetBinds(3), function() setToListenForInput("Bind `BT-D` Button.", setButtonBinding(3)); end),
+                                                           
+    createBindingEntry("FX-L", "The Left FX button.", bGetBinds(4), bSetBinds(4), function() setToListenForInput("Bind `FX-L` Button.", setButtonBinding(4)); end),
+    createBindingEntry("FX-R", "The Right FX button.", bGetBinds(5), bSetBinds(5), function() setToListenForInput("Bind `FX-R` Button.", setButtonBinding(5)); end),
     
-    createBindingEntry("FX-L", "The Left FX button.", function() setToListenForInput("Bind `FX-L` Button.", setButtonBinding(4)); end),
-    createBindingEntry("FX-R", "The Right FX button.", function() setToListenForInput("Bind `FX-R` Button.", setButtonBinding(5)); end),
-    
-    createBindingEntry("Left Laser", "The +/- directions for the left laser.", function() setToListenForInput("Bind `Left Laser` Positive (or analog) Axis.", setAxisBinding(0, "Bind `Left Laser` Negative Axis.")); end),
-    createBindingEntry("Right Laser", "The +/- directions for the right laser.", function() setToListenForInput("Bind `Right Laser` Positive (or analog) Axis.", setAxisBinding(1, "Bind `Right Laser` Negative Axis.")); end),
+    createBindingEntry("Left Laser", "The +/- directions for the left laser.", aGetBinds(0), aSetBinds(0), function() setToListenForInput("Bind `Left Laser` Positive (or analog) Axis.", setAxisBinding(0, "Bind `Left Laser` Negative Axis.")); end),
+    createBindingEntry("Right Laser", "The +/- directions for the right laser.", aGetBinds(1), aSetBinds(1), function() setToListenForInput("Bind `Right Laser` Positive (or analog) Axis.", setAxisBinding(1, "Bind `Right Laser` Negative Axis.")); end),
 };
 
 function theori.layer.doAsyncLoad()
@@ -187,8 +266,10 @@ function theori.layer.init()
 
         if (axis == 0) then
             local option = configOptions[configIndex];
-            if (option.kind == "range") then
+            if (option.kind == "range" or option.kind == "combo") then
                 option:change(dir);
+            elseif (option.kind == "binding") then
+                bindingIndex = math.max(1, math.min(2, bindingIndex + dir));
             end
         elseif (axis == 1) then
             configOptions[configIndex]:toggle();
@@ -201,14 +282,79 @@ function theori.layer.init()
         if (isListeningForInput or listenDebounce) then return; end
 
         if (button == "back") then
+            theori.config.save();
+            controller.save();
+
             theori.graphics.closeCurtain(0.2, theori.layer.pop);
         elseif (button == "start") then
-            configOptions[configIndex].callback();
+            if (controller.isDown(1)) then -- holding BT-B removes bindings instead of setting them
+                local bindings = configOptions[configIndex]:getBindings();
+                if (#bindings > 0) then
+                    local bi = math.max(1, math.min(#bindings + 1, bindingIndex));
+                    table.remove(bindings, bi);
+
+                    configOptions[configIndex]:setBindings(bindings);
+                end
+            else
+                configOptions[configIndex].callback();
+            end
+        end
+    end);
+
+    theori.input.keyboard.pressed.connect(function(key)
+        if (isListeningForInput or listenDebounce) then return; end
+
+        if (key == KeyCode.ESCAPE) then
+            theori.config.save();
+            controller.save();
+
+            theori.graphics.closeCurtain(0.2, theori.layer.pop);
+        elseif (key == KeyCode.RETURN) then
+            if (theori.input.keyboard.isDown(KeyCode.LCTRL) or theori.input.keyboard.isDown(KeyCode.RCTRL)) then
+                local bindings = configOptions[configIndex]:getBindings();
+                if (#bindings > 0) then
+                    local bi = math.max(1, math.min(#bindings, bindingIndex));
+                    table.remove(bindings, bi);
+
+                    configOptions[configIndex]:setBindings(bindings);
+                end
+            else
+                configOptions[configIndex].callback();
+            end
+        elseif (key == KeyCode.LEFT) then
+            local option = configOptions[configIndex];
+            if (option.kind == "range" or option.kind == "combo") then
+                option:change(-1);
+            elseif (option.kind == "binding") then
+                bindingIndex = math.max(1, math.min(2, bindingIndex - 1));
+            end
+        elseif (key == KeyCode.RIGHT) then
+            local option = configOptions[configIndex];
+            if (option.kind == "range" or option.kind == "combo") then
+                option:change(1);
+            elseif (option.kind == "binding") then
+                bindingIndex = math.max(1, math.min(2, bindingIndex + 1));
+            end
+        elseif (key == KeyCode.UP) then
+            configOptions[configIndex]:toggle();
+            configIndex = 1 + (configIndex - 2) % #configOptions;
+            configOptions[configIndex]:toggle();
+        elseif (key == KeyCode.DOWN) then
+            configOptions[configIndex]:toggle();
+            configIndex = 1 + configIndex % #configOptions;
+            configOptions[configIndex]:toggle();
         end
     end);
 
     theori.input.keyboard.pressedRaw.connect(function(key)
         if (isListeningForInput) then
+            if (key == KeyCode.ESCAPE) then
+                isListeningForInput = false;
+                listenDebounce = true;
+                onInputListened = nil;
+                return;
+            end
+
             onInputListened("keyboard", key, nil);
         end
     end);
@@ -248,6 +394,9 @@ function theori.layer.update(delta, total)
 
     for i, opt in next, configOptions do
         opt:update(delta * 5);
+        if (opt.updateItem) then
+            opt:updateItem(delta);
+        end
     end
 
     notifyTimer = math.max(0, notifyTimer - delta);
@@ -286,33 +435,124 @@ function Layouts.Landscape.Render(self)
             local xOff = opt:sample();
             local yPos = h / 2 + (i - 1) * itemHeight + yOff;
 
-            theori.graphics.setFont(fontSlant);
             theori.graphics.setFillToColor(255 - 85 * linear, 255 - 45 * linear, 255, 255);
 
+            theori.graphics.setFont(fontSlant);
             theori.graphics.setFontSize(itemHeight * 0.7);
             theori.graphics.setTextAlign(Anchor.BottomLeft);
             theori.graphics.fillString(opt.title, w * 0.025 + xOff * w * 0.02, yPos);
-
+            local titleWidth, _ = theori.graphics.measureString(opt.title);
+            
+            theori.graphics.setFont(nil);
             theori.graphics.setFontSize(itemHeight * 0.25);
             theori.graphics.setTextAlign(Anchor.TopLeft);
-            theori.graphics.fillString(opt.title, w * 0.025 + w * 0.0075 * (1 + xOff * 0.7), yPos);
+            theori.graphics.fillString(opt.desc, w * 0.025 + w * 0.0075 * (1 + xOff * 0.7), yPos);
+            local descWidth, _ = theori.graphics.measureString(opt.desc);
+
+            local lineXPos = math.max(titleWidth + w * 0.025 + xOff * w * 0.02, descWidth + w * 0.025 + w * 0.0075 * (1 + xOff * 0.7));
+            local lineWidth = w / 2 - lineXPos - 100;
+            theori.graphics.fillRect(lineXPos + 20, yPos - 1, lineWidth, 2);
 
             if (opt.kind == "range") then
                 local rangeWidth = w * 0.5;
                 local rangeXPos = w * 0.975 - rangeWidth;
-
-                theori.graphics.setFillToColor(255, 255, 255, 255);
-
-                local xRel = opt.value;
+                
+                local xRel, xRelZero = opt.value, -opt.min / (opt.max - opt.min);
                 local pointXPos = rangeXPos + 3 + xRel * (rangeWidth - 6);
+                local zeroXPos = rangeXPos + 3 + xRelZero * (rangeWidth - 6);
+
+                if (string.find(opt.title, "Color")) then
+                    local r, g, b = hue2rgb(opt:getValue());
+                    theori.graphics.setFillToColor(r, g, b, 255);
+                end
 
                 theori.graphics.fillRect(rangeXPos, yPos - 3, rangeWidth, 6);
                 theori.graphics.fillRect(pointXPos - 3, yPos - 13, 6, 10);
+                if (xRelZero >= 0 and xRelZero <= 1) then
+                    theori.graphics.fillRect(zeroXPos - 3, yPos + 3, 6, 3);
+                end
                 
                 theori.graphics.setFont(nil);
                 theori.graphics.setFontSize(16);
                 theori.graphics.setTextAlign(Anchor.TopCenter);
-                theori.graphics.fillString(tostring(opt:getValue()), pointXPos, yPos + 3);
+                theori.graphics.fillString(math.floor(opt.step) == opt.step and tostring(opt:getValue()) or string.format("%.2f", opt:getValue()), pointXPos, yPos + 3);
+            elseif (opt.kind == "combo") then
+                local rangeWidth = w * 0.5;
+                local xCenter = w * 0.975 - rangeWidth / 2;
+
+                theori.graphics.setFont(fontSlant);
+                theori.graphics.setFontSize(itemHeight * 0.8);
+                theori.graphics.setTextAlign(Anchor.MiddleCenter);
+
+                local optionWidth, _ = theori.graphics.measureString(opt.combos[opt.index][2]);
+                theori.graphics.fillString(opt.combos[opt.index][2], xCenter, yPos);
+
+                if (opt.index > 1) then
+                    theori.graphics.fillRect(xCenter - optionWidth / 2 - 35, yPos - 5, 10, 10);
+                end
+                if (opt.index < #opt.combos) then
+                    theori.graphics.fillRect(xCenter + optionWidth / 2 + 25, yPos - 5, 10, 10);
+                end
+            elseif (opt.kind == "binding") then
+                local rangeWidth = w * 0.5;
+                local xCenter = w * 0.975 - rangeWidth / 2;
+                
+                local bindings = opt:getBindings();
+                for j, binding in next, bindings do
+                    if (j > 2) then
+                        break;
+                    end
+                    
+                    local xBindingWidth = rangeWidth / 4;
+                    local xBindingCenter = xCenter - rangeWidth / 4 + (j - 1) * rangeWidth / 2;
+                    
+                    theori.graphics.setFont(nil);
+
+                    local input, device;
+                    if (binding.device == "keyboard") then
+                        device = "Keyboard";
+                        input = tostring(binding.input);
+                    elseif (binding.device == "mouse") then
+                        if (binding.input == "motion") then
+                            device = "Mouse Motion";
+                            input = tostring(binding.axis);
+                        elseif (binding.input == "wheel") then
+                        else
+                            device = "Mouse Button";
+                            input = tostring(binding.input);
+                        end
+                    else
+                        device = binding.device.name .. " - " .. (binding.axis and "Axis" or "Button");
+                        input = tostring(binding.axis and binding.axis or binding.input);
+                    end
+                    
+                        theori.graphics.setFillToColor(255, 255, 255, 255);
+                    if (i == configIndex and j == bindingIndex) then
+                        theori.graphics.setFillToColor(255, 255, 127, 255);
+                    end
+                    
+                    theori.graphics.setFontSize(itemHeight * 0.65);
+                    theori.graphics.setTextAlign(Anchor.BottomCenter);
+                    theori.graphics.fillString(input, xBindingCenter, yPos);
+                
+                    theori.graphics.setFontSize(itemHeight * 0.3);
+                    theori.graphics.setTextAlign(Anchor.TopCenter);
+                    theori.graphics.fillString(device, xBindingCenter, yPos);
+                end
+
+                for j = #bindings + 1, 2 do
+                    local xBindingWidth = rangeWidth / 4;
+                    local xBindingCenter = xCenter - rangeWidth / 4 + (j - 1) * rangeWidth / 2;
+                    
+                    if (i == configIndex and j == bindingIndex) then
+                        theori.graphics.setFillToColor(127, 127, 50, 255);
+                    else
+                        theori.graphics.setFillToColor(127, 127, 127, 255);
+                    end
+                    theori.graphics.setFontSize(itemHeight * 0.65);
+                    theori.graphics.setTextAlign(Anchor.Center);
+                    theori.graphics.fillString("Not Bound", xBindingCenter, yPos);
+                end
             end
         end
     end
