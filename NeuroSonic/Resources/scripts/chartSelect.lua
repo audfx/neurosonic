@@ -1,6 +1,8 @@
 
 include "layerLayout";
 
+local textInput = include "util.textInput";
+
 local bgName = "bgHighContrast";
 
 local timer;

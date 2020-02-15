@@ -36,8 +36,6 @@ function hue2rgb(h)
     end return (r+m)*255,(g+m)*255,(b+m)*255
 end
 
-print(hue2rgb(120));
-
 local function notifyUser(message)
     notifyMessage = message;
     notifyTimer = 8;
