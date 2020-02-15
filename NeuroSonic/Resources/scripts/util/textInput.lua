@@ -8,11 +8,11 @@ function textInput.new()
 	return result;
 end
 
-function textInput.begin(self)
+function textInput.start(self)
 	self.focused = true;
 end
 
-function textInput.end(self)
+function textInput.stop(self)
 	self.focused = false;
 end
 

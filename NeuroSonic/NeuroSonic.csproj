@@ -82,6 +82,7 @@
     <None Remove="Resources\scripts\testPrinter.lua" />
     <None Remove="Resources\scripts\titleScreen.lua" />
     <None Remove="Resources\scripts\userConfig.lua" />
+    <None Remove="Resources\scripts\util\textInput.lua" />
     <None Remove="Resources\textures\bgHighContrast_LS.png" />
     <None Remove="Resources\textures\bgHighContrast_PR.png" />
     <None Remove="Resources\textures\chartSelect\chartFrame\background.png" />
@@ -190,6 +191,7 @@
     <EmbeddedResource Include="Resources\scripts\splashScreen.lua" />
     <EmbeddedResource Include="Resources\scripts\titleScreen.lua" />
     <EmbeddedResource Include="Resources\scripts\userConfig.lua" />
+    <EmbeddedResource Include="Resources\scripts\util\textInput.lua" />
     <EmbeddedResource Include="Resources\textures\bgHighContrast_LS.png" />
     <EmbeddedResource Include="Resources\textures\bgHighContrast_PR.png" />
     <EmbeddedResource Include="Resources\textures\chartSelect\chartFrame\background.png" />
