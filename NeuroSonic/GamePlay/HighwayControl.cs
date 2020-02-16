@@ -325,7 +325,7 @@ namespace NeuroSonic.GamePlay
             if (Config.PitchFunction != null)
                 view.TargetPitch = Config.PitchFunction(m_pitch);
             else view.TargetPitch = m_pitch * Config.PitchUnitDegrees;
-            view.TargetOffset = m_offset;
+            view.TargetOffset = (m_offset * 5) / (12 * 1.16f);
             view.TargetEffectOffset = m_effectOffset;
             view.TargetBaseRoll = m_roll;
             view.TargetEffectRoll = m_effectRoll;
