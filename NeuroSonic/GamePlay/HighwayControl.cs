@@ -223,17 +223,15 @@ namespace NeuroSonic.GamePlay
         private float m_zoom, m_pitch, m_offset, m_roll;
         private float m_effectRoll, m_critLineEffectRoll, m_effectOffset;
 
-        private CameraShake m_shake;
+        private CameraShake? m_shake;
 
         private LinearDirection m_selectedLaser = LinearDirection.None;
         private LaserApplication m_laserApplication = LaserApplication.Additive;
         private Damping m_laserDamping = Damping.Slow;
         
-        private Timed<float> m_impulse;
-
-        private Timed<SpinParams> m_spin;
-        private Timed<SwingParams> m_swing;
-        private Timed<WobbleParams> m_wobble;
+        private Timed<SpinParams>? m_spin;
+        private Timed<SwingParams>? m_swing;
+        private Timed<WobbleParams>? m_wobble;
 
         #endregion
 
@@ -271,17 +269,6 @@ namespace NeuroSonic.GamePlay
         {
             var s = new Vector3(0.05f, 0.02f, 0) * dir;
             m_shake = new CameraShake(m_position, 0.1, s);
-        }
-        
-        // TODO(local): I have no idea how best to do roll impulse ono
-
-        /// <summary>
-        /// Applies a roll impulse (usually from a slam)
-        ///  to this highway using the given associated parameters.
-        /// </summary>
-        public void ApplyRollImpulse(float alpha)
-        {
-            m_impulse = new Timed<float>(m_position, alpha);
         }
 
         /// <summary>

@@ -40,8 +40,9 @@ function theori.layer.init()
         theori.charts.setDatabaseToPopulate(function() print("Populate (from driver) finished."); end);
     end);
 
-    theori.layer.push("splashScreen");
+    --theori.layer.push("splashScreen");
     --theori.graphics.closeCurtain(0.25, function() theori.layer.push("userConfig"); end);
+    theori.graphics.closeCurtain(0.25, function() theori.layer.push("chartSelect"); end);
 end
 
 -- any time someone gets back down to the driver, push a new splash screen

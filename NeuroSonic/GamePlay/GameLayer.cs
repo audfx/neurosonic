@@ -474,8 +474,10 @@ namespace NeuroSonic.GamePlay
                     int dir = -MathL.Sign(aobj.FinalValue - aobj.InitialValue);
                     m_highwayControl.ShakeCamera(dir);
 
+#if false
                     if (aobj.InitialValue == (aobj.Lane == 6 ? 0 : 1) && aobj.NextConnected == null)
                         m_highwayControl.ApplyRollImpulse(-dir);
+#endif
 
                     //if (m_judge[(int)entity.Lane].IsBeingPlayed) m_slamSample.Replay();
                 }

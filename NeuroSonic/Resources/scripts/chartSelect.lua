@@ -12,6 +12,9 @@ local timer;
 --------------------------------------------------
 -- Can be 0 for the default state, 1 thru 4 for each of the BT sub menus,
 --  5 or 6 for the FX sub menus, and 7 for the double-tapped-FX sub menu.
+-- Some of the states likely will never be used.
+-- Some string values are also accepted for more specific cases like
+--  "text" for searching with text input.
 local currentState = 0;
 
 local stateData = { };
@@ -102,12 +105,20 @@ local currentNoiseTexture;
 --------------------------------------------------
 -- Database Filters ------------------------------
 --------------------------------------------------
-local currentChartCollectionName = nil;
+local currentChartCollectionName, searchText = nil, nil;
 local filterName, groupName, sortName = "all", "level", "title";
 
 local chartListFilters =
 {
-	all = function(chart) return true; end,
+	all = function(chart)
+		if (searchText and #searchText > 0) then
+			return string.find(string.lower(chart.songTitle), string.lower(searchText)) or
+				   string.find(string.lower(chart.songArtist), string.lower(searchText)) or
+				   string.find(string.lower(chart.songFileName), string.lower(searchText)) or
+				   string.find(string.lower(chart.charter), string.lower(searchText));
+		end
+		return true;
+	end,
 };
 
 local chartListGroupings =
@@ -258,7 +269,7 @@ end
 --------------------------------------------------
 local function getFilteredChartsForConfiguration(filter, grouping, sorting)
 	local collectionId = currentChartCollectionName or "";
-	local cacheKey = collectionId .. '|' .. filter .. '|' .. grouping .. '|' .. sorting;
+	local cacheKey = (collectionId or "") .. '|' .. (searchText or "") .. '|' .. filter .. '|' .. grouping .. '|' .. sorting;
 
 	print("Asking for charts with key \"" .. cacheKey .. "\"");
 	if (cachedFilteredCharts[cacheKey]) then
@@ -326,7 +337,15 @@ end
 -- Sub Menu State Functions ----------------------
 --------------------------------------------------
 local function setState(nextState)
+	textInput.stop();
 	currentState = nextState;
+end
+
+local function setTextInput()
+	if (currentState == "text" or textInput.isActive()) then return; end
+
+	setState("text");
+	textInput.start(searchText);
 end
 --------------------------------------------------
 
@@ -334,6 +353,12 @@ end
 --------------------------------------------------
 -- Delegate Functions ----------------------------
 --------------------------------------------------
+local function onKeyPressed(key)
+	if (stateData[currentState].keyPressed) then
+		stateData[currentState]:keyPressed(key);
+	end
+end
+
 local function onAxisTicked(controller, axis, dir)
 	if (stateData[currentState].axisTicked) then
 		stateData[currentState]:axisTicked(controller, axis, dir);
@@ -423,10 +448,11 @@ function theori.layer.init()
     fontSlant = theori.graphics.getStaticFont("slant");
 
     theori.graphics.openCurtain();
-
-    theori.input.controller.pressed:connect(onButtonPressed);
-    theori.input.controller.released:connect(onButtonReleased);
-    theori.input.controller.axisTicked:connect(onAxisTicked);
+	
+	theori.input.keyboard.pressed.connect(onKeyPressed);
+    theori.input.controller.pressed.connect(onButtonPressed);
+    theori.input.controller.released.connect(onButtonReleased);
+    theori.input.controller.axisTicked.connect(onAxisTicked);
 end
 
 function theori.layer.update(delta, total)
@@ -771,6 +797,12 @@ function defaultState.update(self, delta, total)
 	-- updates specific to this state
 end
 
+function defaultState.keyPressed(self, key)
+	if (key == KeyCode.TAB) then
+		setTextInput();
+	end
+end
+
 function defaultState.buttonPressed(self, controller, button)
     if (button == "back") then
         theori.graphics.closeCurtain(0.2, theori.layer.pop);
@@ -787,7 +819,7 @@ function defaultState.buttonPressed(self, controller, button)
 	elseif (button >= 0 and button <= 3 and stateData[button + 1]) then
 		setState(button + 1);
 	elseif (button == 4 or button == 5) then
-		if (controller.isDown(4) and controller.isDown(5)) then
+		if (controller.isDown(4) and controller.isDown(5) and stateData[7]) then
 			setState(7);
 		end
     end
@@ -926,6 +958,8 @@ function fxlState.buttonPressed(self, controller, button)
 	if (button == "back") then
 		self:navigateUp();
 	elseif (button == "start") then
+		if (#self.entries.entries == 0) then return; end
+
 		local result = self.entries.entries[self.entries.entryIndex]:onSelected();
 		if (result) then
 			table.insert(self.previousEntries, self.entries);
@@ -941,6 +975,13 @@ function fxlState.buttonPressed(self, controller, button)
 			updateChartConfiguration();
 			setState(0);
 		end
+	elseif (button == 6) then
+		if (#self.previousEntries > 0) then
+			self.entries = self.previousEntries[1];
+		end
+		self.previousEntries = { };
+		
+		setTextInput();
 	end
 end
 
@@ -961,14 +1002,15 @@ function fxlState.axisTicked(self, controller, axis, dir)
 end
 
 function fxlState.renderDim(self)
-	theori.graphics.setColor(0, 0, 0, 127 * self.inoutTransition);
+	theori.graphics.setFillToColor(0, 0, 0, 127 * self.inoutTransition);
 	theori.graphics.fillRect(0, 0, LayoutWidth, LayoutHeight);
 end
 
 function fxlState.renderEntries(self, x, y, w, h)
-	theori.graphics.setColor(50, 50, 50, 170);
+	theori.graphics.setFillToColor(50, 50, 50, 170);
 	theori.graphics.fillRect(x, y, w / 2, h);
 
+	theori.graphics.setFont(nil);
 	theori.graphics.setTextAlign(Anchor.MiddleCenter);
 	theori.graphics.setFontSize(24);
 
@@ -977,11 +1019,11 @@ function fxlState.renderEntries(self, x, y, w, h)
 		local offs = 30 * (coli - self.entries.entryIndex);
 
 		if (coli == self.entries.entryIndex) then
-			theori.graphics.setColor(255, 255, 0, 255);
+			theori.graphics.setFillToColor(255, 255, 0, 255);
 		else
-			theori.graphics.setColor(255, 255, 255, 200);
+			theori.graphics.setFillToColor(255, 255, 255, 200);
 		end
-		theori.graphics.drawString(col, x + w * 0.25, offs + y + h * 0.5);
+		theori.graphics.fillString(col, x + w * 0.25, offs + y + h * 0.5);
 	end
 end
 
@@ -997,5 +1039,73 @@ function fxlState.renderPortrait(self)
 
 	self:renderDim();
 	self:renderEntries(-(1 - self.inoutTransition) * LayoutWidth * 0.375, LayoutHeight * 0.25, LayoutWidth * 0.75, LayoutHeight * 0.5);
+end
+--------------------------------------------------
+
+
+--------------------------------------------------
+-- Text State Functions --------------------------
+--------------------------------------------------
+local textState = { };
+stateData["text"] = textState;
+
+function textState.keyPressed(self, key)
+	if (key == KeyCode.ESCAPE) then
+		setState(0);
+	elseif (key == KeyCode.RETURN) then
+		searchText = textInput.getText();
+		
+		updateChartConfiguration();
+		setState(0);
+	end
+end
+
+function textState.buttonPressed(self, controller, button)
+	if (button == "back") then
+		setState(0);
+	elseif (button == "start") then
+		searchText = textInput.getText();
+		
+		updateChartConfiguration();
+		setState(0);
+	end
+end
+
+function textState.renderLandscape(self)
+	if (not textInput.isActive()) then return; end
+
+	local w, h = LayoutWidth, LayoutHeight;
+
+	theori.graphics.setFillToColor(0, 0, 0, 127);
+	theori.graphics.fillRect(0, 0, w, h);
+
+	local text = textInput.getText();
+	if (text and #text > 0) then
+		theori.graphics.setFont(nil);
+		theori.graphics.setTextAlign(Anchor.MiddleCenter);
+		theori.graphics.setFontSize(h * 0.07);
+		theori.graphics.setFillToColor(255, 255, 255, 255);
+
+		theori.graphics.fillString(text, w / 2, h / 2);
+	end
+end
+
+function textState.renderPortrait(self)
+	if (not textInput.isActive()) then return; end
+
+	local w, h = LayoutWidth, LayoutHeight;
+
+	theori.graphics.setFillToColor(0, 0, 0, 127);
+	theori.graphics.fillRect(0, 0, w, h);
+
+	local text = textInput.getText();
+	if (text and #text > 0) then
+		theori.graphics.setFont(nil);
+		theori.graphics.setTextAlign(Anchor.MiddleCenter);
+		theori.graphics.setFontSize(h * 0.03);
+		theori.graphics.setFillToColor(255, 255, 255, 255);
+
+		theori.graphics.fillString(text, w / 2, h / 2);
+	end
 end
 --------------------------------------------------
