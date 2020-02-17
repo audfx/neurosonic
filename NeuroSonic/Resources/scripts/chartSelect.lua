@@ -106,20 +106,39 @@ local currentNoiseTexture;
 -- Database Filters ------------------------------
 --------------------------------------------------
 local currentChartCollectionName, searchText = nil, nil;
-local filterName, groupName, sortName = "all", "level", "title";
+local filterName, groupName, sortName = "*", "level", "title";
+
+local function verifySearch(chart)
+	if (searchText and #searchText > 0) then
+		return string.find(string.lower(chart.songTitle), string.lower(searchText)) or
+				string.find(string.lower(chart.songArtist), string.lower(searchText)) or
+				string.find(string.lower(chart.songFileName), string.lower(searchText)) or
+				string.find(string.lower(chart.charter), string.lower(searchText));
+	end
+	return true;
+end
+
+local function checkTopDir(s, m)
+	if (string.sub(s, 1, #m) ~= m) then
+		return false;
+	end
+
+	if (#s > #m) then
+		local sep = string.sub(s, #m + 1, #m + 1);
+		return sep == '/' or sep == '\\';
+	end
+
+	return true;
+end
 
 local chartListFilters =
 {
-	all = function(chart)
-		if (searchText and #searchText > 0) then
-			return string.find(string.lower(chart.songTitle), string.lower(searchText)) or
-				   string.find(string.lower(chart.songArtist), string.lower(searchText)) or
-				   string.find(string.lower(chart.songFileName), string.lower(searchText)) or
-				   string.find(string.lower(chart.charter), string.lower(searchText));
-		end
-		return true;
-	end,
+	["*"] = function(chart) return verifySearch(chart); end,
 };
+
+for _, v in next, theori.charts.getFolderNames() do
+	chartListFilters[v] = function(chart) return checkTopDir(chart.set.filePath, v) and verifySearch(chart); end;
+end
 
 local chartListGroupings =
 {
@@ -398,6 +417,13 @@ function theori.layer.doAsyncLoad()
 		textures.noise[i] = theori.graphics.queueTextureLoad("noise/" .. i);
 	end
 
+    textures.legend.a = theori.graphics.queueTextureLoad("legend/bt/a");
+    textures.legend.b = theori.graphics.queueTextureLoad("legend/bt/b");
+    textures.legend.c = theori.graphics.queueTextureLoad("legend/bt/c");
+    textures.legend.d = theori.graphics.queueTextureLoad("legend/bt/d");
+    textures.legend.l = theori.graphics.queueTextureLoad("legend/fx/l");
+    textures.legend.r = theori.graphics.queueTextureLoad("legend/fx/r");
+    textures.legend.lr = theori.graphics.queueTextureLoad("legend/fx/lr");
     textures.legend.start = theori.graphics.queueTextureLoad("legend/start");
 
     textures.cursor = theori.graphics.queueTextureLoad("chartSelect/cursor");
@@ -735,9 +761,11 @@ end
 function Layouts.Landscape.Render(self)
     Layout.DrawBackgroundFilled(self.Background);
 
+	local howtoScale = 0.85;
+
 	gridColumnCount = 3;
 	local chartGridPanelWidth = math.min(LayoutWidth * 0.5, LayoutHeight);
-	local infoPanelWidth = math.min(LayoutHeight, LayoutWidth - chartGridPanelWidth);
+	local infoPanelWidth = math.min(LayoutHeight * howtoScale, LayoutWidth - chartGridPanelWidth);
 
 	while (LayoutWidth - (chartGridPanelWidth + infoPanelWidth) > (chartGridPanelWidth / (gridColumnCount - 1))) do
 		chartGridPanelWidth = chartGridPanelWidth + chartGridPanelWidth / (gridColumnCount - 1);
@@ -747,7 +775,7 @@ function Layouts.Landscape.Render(self)
 	end
 
 	local infoPanelX = (infoBounceTimer * infoPanelWidth * 0.01) + ((LayoutWidth - chartGridPanelWidth) - infoPanelWidth) / 2;
-	local infoPanelY = (infoBounceTimer * infoPanelWidth * 0.01) + (LayoutHeight - infoPanelWidth) / 2;
+	local infoPanelY = (infoBounceTimer * infoPanelWidth * 0.01) + (LayoutHeight * howtoScale - infoPanelWidth) / 2;
 
     renderChartGridPanel(LayoutWidth - chartGridPanelWidth, 0, chartGridPanelWidth, LayoutHeight);
 	
@@ -759,6 +787,20 @@ function Layouts.Landscape.Render(self)
 			stateData[k]:renderLandscape();
 		end
 	end
+
+	theori.graphics.setFillToTexture(textures.legend.l, 255, 255, 255, 255);
+	theori.graphics.fillRect(0.25 * infoPanelWidth - LayoutHeight * 0.0625, LayoutHeight * howtoScale, LayoutHeight * 0.125, LayoutHeight * 0.125);
+
+	theori.graphics.setFillToTexture(textures.legend.lr, 255, 255, 255, 255);
+	theori.graphics.fillRect(0.75 * infoPanelWidth - LayoutHeight * 0.0625, LayoutHeight * howtoScale, LayoutHeight * 0.125, LayoutHeight * 0.125);
+
+	theori.graphics.setFont(nil);
+	theori.graphics.setFillToColor(255, 255, 255, 255);
+	theori.graphics.setFontSize(LayoutHeight * 0.02);
+	theori.graphics.setTextAlign(Anchor.MiddleCenter);
+
+	theori.graphics.fillString("Chart Filter / Sort", 0.25 * infoPanelWidth, LayoutHeight * 0.97);
+	theori.graphics.fillString("Gameplay Settings", 0.75 * infoPanelWidth, LayoutHeight * 0.97);
 end
 
 function Layouts.Portrait.Render(self)
@@ -905,7 +947,10 @@ local fxlState =
 	{
 		{
 			name = "All Charts",
-			onSelected = function(self) currentChartCollectionName = nil; end,
+			onSelected = function(self)
+				currentChartCollectionName = nil;
+				filterName = "*";
+			end,
 		},
 
 		{
@@ -917,6 +962,7 @@ local fxlState =
 						name = col,
 						onSelected = function(self)
 							currentChartCollectionName = self.name;
+							filterName = "*";
 						end,
 					});
 				end
@@ -926,7 +972,19 @@ local fxlState =
 
 		{
 			name = "Folders",
-			onSelected = function(self) return { } end,
+			onSelected = function(self)
+				local subFolder = { };
+				for _, fol in next, theori.charts.getFolderNames() do
+					table.insert(subFolder, {
+						name = fol,
+						onSelected = function(self)
+							currentChartCollectionName = nil;
+							filterName = self.name;
+						end,
+					});
+				end
+				return subFolder;
+			end,
 		},
 	},
 
@@ -970,13 +1028,16 @@ function fxlState.buttonPressed(self, controller, button)
 			end
 			self.previousEntries = { };
 
-			print(currentChartCollectionName);
+			--print(currentChartCollectionName);
 
 			updateChartConfiguration();
 			setState(0);
 		end
 	elseif (button == 6) then
+		local menuTitle = nil;
+
 		if (#self.previousEntries > 0) then
+			--menuTitle = 
 			self.entries = self.previousEntries[1];
 		end
 		self.previousEntries = { };
@@ -1032,6 +1093,16 @@ function fxlState.renderLandscape(self)
 
 	self:renderDim();
 	self:renderEntries(-(1 - self.inoutTransition) * LayoutWidth * 0.25, LayoutHeight * 0.125, LayoutWidth * 0.5, LayoutHeight * 0.75);
+
+	theori.graphics.setFillToTexture(textures.legend.r, 255, 255, 255, 255);
+	theori.graphics.fillRect(LayoutWidth - LayoutHeight * 0.15, LayoutHeight - LayoutHeight * 0.15 * self.inoutTransition, LayoutHeight * 0.125, LayoutHeight * 0.125);
+	
+	theori.graphics.setFont(nil);
+	theori.graphics.setFillToColor(255, 255, 255, 255);
+	theori.graphics.setFontSize(LayoutHeight * 0.02);
+	theori.graphics.setTextAlign(Anchor.MiddleRight);
+
+	theori.graphics.fillString("Search Charts", LayoutWidth * 0.95, LayoutHeight * 0.97);
 end
 
 function fxlState.renderPortrait(self)
