@@ -78,6 +78,7 @@ local textures =
 	noise = { },
 	numbers = { },
 	legend = { },
+	badges = { },
 	chartFrame = { },
 	infoPanel =
 	{
@@ -230,6 +231,28 @@ local function ref(chart)
 		end
 	end
 	-- ono bad
+end
+
+local function getScores(chart)
+	local setId = chart.set.ID;
+
+	local cachedSet = chartsCache[setId];
+	if (not cachedSet) then
+		chartsCache[setId] = { };
+		cachedSet = chartsCache[setId];
+	end
+
+	local cached = cachedSet[chart.ID];
+	if (not cached) then
+		cachedSet[chart.ID] = { };
+		cached = cachedSet[chart.ID];
+	end
+
+	if (not cached.scores) then
+		cached.scores = theori.charts.getScores(chart);
+	end
+
+	return cached.scores;
 end
 
 local function getSetSlots(set)
@@ -425,6 +448,18 @@ function theori.layer.doAsyncLoad()
     textures.legend.r = theori.graphics.queueTextureLoad("legend/fx/r");
     textures.legend.lr = theori.graphics.queueTextureLoad("legend/fx/lr");
     textures.legend.start = theori.graphics.queueTextureLoad("legend/start");
+    
+	textures.badges.Perfect = theori.graphics.queueTextureLoad("badges/Perfect");
+	textures.badges.S = theori.graphics.queueTextureLoad("badges/S");
+	textures.badges.AAAX = theori.graphics.queueTextureLoad("badges/AAAX");
+	textures.badges.AAA = theori.graphics.queueTextureLoad("badges/AAA");
+	textures.badges.AAX = theori.graphics.queueTextureLoad("badges/AAX");
+	textures.badges.AA = theori.graphics.queueTextureLoad("badges/AA");
+	textures.badges.AX = theori.graphics.queueTextureLoad("badges/AX");
+	textures.badges.A = theori.graphics.queueTextureLoad("badges/A");
+	textures.badges.B = theori.graphics.queueTextureLoad("badges/B");
+	textures.badges.C = theori.graphics.queueTextureLoad("badges/C");
+	textures.badges.F = theori.graphics.queueTextureLoad("badges/F");
 
     textures.cursor = theori.graphics.queueTextureLoad("chartSelect/cursor");
     textures.cursorOuter = theori.graphics.queueTextureLoad("chartSelect/cursorOuter");
@@ -541,8 +576,9 @@ local function renderCursor(x, y, size)
 	theori.graphics.fillRect(x - s1 / 2, y - s1 / 2, s1, s1);
 end
 
-local function renderCell(chart, x, y, w, h)
+local function renderCell(chart, x, y, w, h, partial)
 	--if (not chart) then return; end
+	partial = partial and true or false; -- not necessary but explicit
 
 	local isSelected = chart and (charts[groupIndex][cellIndex] == chart) or false;
 
@@ -601,6 +637,27 @@ local function renderCell(chart, x, y, w, h)
 	theori.graphics.restoreTransform();
 
 	if (chart) then
+		local scores = getScores(chart);
+		if (#scores > 0) then
+			local score = scores[#scores];
+
+			local rankTexture = textures.badges[tostring(score.rank)];
+			if (rankTexture) then
+				theori.graphics.setFillToTexture(rankTexture, 255, 255, 255, 255);
+				theori.graphics.fillRect(x + w * (761 / 1028), y + h * (155 / 1028), w * 210 / 1028, h * 179 / 1028);
+			end
+
+			local gaugeString = string.format("%d%%", math.floor(score.fVal1 * 100 + 0.5));
+			
+			theori.graphics.setFont(nil);
+			theori.graphics.setFontSize(h * 0.1);
+			theori.graphics.setTextAlign(Anchor.MiddleCenter);
+			theori.graphics.setFillToColor(255, 255, 255, 255);
+			theori.graphics.fillString(gaugeString, x + w * (866 / 1028), y + h * (439 / 1028));
+		end
+	end
+
+	if (chart and not partial) then
 		local titleBoundsX, _ = theori.graphics.measureString(chart.songTitle);
 		local centerTitle, scrollTime = titleBoundsX < w * 0.8, math.floor((titleBoundsX - w * 0.8) / 25);
 		local titleOffsetX = centerTitle and w * 0.4 or -math.max(0, math.min(scrollTime, selectedSongTitleScrollTimer % (2 + scrollTime) - 1)) * (titleBoundsX - w * 0.8);
@@ -733,7 +790,7 @@ local function renderChartLevelBar(set, x, y, w, h)
 end
 
 local function renderLandscapeInfoPanel(chart, x, y, w, h)
-	renderCell(chart, x + w * 0.1, y, w * 0.8, h * 0.8);
+	renderCell(chart, x + w * 0.1, y, w * 0.8, h * 0.8, true);
 
 	theori.graphics.setFillToTexture(textures.infoPanel.landscape.background, 50, 50, 50, 255);
 	theori.graphics.fillRect(x, y, w, h);

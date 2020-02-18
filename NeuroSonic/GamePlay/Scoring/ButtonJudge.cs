@@ -88,7 +88,7 @@ namespace NeuroSonic.GamePlay.Scoring
         public event Action<time_t, Entity>? OnHoldPressed;
         public event Action<time_t, Entity>? OnHoldReleased;
 
-        public event Action<Entity, time_t, JudgeResult>? OnTickProcessed;
+        public event Action<Entity, time_t, JudgeResult, bool>? OnTickProcessed;
 
         public SpawnKeyBeam? SpawnKeyBeam;
         public DespawnKeyBeam? DespawnKeyBeam;
@@ -173,7 +173,7 @@ namespace NeuroSonic.GamePlay.Scoring
                         Debug.Assert(scoreTick.Kind == TickKind.Chip);
                         Debug.Assert(scoreTick.Position == nextStateTick.Position);
 
-                        OnTickProcessed?.Invoke(scoreTick.Entity, position, new JudgeResult(m_chipMissRadius, JudgeKind.Miss));
+                        OnTickProcessed?.Invoke(scoreTick.Entity, position, new JudgeResult(m_chipMissRadius, JudgeKind.Miss), false);
 
                         AdvanceStateTick();
                         AdvanceScoreTick();
@@ -200,7 +200,7 @@ namespace NeuroSonic.GamePlay.Scoring
                     if (position - (nextScoreTick.Position + JudgementOffset) >= 0)
                     {
                         var resultKind = IsBeingPlayed ? JudgeKind.Passive : JudgeKind.Miss;
-                        OnTickProcessed?.Invoke(nextScoreTick.Entity, nextScoreTick.Position, new JudgeResult(0, resultKind));
+                        OnTickProcessed?.Invoke(nextScoreTick.Entity, nextScoreTick.Position, new JudgeResult(0, resultKind), false);
 
                         AdvanceScoreTick();
                     }
@@ -262,7 +262,7 @@ namespace NeuroSonic.GamePlay.Scoring
                         // TODO(local): Is this how we want to handle misses?
                         else result = new JudgeResult(difference, JudgeKind.Bad);
 
-                        OnTickProcessed?.Invoke(scoreTick.Entity, position, result);
+                        OnTickProcessed?.Invoke(scoreTick.Entity, position, result, difference < 0);
                         OnChipPressed?.Invoke(position, scoreTick.Entity);
                         SpawnKeyBeam?.Invoke(scoreTick.Entity.Lane, result.Kind, difference < 0);
 

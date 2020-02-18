@@ -2,12 +2,14 @@
 using NeuroSonic.Charting;
 using theori;
 using theori.Charting;
+using theori.Scoring;
 
 namespace NeuroSonic.GamePlay.Scoring
 {
     public sealed class MasterJudge
     {
         public Chart Chart { get; }
+        public GaugeType GaugeType { get; }
 
         private time_t m_position = double.MinValue;
         public time_t Position
@@ -32,6 +34,11 @@ namespace NeuroSonic.GamePlay.Scoring
         private int m_maxTickValue, m_tickValue, m_expectedTickValue;
         private int m_maxTickWorth = 2;
 
+        internal int m_maxBtCount, m_maxFxCount, m_maxVolCount;
+        internal int m_passiveBtCount, m_perfectBtCount, m_criticalBtCount, m_earlyBtCount, m_lateBtCount, m_badBtCount;
+        internal int m_passiveFxCount, m_perfectFxCount, m_criticalFxCount, m_earlyFxCount, m_lateFxCount, m_badFxCount;
+        internal int m_passiveVolCount, m_missCount;
+
         public double Gauge { get; private set; } = 0.0;
         private double m_activeGaugeGain, m_passiveGaugeGain;
 
@@ -39,9 +46,10 @@ namespace NeuroSonic.GamePlay.Scoring
 
         public StreamJudge this[int index] => m_judges[index];
 
-        public MasterJudge(Chart chart)
+        public MasterJudge(Chart chart, GaugeType gaugeType)
         {
             Chart = chart;
+            GaugeType = gaugeType;
 
             int numChipTicks = 0, numHoldTicks = 0;
             for (int i = 0; i < 6; i++)
@@ -49,7 +57,11 @@ namespace NeuroSonic.GamePlay.Scoring
                 var judge = new ButtonJudge(chart, i);
                 judge.OnTickProcessed += ButtonJudge_OnTickProcessed;
 
-                m_maxTickValue += judge.CalculateNumScorableTicks();
+                int ticks = judge.CalculateNumScorableTicks();
+                if (i < 4)
+                    m_maxBtCount += ticks / m_maxTickWorth;
+                else m_maxFxCount += ticks / m_maxTickWorth;
+                m_maxTickValue += ticks;
                 m_judges[i] = judge;
 
                 int[] tickKinds = judge.GetCategorizedTicks();
@@ -61,9 +73,11 @@ namespace NeuroSonic.GamePlay.Scoring
             for (int i = 0; i < 2; i++)
             {
                 var judge = new LaserJudge(chart, i + 6);
-                judge.OnTickProcessed += ButtonJudge_OnTickProcessed;
+                judge.OnTickProcessed += (e, when, result) => ButtonJudge_OnTickProcessed(e, when, result, false);
 
-                m_maxTickValue += judge.CalculateNumScorableTicks();
+                int ticks = judge.CalculateNumScorableTicks(); ;
+                m_maxVolCount += ticks / m_maxTickWorth;
+                m_maxTickValue += ticks;
                 m_judges[i + 6] = judge;
 
                 int[] tickKinds = judge.GetCategorizedTicks();
@@ -96,39 +110,117 @@ namespace NeuroSonic.GamePlay.Scoring
             m_maxTickValue *= m_maxTickWorth;
         }
 
-        private void ButtonJudge_OnTickProcessed(Entity obj, time_t when, JudgeResult result)
+        /// <summary>
+        /// The scoring result is incomplete, but contains all values the judge knows about.
+        /// </summary>
+        public ScoringResult GetScoringResult()
+        {
+            var rank = ScoreRank.F;
+            if (Score == 10_000_000) rank = ScoreRank.Perfect;
+            else if (Score >= 9_900_000) rank = ScoreRank.S;
+            else if (Score >= 9_800_000) rank = ScoreRank.AAAX;
+            else if (Score >= 9_700_000) rank = ScoreRank.AAA;
+            else if (Score >= 9_500_000) rank = ScoreRank.AAX;
+            else if (Score >= 9_300_000) rank = ScoreRank.AA;
+            else if (Score >= 9_000_000) rank = ScoreRank.AX;
+            else if (Score >= 8_700_000) rank = ScoreRank.A;
+            else if (Score >= 8_000_000) rank = ScoreRank.B;
+            else if (Score >= 7_000_000) rank = ScoreRank.C;
+
+            return new ScoringResult()
+            {
+                Score = Score,
+                Rank = rank,
+
+                Gauge = Gauge,
+                GaugeType = GaugeType,
+
+                TotalBtCount = m_maxBtCount,
+                TotalFxCount = m_maxFxCount,
+                TotalVolCount = m_maxVolCount,
+
+                PassiveBtCount = m_passiveBtCount,
+                PerfectBtCount = m_perfectBtCount,
+                CriticalBtCount = m_criticalBtCount,
+                EarlyBtCount = m_earlyBtCount,
+                LateBtCount = m_lateBtCount,
+                BadBtCount = m_badBtCount,
+
+                PassiveFxCount = m_passiveFxCount,
+                PerfectFxCount = m_perfectFxCount,
+                CriticalFxCount = m_criticalFxCount,
+                EarlyFxCount = m_earlyFxCount,
+                LateFxCount = m_lateFxCount,
+                BadFxCount = m_badFxCount,
+
+                PassiveVolCount = m_passiveVolCount,
+
+                MissCount = m_missCount,
+            };
+        }
+
+        private void ButtonJudge_OnTickProcessed(Entity e, time_t when, JudgeResult result, bool isEarly)
         {
             m_expectedTickValue += m_maxTickWorth;
             switch (result.Kind)
             {
                 case JudgeKind.Passive:
-                case JudgeKind.Critical:
                 case JudgeKind.Perfect:
-                {
-                    m_tickValue += 2;
-                } break;
+                case JudgeKind.Critical: m_tickValue += 2; break;
+                case JudgeKind.Near: m_tickValue += 1; break;
+            }
 
-                case JudgeKind.Near:
+            if (result.Kind == JudgeKind.Miss)
+                m_missCount++;
+            else
+            {
+                if (e is ButtonEntity)
                 {
-                    m_tickValue += 1;
-                } break;
+                    bool isFx = e.Lane == 4 || e.Lane == 5;
+                    switch (result.Kind)
+                    {
+                        case JudgeKind.Passive: if (isFx) m_passiveFxCount++; else m_passiveBtCount++; break;
+                        case JudgeKind.Perfect: if (isFx) m_perfectFxCount++; else m_perfectBtCount++; break;
+                        case JudgeKind.Critical: if (isFx) m_criticalFxCount++; else m_criticalBtCount++; break;
+                        case JudgeKind.Near:
+                        {
+                            if (isEarly)
+                            {
+                                if (isFx) m_earlyFxCount++; else m_earlyBtCount++;
+                            }
+                            else
+                            {
+                                if (isFx) m_lateFxCount++; else m_lateBtCount++;
+                            }
+                        }
+                        break;
+                        case JudgeKind.Bad: if (isFx) m_badFxCount++; else m_badBtCount++; break;
+                    }
+                }
+                else
+                {
+                    switch (result.Kind)
+                    {
+                        case JudgeKind.Passive: m_passiveVolCount++; break;
+                    }
+                }
             }
 
             switch (result.Kind)
             {
                 case JudgeKind.Passive:
-                case JudgeKind.Critical:
                 case JudgeKind.Perfect:
+                case JudgeKind.Critical:
                 case JudgeKind.Near:
                 {
-                    Gauge += (obj is ButtonEntity button ? (button.IsInstant ? m_activeGaugeGain : m_passiveGaugeGain) : m_passiveGaugeGain);
+                    Gauge += (e is ButtonEntity button ? (button.IsInstant ? m_activeGaugeGain : m_passiveGaugeGain) : m_passiveGaugeGain);
                 } break;
 
                 case JudgeKind.Bad:
                 case JudgeKind.Miss:
                 {
                     double activeDrain = 0.02, passiveDrain = activeDrain / 4;
-                    Gauge -= (obj is ButtonEntity button ? (button.IsInstant ? activeDrain : passiveDrain) : passiveDrain);
+                    Gauge -= (e is ButtonEntity button ? (button.IsInstant ? activeDrain : passiveDrain) : passiveDrain);
                 } break;
             }
 

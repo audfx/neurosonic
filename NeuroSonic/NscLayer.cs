@@ -16,6 +16,7 @@ using theori.Platform;
 using NeuroSonic.Platform;
 using NeuroSonic.IO;
 using theori.IO;
+using NeuroSonic.GamePlay.Scoring;
 
 namespace NeuroSonic
 {
@@ -24,6 +25,7 @@ namespace NeuroSonic
         static NscLayer()
         {
             ScriptService.RegisterType<HiSpeedMod>();
+            ScriptService.RegisterType<ScoringResult>();
         }
 
         protected Panel? ForegroundGui;
@@ -35,7 +37,7 @@ namespace NeuroSonic
 
         public new NscClient Client => ClientAs<NscClient>();
 
-        public NscLayer(ClientResourceLocator? resourceLocator = null, string? layerPath = null, params DynValue[] args)
+        public NscLayer(ClientResourceLocator? resourceLocator = null, string? layerPath = null, params object[] args)
             : base(resourceLocator ?? ClientSkinService.CurrentlySelectedSkin, layerPath, args)
         {
             m_script["AutoPlayTargets"] = typeof(AutoPlayTargets);

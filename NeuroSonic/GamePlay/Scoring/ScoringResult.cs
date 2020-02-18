@@ -15,10 +15,26 @@ namespace NeuroSonic.GamePlay.Scoring
         public double[] GaugeSamples;
         public GaugeType GaugeType;
 
-        public (JudgeResult Kind, int Count)[] Judgements;
+        public int TotalBtCount;
+        public int TotalFxCount;
+        public int TotalVolCount;
 
-        public (int Played, int Total) BtTicks;
-        public (int Played, int Total) FxTicks;
-        public (int Played, int Total) VolTicks;
+        public int PassiveBtCount;
+        public int PerfectBtCount;
+        public int CriticalBtCount;
+        public int EarlyBtCount;
+        public int LateBtCount;
+        public int BadBtCount;
+
+        public int PassiveFxCount;
+        public int PerfectFxCount;
+        public int CriticalFxCount;
+        public int EarlyFxCount;
+        public int LateFxCount;
+        public int BadFxCount;
+
+        public int PassiveVolCount;
+     
+        public int MissCount;
     }
 }

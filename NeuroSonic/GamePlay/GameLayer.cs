@@ -46,6 +46,7 @@ namespace NeuroSonic.GamePlay
         public override bool BlocksParentLayer => true;
 
         private readonly AutoPlayTargets m_autoPlay;
+        private readonly GaugeType m_gaugeType;
 
         private bool AutoButtons => (m_autoPlay & AutoPlayTargets.Buttons) != 0;
         private bool AutoLasers => (m_autoPlay & AutoPlayTargets.Lasers) != 0;
@@ -99,7 +100,9 @@ namespace NeuroSonic.GamePlay
             m_locator = resourceLocator;
 
             m_chartInfo = chartInfo;
+
             m_autoPlay = autoPlay;
+            m_gaugeType = GaugeType.Normal;
 
             m_background = new ScriptableBackground(m_locator);
         }
@@ -114,6 +117,7 @@ namespace NeuroSonic.GamePlay
             m_audio = audio;
 
             m_autoPlay = autoPlay;
+            m_gaugeType = GaugeType.Normal;
 
             m_background = new ScriptableBackground(m_locator);
         }
@@ -357,7 +361,7 @@ namespace NeuroSonic.GamePlay
                     PlaybackVisualEventTrigger(evt, dir);
             };
 
-            m_judge = new MasterJudge(m_chart);
+            m_judge = new MasterJudge(m_chart, m_gaugeType);
             for (int i = 0; i < 6; i++)
             {
                 var judge = (ButtonJudge)m_judge[i];
@@ -378,7 +382,7 @@ namespace NeuroSonic.GamePlay
                 judge.AutoPlay = AutoLasers;
                 judge.OnShowCursor += () => m_cursorsActive[iStack] = true;
                 judge.OnHideCursor += () => m_cursorsActive[iStack] = false;
-                judge.OnTickProcessed += Judge_OnTickProcessed;
+                judge.OnTickProcessed += (e, when, result) => Judge_OnTickProcessed(e, when, result, false);
                 judge.OnSlamHit += (position, entity) =>
                 {
                     if (position < entity.AbsolutePosition)
@@ -434,17 +438,19 @@ namespace NeuroSonic.GamePlay
 
         private void ExitGame()
         {
+            bool isFinished = m_audio.Position > 0.5 + m_chart.LastObjectTime;
+
             //ClientAs<NscClient>().CloseCurtain(() => Pop());
             CloseCurtain(() =>
             {
-                var result = new ScoringResult()
+                var result = m_judge.GetScoringResult();
+                if (isFinished)
                 {
-                    Score = m_judge.Score,
+                    ChartDatabaseService.AddScore(m_chartInfo, DateTime.Now, result.Score, result.Rank, ival1: result.MaxCombo, fval1: result.Gauge);
+                    //Push(new ChartResultLayer(m_locator, m_chartInfo, result));
+                    Push(new NscLayer(m_locator, "game/results", m_chartInfo, result));
+                }
 
-                    Gauge = m_judge.Gauge,
-                };
-
-                //Push(new ChartResultLayer(m_locator, m_chartInfo, result));
                 SetInvalidForResume();
                 Pop();
             });
@@ -524,7 +530,7 @@ namespace NeuroSonic.GamePlay
             }
         }
 
-        private void Judge_OnTickProcessed(Entity entity, time_t position, JudgeResult result)
+        private void Judge_OnTickProcessed(Entity entity, time_t position, JudgeResult result, bool isEarly)
         {
             //Logger.Log($"[{ obj.Stream }] { result.Kind } :: { (int)(result.Difference * 1000) } @ { position }");
 
