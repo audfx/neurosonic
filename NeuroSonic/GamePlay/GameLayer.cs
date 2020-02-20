@@ -53,7 +53,6 @@ namespace NeuroSonic.GamePlay
 
         private readonly ClientResourceLocator m_locator;
 
-        private ScriptProgram m_guiScript;
         private Table m_gameTable, m_metaTable, m_scoringTable;
 
         private HighwayControl m_highwayControl;
@@ -95,7 +94,7 @@ namespace NeuroSonic.GamePlay
         private float m_tempHiSpeedMult = 1.0f;
 
         internal GameLayer(ClientResourceLocator resourceLocator, ChartInfo chartInfo, AutoPlayTargets autoPlay = AutoPlayTargets.None)
-            : base(resourceLocator)
+            : base(resourceLocator, "game/main")
         {
             m_locator = resourceLocator;
 
@@ -108,7 +107,7 @@ namespace NeuroSonic.GamePlay
         }
 
         internal GameLayer(ClientResourceLocator resourceLocator, Chart chart, AudioTrack audio, AutoPlayTargets autoPlay = AutoPlayTargets.None)
-            : base(resourceLocator)
+            : base(resourceLocator, "game/main")
         {
             m_locator = resourceLocator;
 
@@ -136,6 +135,13 @@ namespace NeuroSonic.GamePlay
 
         public override bool AsyncLoad()
         {
+            m_script["game"] = m_gameTable = m_script.NewTable();
+            m_script["scoring"] = m_scoringTable = m_script.NewTable();
+            //m_script["game"] = m_gameTable;
+            m_gameTable["chart"] = new ChartInfoHandle(new ChartSetInfoHandle(m_resources, m_script, Client.DatabaseWorker, m_chartInfo.Set), m_chartInfo);
+
+            if (!base.AsyncLoad()) return false;
+
             string chartsDir = TheoriConfig.ChartsDirectory;
             var setInfo = m_chartInfo.Set;
 
@@ -163,29 +169,25 @@ namespace NeuroSonic.GamePlay
             m_visualPlayback = new SlidingChartPlayback(m_chart, true);
 
             m_highwayView = new HighwayView(m_locator, m_visualPlayback);
-            m_guiScript = new ScriptProgram(m_locator);
+            //m_script = new ScriptProgram(m_locator);
 
-            m_gameTable = m_guiScript.NewTable();
-            m_guiScript["game"] = m_gameTable;
+#if false
+            m_gameTable["meta"] = m_metaTable = m_script.NewTable();
+            m_gameTable["scoring"] = m_scoringTable = m_script.NewTable();
 
-            m_gameTable["meta"] = m_metaTable = m_guiScript.NewTable();
-            m_gameTable["scoring"] = m_scoringTable = m_guiScript.NewTable();
+            m_metaTable["songTitle"] = m_chart.Info.SongTitle;
+            m_metaTable["songArtist"] = m_chart.Info.SongArtist;
 
-            m_metaTable["SongTitle"] = m_chart.Info.SongTitle;
-            m_metaTable["SongArtist"] = m_chart.Info.SongArtist;
-
-            m_metaTable["DifficultyName"] = m_chart.Info.DifficultyName;
-            m_metaTable["DifficultyNameShort"] = m_chart.Info.DifficultyNameShort;
-            m_metaTable["DifficultyLevel"] = m_chart.Info.DifficultyLevel;
-            m_metaTable["DifficultyColor"] = (m_chart.Info.DifficultyColor ?? new Vector3(1, 1, 1)) * 255;
-
-            m_metaTable["PlayKind"] = "N";
+            m_metaTable["difficultyName"] = m_chart.Info.DifficultyName;
+            m_metaTable["difficultyNameShort"] = m_chart.Info.DifficultyNameShort;
+            m_metaTable["difficultyLevel"] = m_chart.Info.DifficultyLevel;
+            m_metaTable["difficultyColor"] = (m_chart.Info.DifficultyColor ?? new Vector3(1, 1, 1)) * 255;
+#endif
 
             //m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/generic-layer.lua"));
-            //m_guiScript.LoadFile(m_locator.OpenFileStream("scripts/game/main.lua"));
+            //m_script.LoadFile(m_locator.OpenFileStream("scripts/game/main.lua")!, "scripts/game/main.lua");
 
-            if (!m_guiScript.LuaAsyncLoad())
-                return false;
+            //if (!m_script.LuaAsyncLoad()) return false;
 
             if (!m_highwayView.AsyncLoad())
                 return false;
@@ -255,8 +257,9 @@ namespace NeuroSonic.GamePlay
 
         public override bool AsyncFinalize()
         {
-            if (!m_guiScript.LuaAsyncFinalize())
-                return false;
+            if (!base.AsyncFinalize()) return false;
+
+            //if (!m_script.LuaAsyncFinalize()) return false;
             //m_guiScript.InitSpriteRenderer();
 
             if (!m_highwayView.AsyncFinalize())
@@ -288,16 +291,12 @@ namespace NeuroSonic.GamePlay
             return true;
         }
 
-        public override void ClientSizeChanged(int width, int height)
-        {
-            //m_highwayView.Camera.AspectRatio = Window.Aspect;
-        }
-
         public override void Initialize()
         {
             base.Initialize();
 
             m_highwayControl = new HighwayControl(HighwayControlConfig.CreateDefaultKsh168());
+            //m_script.CallIfExists("init");
             m_background.Init();
 
             SetHiSpeed();
@@ -409,7 +408,7 @@ namespace NeuroSonic.GamePlay
             m_audioController.Position = MathL.Min(0.0, (double)m_chart.TimeStart - 2);
 
             m_gameTable["Begin"] = (Action)Begin;
-            m_guiScript.CallIfExists("Init");
+            //m_script.CallIfExists("Init");
 
             ClientAs<NscClient>().OpenCurtain();
             Begin();
@@ -438,9 +437,12 @@ namespace NeuroSonic.GamePlay
 
         private void ExitGame()
         {
-            bool isFinished = m_audio.Position > 0.5 + m_chart.LastObjectTime;
+            //bool isFinished = !m_audio.IsPlaying || m_audio.Position > m_chart.LastObjectTime;
+            bool isFinished = true;
 
             //ClientAs<NscClient>().CloseCurtain(() => Pop());
+            SetInvalidForResume();
+
             CloseCurtain(() =>
             {
                 var result = m_judge.GetScoringResult();
@@ -450,9 +452,6 @@ namespace NeuroSonic.GamePlay
                     //Push(new ChartResultLayer(m_locator, m_chartInfo, result));
                     Push(new NscLayer(m_locator, "game/results", m_chartInfo, result));
                 }
-
-                SetInvalidForResume();
-                Pop();
             });
         }
 
@@ -464,6 +463,7 @@ namespace NeuroSonic.GamePlay
         public override void Suspended(Layer nextLayer)
         {
             m_audioController.Stop();
+            base.Suspended(nextLayer);
         }
 
         public override void Resumed(Layer previousLayer)
@@ -644,6 +644,8 @@ namespace NeuroSonic.GamePlay
                     }
                 }
             }
+
+            base.ControllerButtonPressed(info);
         }
 
         public override void ControllerButtonReleased(ControllerButtonInfo info)
@@ -661,6 +663,8 @@ namespace NeuroSonic.GamePlay
                     }
                 }
             }
+
+            base.ControllerButtonReleased(info);
         }
 
         public override void ControllerAxisChanged(ControllerAxisInfo info)
@@ -673,6 +677,8 @@ namespace NeuroSonic.GamePlay
 
                  if (info.Axis == 0) UserInput_VolPulse(0, info.Delta);
             else if (info.Axis == 1) UserInput_VolPulse(1, info.Delta);
+
+            base.ControllerAxisChanged(info);
         }
 
         public override void KeyPressed(KeyInfo key)
@@ -695,6 +701,8 @@ namespace NeuroSonic.GamePlay
                     ExitGame();
                 } break;
             }
+
+            base.KeyPressed(key);
         }
 
         void UserInput_BtPress(int lane)
@@ -726,8 +734,8 @@ namespace NeuroSonic.GamePlay
             bool doAnim = true;
             switch (kind)
             {
-                case JudgeKind.Passive: doAnim = false; break;
-                case JudgeKind.Perfect: color = new Vector3(1, 1, 0); break;
+                case JudgeKind.Passive: doAnim = false; goto case JudgeKind.Perfect;
+                case JudgeKind.Perfect: color = new Vector3(1, 1, 0.5f); break;
                 case JudgeKind.Critical: color = new Vector3(1, 1, 0); break;
                 case JudgeKind.Near: color = isEarly ? new Vector3(1.0f, 0, 1.0f) : new Vector3(0.5f, 1, 0.25f); break;
                 case JudgeKind.Bad:
@@ -740,21 +748,23 @@ namespace NeuroSonic.GamePlay
 
         private void SetLuaDynamicData()
         {
-            m_gameTable["Progress"] = MathL.Clamp01((double)(m_audioController.Position / m_chart.LastObjectTime));
+            m_gameTable["progress"] = MathL.Clamp01((double)(m_audioController.Position / m_chart.LastObjectTime));
+            m_gameTable["bpm"] = MathL.FloorToInt(m_chart.ControlPoints.MostRecent(m_audioController.Position).BeatsPerMinute);
+            switch (NscConfig.HiSpeedModKind)
+            {
+                case HiSpeedMod.Default: m_gameTable["hispeed"] = m_tempHiSpeedMult * NscConfig.HiSpeed; break;
+                case HiSpeedMod.MMod: m_gameTable["hispeed"] = m_tempHiSpeedMult * NscConfig.ModSpeed / m_chart.ControlPoints.ModeBeatsPerMinute; break;
+                case HiSpeedMod.CMod: goto case HiSpeedMod.Default;
+            }
 
-            m_scoringTable["CurrentBpm"] = m_chart.ControlPoints.MostRecent(m_audioController.Position).BeatsPerMinute;
-            m_scoringTable["CurrentHiSpeed"] = 1.0;
-
-            m_scoringTable["Gauge"] = m_judge.Gauge;
-            m_scoringTable["Score"] = m_judge.Score;
+            m_scoringTable["gauge"] = m_judge.Gauge;
+            m_scoringTable["score"] = m_judge.Score;
         }
 
         float m_tempPitch = 0;
 
         public override void Update(float delta, float total)
         {
-            base.Update(delta, total);
-
             time_t audioPosition = m_audio?.Position ?? 0;
             time_t visualPosition = audioPosition - m_visualOffset;
 
@@ -981,7 +991,9 @@ namespace NeuroSonic.GamePlay
             m_background.Update(delta, total);
 
             SetLuaDynamicData();
-            m_guiScript.Update(delta, total);
+            //m_script.Update(delta, total);
+
+            base.Update(delta, total);
         }
 
         private void UpdateEffects()
@@ -1081,12 +1093,8 @@ namespace NeuroSonic.GamePlay
         {
             m_background.Render();
             m_highwayView.Render();
-        }
 
-        public override void LateRender()
-        {
-            base.LateRender();
-            m_guiScript.Render();
+            base.Render();
         }
     }
 }

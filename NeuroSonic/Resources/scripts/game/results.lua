@@ -23,15 +23,17 @@ function theori.layer.construct(c, r)
 end
 
 function theori.layer.init()
+    theori.graphics.openCurtain();
+
     theori.input.keyboard.pressed.connect(function(key)
         if (key == Key.ESCAPE) then
-            theori.graphics.closeCurtain(0.25, function() theori.layer.pop(); end);
+            theori.graphics.closeCurtain(0.25, theori.layer.pop);
         end
     end);
     
     theori.input.controller.pressed.connect(function(controller, button)
         if (button == "back") then
-            theori.graphics.closeCurtain(0.25, function() theori.layer.pop(); end);
+            theori.graphics.closeCurtain(0.25, theori.layer.pop);
         end
     end);
 end

@@ -123,6 +123,13 @@
     <None Remove="Resources\textures\chartSelect\setFrame.png" />
     <None Remove="Resources\textures\chartSelect\setTitlePlate.png" />
     <None Remove="Resources\textures\chartSelect\tempPortraitInfoPanelBackground.png" />
+    <None Remove="Resources\textures\game\gauge\anim_outline_gauge_eff.png" />
+    <None Remove="Resources\textures\game\gauge\anim_outline_text_eff.png" />
+    <None Remove="Resources\textures\game\gauge\fill_normal_eff.png" />
+    <None Remove="Resources\textures\game\gauge\fill_pass_eff.png" />
+    <None Remove="Resources\textures\game\gauge\gauge_back_eff.png" />
+    <None Remove="Resources\textures\game\gauge\gauge_clear_eff.png" />
+    <None Remove="Resources\textures\game\gauge\rate_bg.png" />
     <None Remove="Resources\textures\genericBackground_LS.png" />
     <None Remove="Resources\textures\genericBackground_PR.png" />
     <None Remove="Resources\textures\generic_bg_landscape.png" />
@@ -258,6 +265,13 @@
     <EmbeddedResource Include="Resources\textures\game\fx_hold.png" />
     <EmbeddedResource Include="Resources\textures\game\fx_hold_entry.png" />
     <EmbeddedResource Include="Resources\textures\game\fx_hold_exit.png" />
+    <EmbeddedResource Include="Resources\textures\game\gauge\anim_outline_gauge_eff.png" />
+    <EmbeddedResource Include="Resources\textures\game\gauge\anim_outline_text_eff.png" />
+    <EmbeddedResource Include="Resources\textures\game\gauge\fill_normal_eff.png" />
+    <EmbeddedResource Include="Resources\textures\game\gauge\fill_pass_eff.png" />
+    <EmbeddedResource Include="Resources\textures\game\gauge\gauge_back_eff.png" />
+    <EmbeddedResource Include="Resources\textures\game\gauge\gauge_clear_eff.png" />
+    <EmbeddedResource Include="Resources\textures\game\gauge\rate_bg.png" />
     <EmbeddedResource Include="Resources\textures\game\highway.png" />
     <EmbeddedResource Include="Resources\textures\game\key_beam.png" />
     <EmbeddedResource Include="Resources\textures\game\laser.png" />

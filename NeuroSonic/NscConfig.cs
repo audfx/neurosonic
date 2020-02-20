@@ -99,6 +99,7 @@ namespace NeuroSonic
         [Config] public static int InputOffset { get; set; }
         [Config] public static HiSpeedMod HiSpeedModKind { get; set; }
         [Config] public static float ModSpeed { get; set; } = 300;
+        [Config] public static float LaserSensitivity { get; set; } = 1.0f;
         [Config] public static int Laser0Color { get; set; } = 200;
         [Config] public static int Laser1Color { get; set; } = 300;
         [Config(Name = "3 BT + Start = Back")]

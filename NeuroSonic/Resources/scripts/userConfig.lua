@@ -209,6 +209,8 @@ local configOptions = {
     createRangeEntry("Hi Speed (multiplier)", "The multiplier for relative scroll speed modes.", "NeuroSonic.HiSpeed", 0.1, 10, 0.05),
     createRangeEntry("Mod Speed (bpm)", "The base BPM to base absolute scroll speed modes on.", "NeuroSonic.ModSpeed", 25, 2000, 5),
 
+    --createRangeEntry("Laser Sensitivity", "The laser sensitivity while playing the game.", "NeuroSonic.LaserSensitivityGame", 0, 10, 0.05),
+    
     createRangeEntry("Left Laser Color (Hue)", "The hue of the left laser graphics.", "NeuroSonic.Laser0Color", 0, 360, 5),
     createRangeEntry("Right Laser Color (Hue)", "The hue of the right laser graphics.", "NeuroSonic.Laser1Color", 0, 360, 5),
 
@@ -219,7 +221,7 @@ local configOptions = {
     createBindingEntry("BT-B", "The B button.", bGetBinds(1), bSetBinds(1), function() setToListenForInput("Bind `BT-B` Button.", setButtonBinding(1)); end),
     createBindingEntry("BT-C", "The C button.", bGetBinds(2), bSetBinds(2), function() setToListenForInput("Bind `BT-C` Button.", setButtonBinding(2)); end),
     createBindingEntry("BT-D", "The D button.", bGetBinds(3), bSetBinds(3), function() setToListenForInput("Bind `BT-D` Button.", setButtonBinding(3)); end),
-                                                           
+    
     createBindingEntry("FX-L", "The Left FX button.", bGetBinds(4), bSetBinds(4), function() setToListenForInput("Bind `FX-L` Button.", setButtonBinding(4)); end),
     createBindingEntry("FX-R", "The Right FX button.", bGetBinds(5), bSetBinds(5), function() setToListenForInput("Bind `FX-R` Button.", setButtonBinding(5)); end),
     

@@ -1,5 +1,5 @@
 
-local livebg = include "livebg";
+--local livebg = include "livebg";
 
 LayoutKind = "Landscape";
 
@@ -59,11 +59,11 @@ function Layout.DrawBackgroundFilled(bgTex)
 end
 
 function Layout.UpdateLiveBackground(delta, total)
-	livebg.setScroll(total * 0.05);
+	--livebg.setScroll(total * 0.05);
 end
 
 function Layout.DrawLiveBackground()
-	livebg.render();
+	--livebg.render();
 end
 
 function Layout.CheckLayout()
