@@ -658,17 +658,21 @@ local function renderCell(chart, x, y, w, h, partial)
 	end
 
 	if (chart and not partial) then
+		theori.graphics.setFontSize(h * 0.075);
+
 		local titleBoundsX, _ = theori.graphics.measureString(chart.songTitle);
-		local centerTitle, scrollTime = titleBoundsX < w * 0.8, math.floor((titleBoundsX - w * 0.8) / 25);
-		local titleOffsetX = centerTitle and w * 0.4 or -math.max(0, math.min(scrollTime, selectedSongTitleScrollTimer % (2 + scrollTime) - 1)) * (titleBoundsX - w * 0.8);
+
+		local centerTitle = titleBoundsX < w * 0.8;
+		local expectedScrollTime = (titleBoundsX - w * 0.8) / 40;
+		local relativeTime = math.max(0, math.min(1, ((selectedSongTitleScrollTimer % (4 + expectedScrollTime)) - 2) / expectedScrollTime));
+		local titleOffsetX = centerTitle and w * 0.4 or - relativeTime * (titleBoundsX - w * 0.8 + 1);
 
 		if (not centerTitle) then
 			theori.graphics.saveScissor();
-			theori.graphics.scissor(x * LayoutScale + w * LayoutScale * 0.1, y * LayoutScale + h * LayoutScale * 0.7, w * LayoutScale * 0.8, h * LayoutScale * 0.3);
+			theori.graphics.scissor(x * LayoutScale + w * LayoutScale * 0.1, y * LayoutScale + h * LayoutScale * 0.7 + 0.5, w * LayoutScale * 0.8, h * LayoutScale * 0.3 + 0.5);
 		end
 
 		theori.graphics.setFont(nil);
-		theori.graphics.setFontSize(h * 0.075);
 		theori.graphics.setTextAlign(centerTitle and Anchor.MiddleCenter or Anchor.MiddleLeft);
 		theori.graphics.setFillToColor(255, 255, 255, 255);
 		theori.graphics.fillString(chart.songTitle, x + w * 0.1 + titleOffsetX, y + h * 0.825);

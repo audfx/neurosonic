@@ -75,6 +75,7 @@
     <None Remove="Resources\scripts\game.lua" />
     <None Remove="Resources\scripts\game\results.lua" />
     <None Remove="Resources\scripts\generic-layer.lua" />
+    <None Remove="Resources\scripts\initialSetup.lua" />
     <None Remove="Resources\scripts\layerLayout.lua" />
     <None Remove="Resources\scripts\linearToggle.lua" />
     <None Remove="Resources\scripts\livebg.lua" />
@@ -177,6 +178,7 @@
     <None Remove="Resources\textures\spritenums\slant\9.png" />
     <None Remove="Resources\textures\startButton.png" />
     <None Remove="Resources\textures\start_button.png" />
+    <None Remove="Resources\textures\tile.png" />
     <None Remove="Resources\textures\title.png" />
   </ItemGroup>
 
@@ -203,6 +205,7 @@
     <EmbeddedResource Include="Resources\scripts\game\results.lua" />
     <EmbeddedResource Include="Resources\scripts\game\main.lua" />
     <EmbeddedResource Include="Resources\scripts\generic-layer.lua" />
+    <EmbeddedResource Include="Resources\scripts\initialSetup.lua" />
     <EmbeddedResource Include="Resources\scripts\layerLayout.lua" />
     <EmbeddedResource Include="Resources\scripts\linearToggle.lua" />
     <EmbeddedResource Include="Resources\scripts\livebg.lua" />
@@ -326,6 +329,7 @@
     <EmbeddedResource Include="Resources\textures\spritenums\slant\7.png" />
     <EmbeddedResource Include="Resources\textures\spritenums\slant\8.png" />
     <EmbeddedResource Include="Resources\textures\spritenums\slant\9.png" />
+    <EmbeddedResource Include="Resources\textures\tile.png" />
     <EmbeddedResource Include="Resources\textures\title.png" />
   </ItemGroup>
 

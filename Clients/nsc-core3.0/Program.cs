@@ -79,7 +79,7 @@ namespace NeuroSonic.Core30
             }
 
             using var host = Host.GetSuitableHost(ClientSkinService.CurrentlySelectedSkin);
-            host.Initialize();
+            host.Initialize("NeuroSonic");
 
             using (var _ = Profiler.Scope("Chart Entity Type Registration"))
             {
