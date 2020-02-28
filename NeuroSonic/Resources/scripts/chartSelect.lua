@@ -1,5 +1,6 @@
 
 include "layerLayout";
+include "util.textures";
 
 local textInput = include "util.textInput";
 
@@ -98,8 +99,6 @@ local audio =
 {
 	clicks = { },
 };
-
-local currentNoiseTexture;
 --------------------------------------------------
 
 
@@ -440,26 +439,28 @@ function theori.layer.doAsyncLoad()
 		textures.noise[i] = theori.graphics.queueTextureLoad("noise/" .. i);
 	end
 
-    textures.legend.a = theori.graphics.queueTextureLoad("legend/bt/a");
-    textures.legend.b = theori.graphics.queueTextureLoad("legend/bt/b");
-    textures.legend.c = theori.graphics.queueTextureLoad("legend/bt/c");
-    textures.legend.d = theori.graphics.queueTextureLoad("legend/bt/d");
-    textures.legend.l = theori.graphics.queueTextureLoad("legend/fx/l");
-    textures.legend.r = theori.graphics.queueTextureLoad("legend/fx/r");
-    textures.legend.lr = theori.graphics.queueTextureLoad("legend/fx/lr");
-    textures.legend.start = theori.graphics.queueTextureLoad("legend/start");
+	--[[
+    textures.legend.a = theori.graphics.getStaticTexture("legend/bt/a");
+    textures.legend.b = theori.graphics.getStaticTexture("legend/bt/b");
+    textures.legend.c = theori.graphics.getStaticTexture("legend/bt/c");
+    textures.legend.d = theori.graphics.getStaticTexture("legend/bt/d");
+    textures.legend.l = theori.graphics.getStaticTexture("legend/fx/l");
+    textures.legend.r = theori.graphics.getStaticTexture("legend/fx/r");
+    textures.legend.lr = theori.graphics.getStaticTexture("legend/fx/lr");
+    textures.legend.start = theori.graphics.getStaticTexture("legend/start");
     
-	textures.badges.Perfect = theori.graphics.queueTextureLoad("badges/Perfect");
-	textures.badges.S = theori.graphics.queueTextureLoad("badges/S");
-	textures.badges.AAAX = theori.graphics.queueTextureLoad("badges/AAAX");
-	textures.badges.AAA = theori.graphics.queueTextureLoad("badges/AAA");
-	textures.badges.AAX = theori.graphics.queueTextureLoad("badges/AAX");
-	textures.badges.AA = theori.graphics.queueTextureLoad("badges/AA");
-	textures.badges.AX = theori.graphics.queueTextureLoad("badges/AX");
-	textures.badges.A = theori.graphics.queueTextureLoad("badges/A");
-	textures.badges.B = theori.graphics.queueTextureLoad("badges/B");
-	textures.badges.C = theori.graphics.queueTextureLoad("badges/C");
-	textures.badges.F = theori.graphics.queueTextureLoad("badges/F");
+	textures.badges.Perfect = theori.graphics.getStaticTexture("badges/Perfect");
+	textures.badges.S = theori.graphics.getStaticTexture("badges/S");
+	textures.badges.AAAX = theori.graphics.getStaticTexture("badges/AAAX");
+	textures.badges.AAA = theori.graphics.getStaticTexture("badges/AAA");
+	textures.badges.AAX = theori.graphics.getStaticTexture("badges/AAX");
+	textures.badges.AA = theori.graphics.getStaticTexture("badges/AA");
+	textures.badges.AX = theori.graphics.getStaticTexture("badges/AX");
+	textures.badges.A = theori.graphics.getStaticTexture("badges/A");
+	textures.badges.B = theori.graphics.getStaticTexture("badges/B");
+	textures.badges.C = theori.graphics.getStaticTexture("badges/C");
+	textures.badges.F = theori.graphics.getStaticTexture("badges/F");
+	--]]
 
     textures.cursor = theori.graphics.queueTextureLoad("chartSelect/cursor");
     textures.cursorOuter = theori.graphics.queueTextureLoad("chartSelect/cursorOuter");
@@ -503,6 +504,13 @@ function theori.layer.resumed()
 end
 
 function theori.layer.init()
+	getLegends(textures.legend);
+	getLegends(textures.badges);
+
+    theori.charts.setDatabaseToClean(function()
+        theori.charts.setDatabaseToPopulate(function() print("Populate (from chart select) finished."); end);
+    end);
+
 	audio.clicks.primary.volume = 0.5;
 	gridCameraPosTarget = getGridCameraPosition();
 

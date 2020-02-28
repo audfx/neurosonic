@@ -8,7 +8,11 @@ local alpha = 0;
 local timer = 0;
 
 local transitionFunction = function()
-    theori.layer.push("titleScreen");
+    if (theori.isFirstLaunch()) then
+        theori.layer.push("initialSetup");
+    else
+        theori.layer.push("titleScreen");
+    end
 end;
 
 function theori.layer.init()

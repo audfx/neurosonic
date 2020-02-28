@@ -47,7 +47,10 @@ local buttons = {
                 theori.graphics.closeCurtain(0.2, function() theori.layer.push("chartSelect"); end);
             end),
 
-            createButton("FRIEND", "matching", "Play NeuroSonic, but with friends.", nil),
+            createButton("FRIEND", "matching", "Play NeuroSonic, but with friends.", function()
+                titleLoop.stop();
+                theori.graphics.closeCurtain(0.2, function() theori.layer.push("multiplayer"); end);
+            end),
 
             createButton("EDITOR", "editor", "Create and edit custom charts for your favorite songs.", nil),
 
@@ -109,6 +112,10 @@ function theori.layer.resumed()
 end
 
 function theori.layer.init()
+    theori.charts.setDatabaseToClean(function()
+        theori.charts.setDatabaseToPopulate(function() print("Populate (from chart select) finished."); end);
+    end);
+
     titleTexture = theori.graphics.getStaticTexture("title");
 
     titleLoop = theori.audio.getStaticAudio("launchtower-title-loop");

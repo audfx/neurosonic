@@ -41,10 +41,22 @@ local function notifyUser(message)
     notifyTimer = 8;
 end
 
+local function disableSpecialHotkeys()
+    theori.config.set("NeuroSonic.__processSpecialHotkeys", false);
+end
+
+local function enableSpecialHotkeys()
+    theori.config.set("NeuroSonic.__processSpecialHotkeys", true);
+end
+
 local function setToListenForInput(prompt, callback)
+    disableSpecialHotkeys();
+
     isListeningForInput = true;
     inputPrompt = prompt;
     onInputListened = function(device, input, axis)
+        enableSpecialHotkeys();
+
         listenDebounce = true;
         isListeningForInput = false;
         callback(device, input, axis);
@@ -191,6 +203,18 @@ local function createBindingEntry(title, desc, getBindingCallback, setBindingCal
     return result;
 end
 
+local function createTextEntry(title, desc, configKey, onChangedCallback)
+    local result = linearToggle();
+    result.kind = "text";
+    result.title = title;
+    result.desc = desc;
+    result.key = configKey;
+    result.onChangedCallback = onChangedCallback;
+    result.callback = function()
+    end;
+    return result;
+end
+
 local function bGetBinds(label) return function(self) return controller.getButtonBindings(label); end; end
 local function aGetBinds(label) return function(self) return controller.getAxisBindings(label); end; end
 
@@ -209,11 +233,27 @@ local configOptions = {
     createRangeEntry("Hi Speed (multiplier)", "The multiplier for relative scroll speed modes.", "NeuroSonic.HiSpeed", 0.1, 10, 0.05),
     createRangeEntry("Mod Speed (bpm)", "The base BPM to base absolute scroll speed modes on.", "NeuroSonic.ModSpeed", 25, 2000, 5),
 
+    createTextEntry("Charts Directory", "Where NeuroSonic can should search for charts.", "theori.ChartsDirectory", function()
+        theori.charts.setDatabaseToClean(function()
+            theori.charts.setDatabaseToPopulate(function() print("Populate (from user config) finished."); end);
+        end);
+    end),
+
     --createRangeEntry("Laser Sensitivity", "The laser sensitivity while playing the game.", "NeuroSonic.LaserSensitivityGame", 0, 10, 0.05),
     
     createRangeEntry("Left Laser Color (Hue)", "The hue of the left laser graphics.", "NeuroSonic.Laser0Color", 0, 360, 5),
     createRangeEntry("Right Laser Color (Hue)", "The hue of the right laser graphics.", "NeuroSonic.Laser1Color", 0, 360, 5),
 
+    createBindingEntry("Controller Toggle Key", "A keyboard key which toggles the controller input functionality.", function() return { { device = "keyboard", input = theori.config.get("NeuroSonic.ControllerToggle") } }; end, nil, function()
+        setToListenForInput("Bind Controller Toggle Key.", function(device, input, axis)
+            if (device ~= "keyboard") then
+                notifyUser("Only a keyboard key may be used as a controller toggle binding.");
+            end
+
+            theori.config.set("NeuroSonic.ControllerToggle", input);
+        end);
+    end),
+    
     createBindingEntry("Start Button", "The start button.", bGetBinds("start"), bSetBinds("start"), function() setToListenForInput("Bind `Start` Button.", setButtonBinding("start")); end),
     createBindingEntry("Back Button", "The back button.", bGetBinds("back"), bSetBinds("back"), function() setToListenForInput("Bind `Back` Button.", setButtonBinding("back")); end),
     
@@ -239,6 +279,11 @@ function theori.layer.doAsyncLoad()
 end
 
 function theori.layer.construct()
+end
+
+function theori.layer.destroy()
+    print("Leaving user config screen.");
+    enableSpecialHotkeys();
 end
 
 function theori.layer.onClientSizeChanged(w, h)
@@ -287,7 +332,7 @@ function theori.layer.init()
 
                     configOptions[configIndex]:setBindings(bindings);
                 end
-            else
+            elseif (configOptions[configIndex].callback) then
                 configOptions[configIndex].callback();
             end
         end
@@ -310,7 +355,7 @@ function theori.layer.init()
 
                     configOptions[configIndex]:setBindings(bindings);
                 end
-            else
+            elseif (configOptions[configIndex].callback) then
                 configOptions[configIndex].callback();
             end
         elseif (key == KeyCode.LEFT) then
@@ -341,6 +386,8 @@ function theori.layer.init()
     theori.input.keyboard.pressedRaw.connect(function(key)
         if (isListeningForInput) then
             if (key == KeyCode.ESCAPE) then
+                enableSpecialHotkeys();
+
                 isListeningForInput = false;
                 listenDebounce = true;
                 onInputListened = nil;
@@ -485,6 +532,17 @@ function Layouts.Landscape.Render(self)
                 if (opt.index < #opt.combos) then
                     theori.graphics.fillRect(xCenter + optionWidth / 2 + 25, yPos - 5, 10, 10);
                 end
+            elseif (opt.kind == "text") then
+                local boxWidth = w * 0.5;
+                local boxXPos = w * 0.975 - boxWidth;
+                local boxYPosBottom = yPos + itemHeight * 0.3;
+
+                theori.graphics.fillRect(boxXPos, boxYPosBottom + 1, boxWidth, 1);
+
+                theori.graphics.setFont(nil);
+                theori.graphics.setFontSize(itemHeight * 0.8);
+                theori.graphics.setTextAlign(Anchor.BottomLeft);
+                theori.graphics.fillString(opt.title, boxXPos, boxYPosBottom - 1);
             elseif (opt.kind == "binding") then
                 local rangeWidth = w * 0.5;
                 local xCenter = w * 0.975 - rangeWidth / 2;
@@ -532,18 +590,20 @@ function Layouts.Landscape.Render(self)
                     theori.graphics.fillString(device, xBindingCenter, yPos);
                 end
 
-                for j = #bindings + 1, 2 do
-                    local xBindingWidth = rangeWidth / 4;
-                    local xBindingCenter = xCenter - rangeWidth / 4 + (j - 1) * rangeWidth / 2;
+                if (opt.setBindings) then
+                    for j = #bindings + 1, 2 do
+                        local xBindingWidth = rangeWidth / 4;
+                        local xBindingCenter = xCenter - rangeWidth / 4 + (j - 1) * rangeWidth / 2;
                     
-                    if (i == configIndex and j == bindingIndex) then
-                        theori.graphics.setFillToColor(127, 127, 50, 255);
-                    else
-                        theori.graphics.setFillToColor(127, 127, 127, 255);
+                        if (i == configIndex and j == bindingIndex) then
+                            theori.graphics.setFillToColor(127, 127, 50, 255);
+                        else
+                            theori.graphics.setFillToColor(127, 127, 127, 255);
+                        end
+                        theori.graphics.setFontSize(itemHeight * 0.65);
+                        theori.graphics.setTextAlign(Anchor.Center);
+                        theori.graphics.fillString("Not Bound", xBindingCenter, yPos);
                     end
-                    theori.graphics.setFontSize(itemHeight * 0.65);
-                    theori.graphics.setTextAlign(Anchor.Center);
-                    theori.graphics.fillString("Not Bound", xBindingCenter, yPos);
                 end
             end
         end

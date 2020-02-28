@@ -106,6 +106,8 @@ namespace NeuroSonic
         public static bool Allow3BtStart { get; set; } = false;
         [Config] public static int LaserInputSmoothing { get; set; } = 2;
 
+        [Config] public static KeyCode ControllerToggle { get; set; } = KeyCode.F12;
+
 #if false
         protected override void SetDefaults()
         {

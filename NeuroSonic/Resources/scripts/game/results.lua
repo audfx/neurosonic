@@ -26,7 +26,7 @@ function theori.layer.init()
     theori.graphics.openCurtain();
 
     theori.input.keyboard.pressed.connect(function(key)
-        if (key == Key.ESCAPE) then
+        if (key == KeyCode.ESCAPE) then
             theori.graphics.closeCurtain(0.25, theori.layer.pop);
         end
     end);
