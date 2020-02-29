@@ -63,9 +63,9 @@ function theori.layer.init()
         theori.charts.setDatabaseToPopulate(function() print("Populate (from driver) finished."); end);
     end);
 
-    theori.layer.push("chartSelect");
+    --theori.layer.push("chartSelect");
     --theori.layer.push("multiplayer");
-    --theori.layer.push("splashScreen");
+    theori.layer.push("splashScreen");
     --theori.graphics.closeCurtain(0.25, function() theori.layer.push("userConfig"); end);
     --theori.graphics.closeCurtain(0.25, function() theori.layer.push("chartSelect"); end);
 end
