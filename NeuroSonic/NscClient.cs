@@ -99,6 +99,8 @@ namespace NeuroSonic.Platform
             batch.SetFillColor(Vector4.One);
             batch.SetTextAlign(Anchor.BottomLeft);
             batch.FillString($"v{typeof(NscClient).Assembly.GetName().Version.ToString()} - {string.Join(", ", UserInputService.InputModes.Explode()).ToLower()}", 5, Window.Height - 5);
+            batch.SetTextAlign(Anchor.BottomRight);
+            batch.FillString($"{Host.TempFps}", Window.Width - 5, Window.Height - 5);
 
             base.EndRenderStep();
         }
