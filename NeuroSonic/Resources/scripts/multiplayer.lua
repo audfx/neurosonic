@@ -222,6 +222,12 @@ end
 
 function defaultState.renderLandscape(self)
     Layout.DrawBackgroundFilled(Layouts.Landscape.Background);
+
+	local tbMargin = LayoutHeight * 0.1;
+
+	theori.graphics.setFillToColor(0, 0, 0, 150);
+	theori.graphics.fillRect(0, 0, LayoutWidth, tbMargin);
+	theori.graphics.fillRect(0, LayoutHeight - tbMargin, LayoutWidth, tbMargin);
 end
 
 function defaultState.renderPortrait(self)

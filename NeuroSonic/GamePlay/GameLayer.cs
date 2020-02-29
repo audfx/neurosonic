@@ -864,11 +864,11 @@ namespace NeuroSonic.GamePlay
             m_highwayControl.Offset = GetPathValueLerped(visualPosition, NscLane.CameraOffset);
             m_highwayControl.Roll = GetPathValueLerped(visualPosition, NscLane.CameraTilt);
 
-            m_highwayView.Split0 = GetPathValueLerped(visualPosition, NscLane.Split0);
-            m_highwayView.Split1 = GetPathValueLerped(visualPosition, NscLane.Split1);
+            m_highwayView.Split0 = GetPathValueLerped(visualPosition, NscLane.Split2);
+            m_highwayView.Split1 = GetPathValueLerped(visualPosition, NscLane.Split2);
             m_highwayView.Split2 = GetPathValueLerped(visualPosition, NscLane.Split2);
-            m_highwayView.Split3 = GetPathValueLerped(visualPosition, NscLane.Split3);
-            m_highwayView.Split4 = GetPathValueLerped(visualPosition, NscLane.Split4);
+            m_highwayView.Split3 = GetPathValueLerped(visualPosition, NscLane.Split2);
+            m_highwayView.Split4 = GetPathValueLerped(visualPosition, NscLane.Split2);
 
             for (int i = 0; i < 8; i++)
             {

@@ -140,6 +140,10 @@ for _, v in next, theori.charts.getFolderNames() do
 	chartListFilters[v] = function(chart) return checkTopDir(chart.set.filePath, v) and verifySearch(chart); end;
 end
 
+for i = 1, 20 do
+	chartListFilters[i] = function(chart) return chart.difficultyLevel == i and verifySearch(chart); end;
+end
+
 local chartListGroupings =
 {
 	level = function(chart) return chart.difficultyLevel; end,
@@ -209,7 +213,7 @@ local function getSetChartRefs(setId)
 		return cached.relatedSets;
 	end
 
-	local related = { primary };
+	local related = { };
 	for gi, group in next, charts do
 		for ci, chart in next, group do
 			if (chart.setID == setId) then
@@ -337,11 +341,24 @@ local function jumpToChartIfExists(setId, chartId)
 
 	local chartRefs = getSetChartRefs(setId);
 	if (not chartRefs or #chartRefs == 0) then return false; end
-
+	
 	for _, cref in next, chartRefs do
-		if (cref.chart.ID == chartID) then
+		if (cref.chart.ID == chartId) then
 			groupIndex = cref.groupIndex;
 			cellIndex = cref.cellIndex;
+
+			slotIndex = 1;
+			slotChildIndex = 1;
+
+			local slots = getSetSlots(cref.chart.set);
+			for i, diffs in next, slots do
+				for j, cref in next, diffs do
+					if (cref.chart.ID == chartId) then
+						slotIndex = i;
+						slotChildIndex = j;
+					end
+				end
+			end
 
 			gridCameraPosTarget = getGridCameraPosition();
 
@@ -352,15 +369,28 @@ local function jumpToChartIfExists(setId, chartId)
 	return false;
 end
 
+local lastChart;
 local function updateChartConfiguration()
-	local lastChart;
 	if (charts and #charts > 0) then
 		lastChart = charts[groupIndex][cellIndex];
 	end
 
-	charts, chartsCache = getFilteredChartsForConfiguration(filterName, groupName, sortName);
+	local checkSetId, checkChartId;
+	if (lastChart) then
+		checkSetId = lastChart.setID;
+		checkChartId = lastChart.ID;
+	else
+		checkSetId = theori.config.get("lastSetId") or -1;
+		checkChartId = theori.config.get("lastChartId") or -1;
+	end
+	
+	theori.config.set("lastSetId", checkSetId);
+	theori.config.set("lastChartId", checkChartId);
 
-	if (lastChart and not jumpToChartIfExists(lastChart.set.ID, lastChart.ID)) then
+	theori.config.save();
+
+	charts, chartsCache = getFilteredChartsForConfiguration(filterName, groupName, sortName);
+	if (not jumpToChartIfExists(checkSetId, checkChartId)) then
 		groupIndex = 1;
 		cellIndex = 1;
 
@@ -972,6 +1002,13 @@ function defaultState.axisTicked(self, controller, axis, dir)
 		local nextChartRef = setSlots[slotIndex][slotChildIndex];
 		groupIndex = nextChartRef.groupIndex;
 		cellIndex = nextChartRef.cellIndex;
+	
+		chart = charts[groupIndex][cellIndex];
+
+		theori.config.set("lastSetId", chart.setID);
+		theori.config.set("lastChartId", chart.ID);
+
+		theori.config.save();
 				
 		gridCameraPosTarget = getGridCameraPosition();
 		infoBounceTimer = 1;
@@ -993,12 +1030,18 @@ function defaultState.axisTicked(self, controller, axis, dir)
 			cellIndex = 1;
 		end
 
-		slotIndex = charts[groupIndex][cellIndex].difficultyIndex;
+		local chart = charts[groupIndex][cellIndex];
+		slotIndex = chart.difficultyIndex;
 		slotChildIndex = 1;
+	
+		theori.config.set("lastSetId", chart.setID);
+		theori.config.set("lastChartId", chart.ID);
+
+		theori.config.save();
 
 		gridCameraPosTarget = getGridCameraPosition();
 		infoBounceTimer = 1;
-			
+		
 		audio.clicks.primary.playFromStart();
     end
 end
@@ -1049,6 +1092,23 @@ local fxlState =
 						onSelected = function(self)
 							currentChartCollectionName = nil;
 							filterName = self.name;
+						end,
+					});
+				end
+				return subFolder;
+			end,
+		},
+
+		{
+			name = "Levels",
+			onSelected = function(self)
+				local subFolder = { };
+				for i = 1, 20 do
+					table.insert(subFolder, {
+						name = "Level " .. tostring(i),
+						onSelected = function(self)
+							--currentChartCollectionName = nil;
+							filterName = i;
 						end,
 					});
 				end

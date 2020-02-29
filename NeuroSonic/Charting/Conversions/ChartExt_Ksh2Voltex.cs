@@ -332,6 +332,7 @@ namespace NeuroSonic.Charting.Conversions
                             Logger.Log($"ksh.convert({ chartPos }) split 1 (a-b) { setting.Value }");
                         } break;
                         
+                        case "center_split":
                         case "split_2":
                         {
                             var point = chart[NscLane.Split2].Add<GraphPointEvent>(chartPos);
